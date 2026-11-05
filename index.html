@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#151719">
+<title>BX-HEN V3 · Laboratório</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;background:#111315;color:#eceeef}
+*{box-sizing:border-box}body{margin:0}header{border-bottom:1px solid #34383c;padding:20px max(20px,calc((100vw - 960px)/2));display:flex;justify-content:space-between;align-items:center}
+.brand{font-weight:750;letter-spacing:.05em}.tag{font-size:.8rem;color:#b7bdc2;border:1px solid #42474c;border-radius:20px;padding:5px 10px}
+main{max-width:960px;margin:auto;padding:64px 20px}h1{font-size:clamp(2rem,6vw,3.5rem);letter-spacing:-.045em;margin:0 0 14px}p{color:#b9bec3;line-height:1.65}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:36px}.card{background:#1c1f22;border:1px solid #34383c;border-radius:14px;padding:22px}.card h2{font-size:1.1rem;margin:0 0 8px}.card p{margin:0}
+button{margin-top:18px;background:#e4e7e9;color:#151719;border:0;border-radius:9px;padding:12px 16px;font-weight:700;cursor:pointer}
+button:focus-visible{outline:3px solid #8cb5d7;outline-offset:3px}
+#status{margin-top:14px;min-height:1.5em}footer{border-top:1px solid #34383c;color:#92999f;padding:24px;text-align:center;font-size:.85rem}
+</style>
+</head>
+<body>
+<header><span class="brand">BX-HEN <span style="color:#a9afb5">V3</span></span><span class="tag">Laboratório privado · base 1.0</span></header>
+<main>
+<h1>Uma nova base.<br>Sem complicações.</h1>
+<p>Interface experimental do BX-HEN V3. Projeto independente, com visual neutro e preparado para uma futura API no Cloudflare Workers.</p>
+<div class="grid">
+<section class="card"><h2>Ambiente</h2><p>Verifique os recursos básicos do navegador.</p><button id="check" type="button">Verificar ambiente</button><p id="status" role="status" aria-live="polite"></p></section>
+<section class="card"><h2>Cloudflare</h2><p>Integração futura. Nenhuma chamada externa está configurada nesta versão.</p></section>
+<section class="card"><h2>BX-HEN</h2><p>Estrutura visual inicial. Nenhum payload ou desbloqueio é executado nesta página.</p></section>
+</div>
+</main><footer>BX-HEN V3 · CT7-BX · Protótipo inicial</footer>
+<script>
+document.getElementById('check').addEventListener('click',()=>{
+const supported=typeof fetch==='function'&&typeof Promise==='function';
+document.getElementById('status').textContent=supported?'Recursos básicos disponíveis.':'Navegador com suporte limitado.';
+});
+</script>
+</body></html>
