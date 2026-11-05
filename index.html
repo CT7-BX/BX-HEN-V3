@@ -10,8 +10,8 @@
 .brand{font-weight:750;letter-spacing:.05em}.tag{font-size:.8rem;color:#b7bdc2;border:1px solid #42474c;border-radius:20px;padding:5px 10px}
 main{max-width:960px;margin:auto;padding:64px 20px}h1{font-size:clamp(2rem,6vw,3.5rem);letter-spacing:-.045em;margin:0 0 14px}p{color:#b9bec3;line-height:1.65}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:36px}.card{background:#1c1f22;border:1px solid #34383c;border-radius:14px;padding:22px}.card h2{font-size:1.1rem;margin:0 0 8px}.card p{margin:0}
-button{margin-top:18px;background:#e4e7e9;color:#151719;border:0;border-radius:9px;padding:12px 16px;font-weight:700;cursor:pointer}
-button:focus-visible{outline:3px solid #8cb5d7;outline-offset:3px}
+button,.action{display:inline-block;text-decoration:none;margin-top:18px;background:#e4e7e9;color:#151719;border:0;border-radius:9px;padding:12px 16px;font-weight:700;cursor:pointer}
+.action:focus-visible,button:focus-visible{outline:3px solid #8cb5d7;outline-offset:3px}
 #status{margin-top:14px;min-height:1.5em}footer{border-top:1px solid #34383c;color:#92999f;padding:24px;text-align:center;font-size:.85rem}
 </style>
 </head>
@@ -21,16 +21,14 @@ button:focus-visible{outline:3px solid #8cb5d7;outline-offset:3px}
 <h1>Uma nova base.<br>Sem complicações.</h1>
 <p>Interface experimental do BX-HEN V3. Projeto independente, com visual neutro e preparado para uma futura API no Cloudflare Workers.</p>
 <div class="grid">
-<section class="card"><h2>Ambiente</h2><p>Verifique os recursos básicos do navegador.</p><button id="check" type="button">Verificar ambiente</button><p id="status" role="status" aria-live="polite"></p></section>
-<section class="card"><h2>Cloudflare</h2><p>Integração futura. Nenhuma chamada externa está configurada nesta versão.</p></section>
-<section class="card"><h2>GoldHEN · Integração visual</h2><p>Base de referência: GoldHEN 2.4b18.13. Esta interface não altera nem carrega o GoldHEN.</p><button id="goldhen-info" type="button">Verificar integração</button><p id="goldhen-status" role="status" aria-live="polite"></p></section>
-</div>
+<section class="card"><h2>BX-HEN · Nosso projeto</h2><p>Área experimental hospedada no Cloudflare. O desbloqueio próprio ainda está em desenvolvimento.</p><a class="action" href="https://bx-hen.4rt949zpj8.workers.dev/teste/" rel="noopener noreferrer">Abrir BX-HEN no Cloudflare</a></section>
+<section class="card"><h2>GoldHEN</h2><p>Integração de carregamento ainda não configurada nem validada para este PS4.</p><button type="button" data-info="GoldHEN">Consultar status</button></section>
+<section class="card"><h2>PS4HEN</h2><p>Integração de carregamento ainda não configurada nem validada para este PS4.</p><button type="button" data-info="PS4HEN">Consultar status</button></section>
+</div><p id="integration-status" role="status" aria-live="polite"></p>
 </main><footer>BX-HEN V3 · CT7-BX · Protótipo inicial</footer>
 <script>
-document.getElementById('goldhen-info').addEventListener('click',()=>{document.getElementById('goldhen-status').textContent='Interface preparada. Carregador não configurado; compatibilidade com o PS4 não validada.';});
-document.getElementById('check').addEventListener('click',()=>{
-const supported=typeof fetch==='function'&&typeof Promise==='function';
-document.getElementById('status').textContent=supported?'Recursos básicos disponíveis.':'Navegador com suporte limitado.';
-});
+document.querySelectorAll('[data-info]').forEach(button=>button.addEventListener('click',()=>{
+document.getElementById('integration-status').textContent=button.dataset.info+': carregamento não configurado. Este painel não executa desbloqueio.';
+}));
 </script>
 </body></html>
