@@ -16,19 +16,15 @@ button,.action{display:inline-block;text-decoration:none;margin-top:18px;backgro
 </style>
 </head>
 <body>
-<header><span class="brand">BX-HEN <span style="color:#a9afb5">V3</span></span><span class="tag">Laboratório privado · base 1.0</span></header>
+<header><span class="brand">BX-HEN <span style="color:#a9afb5">V3</span></span><span class="tag">Versão experimental</span></header>
 <main>
 <h1>Uma nova base.<br>Sem complicações.</h1>
 <p>Interface experimental do BX-HEN V3. Projeto independente, com visual neutro e preparado para uma futura API no Cloudflare Workers.</p>
 <div class="grid">
 <section class="card"><h2>BX-HEN · Nosso projeto</h2><p>Área experimental hospedada no Cloudflare. O desbloqueio próprio ainda está em desenvolvimento.</p><a class="action" href="https://bx-hen.4rt949zpj8.workers.dev/teste/" rel="noopener noreferrer">Abrir BX-HEN no Cloudflare</a></section>
-<section class="card"><h2>GoldHEN</h2><p>Integração de carregamento ainda não configurada nem validada para este PS4.</p><button type="button" data-info="GoldHEN">Consultar status</button></section>
-<section class="card"><h2>PS4HEN</h2><p>Integração de carregamento ainda não configurada nem validada para este PS4.</p><button type="button" data-info="PS4HEN">Consultar status</button></section>
-</div><p id="integration-status" role="status" aria-live="polite"></p>
+
+
+</div>
 </main><footer>BX-HEN V3 · CT7-BX · Protótipo inicial</footer>
-<script>
-document.querySelectorAll('[data-info]').forEach(button=>button.addEventListener('click',()=>{
-document.getElementById('integration-status').textContent=button.dataset.info+': carregamento não configurado. Este painel não executa desbloqueio.';
-}));
-</script>
+
 </body></html>
