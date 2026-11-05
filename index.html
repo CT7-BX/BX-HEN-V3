@@ -23,10 +23,11 @@ button:focus-visible{outline:3px solid #8cb5d7;outline-offset:3px}
 <div class="grid">
 <section class="card"><h2>Ambiente</h2><p>Verifique os recursos básicos do navegador.</p><button id="check" type="button">Verificar ambiente</button><p id="status" role="status" aria-live="polite"></p></section>
 <section class="card"><h2>Cloudflare</h2><p>Integração futura. Nenhuma chamada externa está configurada nesta versão.</p></section>
-<section class="card"><h2>BX-HEN</h2><p>Estrutura visual inicial. Nenhum payload ou desbloqueio é executado nesta página.</p></section>
+<section class="card"><h2>GoldHEN · Integração visual</h2><p>Base de referência: GoldHEN 2.4b18.13. Esta interface não altera nem carrega o GoldHEN.</p><button id="goldhen-info" type="button">Verificar integração</button><p id="goldhen-status" role="status" aria-live="polite"></p></section>
 </div>
 </main><footer>BX-HEN V3 · CT7-BX · Protótipo inicial</footer>
 <script>
+document.getElementById('goldhen-info').addEventListener('click',()=>{document.getElementById('goldhen-status').textContent='Interface preparada. Carregador não configurado; compatibilidade com o PS4 não validada.';});
 document.getElementById('check').addEventListener('click',()=>{
 const supported=typeof fetch==='function'&&typeof Promise==='function';
 document.getElementById('status').textContent=supported?'Recursos básicos disponíveis.':'Navegador com suporte limitado.';
