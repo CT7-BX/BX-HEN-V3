@@ -20,7 +20,62 @@ button,.action{display:inline-block;text-decoration:none;margin-top:18px;backgro
 <main>
 <h1>Uma nova base.<br>Sem complicações.</h1>
 <p>Interface experimental do BX-HEN V3. Projeto independente, com visual neutro e preparado para uma futura API no Cloudflare Workers.</p>
+
 <div class="grid">
+  <section class="card">
+    <h2>BX-HEN V3 · Inicialização</h2>
+    <p>Diagnóstico experimental do PS4.</p>
+
+    <p id="hen-status" role="status">
+      Estado: aguardando teste
+    </p>
+
+    <button id="hen-start" type="button">
+      ▶ Iniciar BX-HEN V3
+    </button>
+
+    <pre id="hen-log" aria-live="polite"
+      style="white-space:pre-wrap;overflow-wrap:anywhere;
+      font-size:12px;color:#b9bec3;margin-top:18px">
+[BX-HEN] Pronto para diagnóstico.
+    </pre>
+  </section>
+</div>
+
+<script>
+(() => {
+  const button = document.getElementById("hen-start");
+  const status = document.getElementById("hen-status");
+  const log = document.getElementById("hen-log");
+
+  function write(message) {
+    log.textContent += "\n[BX-HEN] " + message;
+  }
+
+  button.addEventListener("click", () => {
+    if (!confirm("Iniciar diagnóstico BX-HEN V3?")) return;
+
+    button.disabled = true;
+    log.textContent = "[BX-HEN] Iniciando diagnóstico...";
+
+    const agent = navigator.userAgent;
+    const isPS4 = /PlayStation 4/i.test(agent);
+
+    write("Navegador identificado.");
+    write("Plataforma: " + (isPS4 ? "PS4" : "Outra"));
+    write("Carregador próprio: não integrado.");
+
+    status.textContent = isPS4
+      ? "Estado: PS4 detectado; ativação indisponível"
+      : "Estado: ambiente de testes; ativação indisponível";
+
+    write("Diagnóstico concluído.");
+    button.disabled = false;
+  });
+})();
+</script>
+
+
 <section class="card"><h2>BX-HEN · Nosso projeto</h2><p>Área experimental hospedada no Cloudflare. O desbloqueio próprio ainda está em desenvolvimento.</p><a class="action" href="https://bx-hen.4rt949zpj8.workers.dev/teste/" rel="noopener noreferrer">Abrir BX-HEN no Cloudflare</a></section>
 
 
