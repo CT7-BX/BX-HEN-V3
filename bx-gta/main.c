@@ -1,5 +1,5 @@
 /*
- * BX-GTA v0.7: first controller-driven in-game navigation test.
+ * BX-GTA v0.8: controller-driven notification menu and diagnostics.
  * Navigates through GoldHEN system notifications; NOT a graphical overlay
  * and does not alter GTA V game state or private-server state.
  */
@@ -15,16 +15,16 @@
 #include "GoldHEN.h"
 #include "menu_core.h"
 
-#define BX_VERSION "0.7.0"
+#define BX_VERSION "0.8.0"
 #define BX_TITLE "CUSA00419"
 #define BX_COMBO (ORBIS_PAD_BUTTON_L1 | ORBIS_PAD_BUTTON_RIGHT)
 
 attr_public const char *g_pluginName = "BXGTA_menu";
-attr_public const char *g_pluginDesc = "BX-GTA v0.7 controller menu test (not gameplay mod)";
+attr_public const char *g_pluginDesc = "BX-GTA v0.8 notification menu test (no gameplay edits)";
 attr_public const char *g_pluginAuth = "BX-GTA";
-attr_public uint32_t g_pluginVersion = 0x00000700;
+attr_public uint32_t g_pluginVersion = 0x00000800;
 
-static volatile bool g_running = false;
+static bool g_running = false;
 static bool g_thread_created = false;
 static OrbisPthread g_thread;
 static BxMenu g_menu;
@@ -50,19 +50,9 @@ static bool target_ok(void) {
     return true;
 }
 static void show_selection(void) {
-    if (!g_menu.opened) {
-        NotifyStatic(TEX_ICON_SYSTEM, "BX-GTA: menu fechado");
-    } else if (!g_menu.in_category) {
-        Notify(TEX_ICON_SYSTEM, "BX-GTA v%s [%d/%d]\n%s\nX entrar | O sair",
-               BX_VERSION, g_menu.category + 1, bx_menu_category_count(),
-               bx_menu_category_name(g_menu.category));
-    } else {
-        const int count = bx_menu_item_count(g_menu.category);
-        const char *label = bx_menu_item_name(g_menu.category, g_menu.item);
-        Notify(TEX_ICON_SYSTEM, "BX-GTA > %s\n[%d/%d] %s",
-               bx_menu_category_name(g_menu.category), g_menu.item + 1,
-               count, label);
-    }
+    char message[256] = {0};
+    if (bx_menu_render(&g_menu, message, sizeof(message)) < 0) return;
+    Notify(TEX_ICON_SYSTEM, "%s", message);
 }
 static void on_selection(void) {
     if (!bx_menu_item_implemented(g_menu.category, g_menu.item)) {
@@ -75,7 +65,7 @@ static void on_selection(void) {
     }
     switch (g_menu.item) {
         case 0:
-            NotifyStatic(TEX_ICON_SYSTEM, "BX-GTA v0.7: controle e menu ativos");
+            NotifyStatic(TEX_ICON_SYSTEM, "BX-GTA v0.8: controles e menu de notificacoes ativos");
             break;
         case 1:
             Notify(TEX_ICON_SYSTEM, "BX-GTA: %s / GTA V %s",
@@ -90,6 +80,14 @@ static void on_selection(void) {
                 "BX-GTA: navegacao ativa. Gameplay/servidor nao integrados.");
             break;
         case 4:
+            NotifyStatic(TEX_ICON_SYSTEM, "BX-GTA v0.8: teste de notificacao OK");
+            break;
+        case 5:
+            bx_menu_reset(&g_menu);
+            bx_menu_input(&g_menu, BX_KEY_TOGGLE);
+            show_selection();
+            break;
+        case 6:
             bx_menu_input(&g_menu, BX_KEY_TOGGLE);
             show_selection();
             break;
@@ -114,72 +112,86 @@ static int32_t get_pad_handle(bool *owned) {
     }
     return handle;
 }
+static uint32_t normalize_buttons(uint32_t buttons) {
+    uint32_t normalized = 0;
+    if (buttons & ORBIS_PAD_BUTTON_L1) normalized |= BX_PAD_L1;
+    if (buttons & ORBIS_PAD_BUTTON_RIGHT) normalized |= BX_PAD_RIGHT;
+    if (buttons & ORBIS_PAD_BUTTON_UP) normalized |= BX_PAD_UP;
+    if (buttons & ORBIS_PAD_BUTTON_DOWN) normalized |= BX_PAD_DOWN;
+    if (buttons & ORBIS_PAD_BUTTON_CROSS) normalized |= BX_PAD_X;
+    if (buttons & ORBIS_PAD_BUTTON_CIRCLE) normalized |= BX_PAD_O;
+    return normalized;
+}
 static void *menu_input_thread(void *ignored) {
     (void)ignored;
     OrbisUserServiceInitializeParams params = {0};
     params.priority = ORBIS_KERNEL_PRIO_FIFO_LOWEST;
-    (void)sceUserServiceInitialize(&params);
-    (void)scePadInit();
+    const int32_t user_rc = sceUserServiceInitialize(&params);
+    const int32_t pad_rc = scePadInit();
+    final_printf("[BX-GTA] user init: 0x%08x, pad init: 0x%08x\\n",
+                 user_rc, pad_rc);
 
     bool owned = false;
     int32_t handle = -1;
-    uint32_t previous = 0;
-    while (g_running) {
+    int failures = 0;
+    BxPadFilter filter;
+    bx_pad_reset(&filter);
+
+    while (__atomic_load_n(&g_running, __ATOMIC_ACQUIRE)) {
         if (handle <= 0) {
             handle = get_pad_handle(&owned);
             if (handle <= 0) {
                 usleep(400000);
                 continue;
             }
-            final_printf("[BX-GTA] controller handle acquired: %d\n", handle);
+            failures = 0;
+            bx_pad_reset(&filter);
+            final_printf("[BX-GTA] controller handle acquired: %d\\n", handle);
         }
         OrbisPadData data = {0};
-        int32_t rc = scePadReadState(handle, &data);
+        const int32_t rc = scePadReadState(handle, &data);
         if (rc == 0 && data.connected) {
-            const uint32_t current = data.buttons;
-            const uint32_t pressed = current & ~previous;
-            const bool combo = (current & BX_COMBO) == BX_COMBO;
-            const bool prev_combo = (previous & BX_COMBO) == BX_COMBO;
-            if (combo && !prev_combo) {
-                on_key(BX_KEY_TOGGLE);
-            } else if (!combo && !(current & ORBIS_PAD_BUTTON_L1) && g_menu.opened) {
-                if (pressed & ORBIS_PAD_BUTTON_UP) on_key(BX_KEY_UP);
-                else if (pressed & ORBIS_PAD_BUTTON_DOWN) on_key(BX_KEY_DOWN);
-                else if (pressed & ORBIS_PAD_BUTTON_CROSS) on_key(BX_KEY_SELECT);
-                else if (pressed & ORBIS_PAD_BUTTON_CIRCLE) on_key(BX_KEY_BACK);
+            failures = 0;
+            const BxKey key = bx_pad_next(&filter, normalize_buttons(data.buttons));
+            if (key != BX_KEY_NONE) on_key(key);
+        } else {
+            bx_pad_reset(&filter);
+            if (++failures >= 20) {
+                final_printf("[BX-GTA] controller disconnected/error: %d\\n", rc);
+                if (owned && handle > 0) (void)scePadClose(handle);
+                handle = -1;
+                owned = false;
+                failures = 0;
             }
-            previous = current;
-        } else if (rc < 0 || !data.connected) {
-            previous = 0;
         }
-        usleep(70000);
+        usleep(60000);
     }
     if (owned && handle > 0) (void)scePadClose(handle);
-    final_printf("[BX-GTA] input thread stopped\n");
+    final_printf("[BX-GTA] input thread stopped\\n");
     return NULL;
 }
 int32_t attr_public plugin_load(int32_t argc, const char *argv[]) {
     (void)argc; (void)argv;
     final_printf("[BX-GTA] v%s plugin_load\n", BX_VERSION);
-    NotifyStatic(TEX_ICON_SYSTEM, "BX-GTA v0.7: plugin carregado");
+    NotifyStatic(TEX_ICON_SYSTEM, "BX-GTA v0.8: plugin carregado");
     bx_menu_reset(&g_menu);
     if (!target_ok()) return 0;
-    g_running = true;
+    __atomic_store_n(&g_running, true, __ATOMIC_RELEASE);
     int32_t result = scePthreadCreate(&g_thread, NULL, menu_input_thread,
                                     NULL, "bx_gta_menu");
     if (result != 0) {
-        g_running = false;
+        __atomic_store_n(&g_running, false, __ATOMIC_RELEASE);
         Notify(TEX_ICON_SYSTEM, "BX-GTA: falha ao iniciar leitura do controle: %d", result);
         final_printf("[BX-GTA] thread failed: %d\n", result);
         return 0;
     }
     g_thread_created = true;
-    NotifyStatic(TEX_ICON_SYSTEM, "BX-GTA v0.7: aperte L1 + DIREITA");
+    NotifyStatic(TEX_ICON_SYSTEM, "BX-GTA v0.8: aperte L1 + DIREITA");
     return 0;
 }
 int32_t attr_public plugin_unload(int32_t argc, const char *argv[]) {
     (void)argc; (void)argv;
-    g_running = false;
+    __atomic_store_n(&g_running, false, __ATOMIC_RELEASE);
     if (g_thread_created) {
         (void)scePthreadJoin(g_thread, NULL);
         g_thread_created = false;
