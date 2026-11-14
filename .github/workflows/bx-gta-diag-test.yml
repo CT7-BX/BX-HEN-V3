@@ -1,4 +1,4 @@
-name: BX-GTA v0.8 controller menu test
+name: BX-GTA v0.9 controller menu test
 on:
   push:
     branches: [bx-gta-diag-test]
@@ -15,12 +15,18 @@ jobs:
           set -euo pipefail
           gcc -std=c11 -O2 -DNDEBUG -Wall -Wextra -Werror bx-gta/menu_core.c bx-gta/test_menu.c -o /tmp/bxgta-gcc
           /tmp/bxgta-gcc
+          gcc -std=c11 -O2 -DNDEBUG -Wall -Wextra -Werror bx-gta/feature_catalog.c bx-gta/profile.c bx-gta/palette.c bx-gta/test_features.c -o /tmp/bxgta-features-gcc
+          /tmp/bxgta-features-gcc
           clang -std=c11 -O2 -DNDEBUG -Wall -Wextra -Werror bx-gta/menu_core.c bx-gta/test_menu.c -o /tmp/bxgta-clang
           /tmp/bxgta-clang
+          clang -std=c11 -O2 -DNDEBUG -Wall -Wextra -Werror bx-gta/feature_catalog.c bx-gta/profile.c bx-gta/palette.c bx-gta/test_features.c -o /tmp/bxgta-features-clang
+          /tmp/bxgta-features-clang
       - name: Sanitizer test
         run: |
           gcc -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer             bx-gta/menu_core.c bx-gta/test_menu.c -o /tmp/bxgta-san
           /tmp/bxgta-san
+          gcc -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer bx-gta/feature_catalog.c bx-gta/profile.c bx-gta/palette.c bx-gta/test_features.c -o /tmp/bxgta-features-san
+          /tmp/bxgta-features-san
   build-prx:
     needs: host-tests
     runs-on: ubuntu-22.04
@@ -48,7 +54,7 @@ jobs:
           git clone --depth 1 https://github.com/GoldHEN/GoldHEN_Plugins_Repository.git "$RUNNER_TEMP/plugins"
           echo "GOLDHEN_SDK=$RUNNER_TEMP/sdk" >> "$GITHUB_ENV"
           echo "GOLDHEN_PLUGIN_REPO=$RUNNER_TEMP/plugins" >> "$GITHUB_ENV"
-      - name: Build BX-GTA v0.8 menu PRX
+      - name: Build BX-GTA v0.9 menu PRX
         shell: bash
         run: |
           set -euo pipefail
@@ -59,14 +65,34 @@ jobs:
           cp "$GITHUB_WORKSPACE/bx-gta/main.c" "$TARGET/source/main.c"
           cp "$GITHUB_WORKSPACE/bx-gta/menu_core.c" "$TARGET/source/menu_core.c"
           cp "$GITHUB_WORKSPACE/bx-gta/menu_core.h" "$TARGET/source/menu_core.h"
+          cp "$GITHUB_WORKSPACE/bx-gta/feature_catalog.c" "$TARGET/source/feature_catalog.c"
+          cp "$GITHUB_WORKSPACE/bx-gta/feature_catalog.h" "$TARGET/source/feature_catalog.h"
+          cp "$GITHUB_WORKSPACE/bx-gta/profile.c" "$TARGET/source/profile.c"
+          cp "$GITHUB_WORKSPACE/bx-gta/profile.h" "$TARGET/source/profile.h"
+          cp "$GITHUB_WORKSPACE/bx-gta/palette.c" "$TARGET/source/palette.c"
+          cp "$GITHUB_WORKSPACE/bx-gta/palette.h" "$TARGET/source/palette.h"
           make -C "$GOLDHEN_SDK" PRINTF=1
           make -C "$TARGET" all
           cp "$GOLDHEN_PLUGIN_REPO/bin/plugins/prx_final/BXGTA_menu.prx" dist/BXGTA_menu.prx
           test -s dist/BXGTA_menu.prx
+          cat > dist/README.txt <<'README'
+BX-GTA v0.9 experimental GoldHEN notification menu
+Target: GTA V 1.57 CUSA00419
+Plugin: /data/GoldHEN/plugins/BXGTA_menu.prx
+plugins.ini under [CUSA00419]: /data/GoldHEN/plugins/BXGTA_menu.prx=true
+L1 + RIGHT opens/closes; L1 + LEFT marks favorite when a menu item is selected
+Preference profiles: /data/GoldHEN/BXGTA/profile0.ini, profile1.ini, profile2.ini
+Error log: /data/GoldHEN/BXGTA/error.log
+Themes and palette are saved for a future overlay and do not affect system notifications.
+Search query can be edited in profileN.ini with query=camera etc and then reloaded.
+This plugin does NOT have an in-game graphics overlay or GTA V gameplay modifications.
+No private server permissions or Lua engine are implemented.
+Hardware behavior is unverified.
+README
           sha256sum dist/BXGTA_menu.prx | tee dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: BXGTA-menu-v080-CUSA00419-157
+          name: BXGTA-menu-v090-CUSA00419-157
           path: dist/
           if-no-files-found: error
 
@@ -76,13 +102,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag="bxgta-menu-v080-cusa00419-v157"
+          tag="bxgta-menu-v090-cusa00419-v157"
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$tag" dist/BXGTA_menu.prx --clobber --repo "$GITHUB_REPOSITORY"
           else
             gh release create "$tag" dist/BXGTA_menu.prx --repo "$GITHUB_REPOSITORY" \
               --target "${GITHUB_SHA}" \
-              --title "BX-GTA menu v0.8 - CUSA00419 1.57" \
-              --notes "BX-GTA v0.8: experimental GoldHEN notification menu with controller navigation. Gameplay modifications and graphical overlay are not included. Requires physical PS4 test." \
+              --title "BX-GTA menu v0.9 - CUSA00419 1.57" \
+              --notes "BX-GTA v0.9: experimental notification menu, three stored profiles, favorite/recent tracking, themes as future overlay tokens, indexed search, diagnostics and error log. GTA rendering and gameplay modifications are NOT implemented. Physical PS4 test required." \
               --latest=false
           fi
