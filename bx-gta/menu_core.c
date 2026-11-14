@@ -18,7 +18,12 @@ static const BxMenuItem system_items[] = {
     {"Compatibilidade", 1},
     {"Teste de notificacao", 1},
     {"Reiniciar navegacao", 1},
-    {"Fechar menu", 1}
+    {"Fechar menu", 1},
+    {"Diagnostico GoldHEN", 1},
+    {"Registro de erros", 1},
+    {"Salvar preferencias", 1},
+    {"Recarregar preferencias", 1},
+    {"Perfil ativo", 1}
 };
 static const BxMenuItem player_items[] = {
     {"Aparencia", 0}, {"Gestos", 0}, {"Animacoes", 0}
@@ -36,7 +41,9 @@ static const BxMenuItem camera_items[] = {
     {"Camera livre", 0}, {"Fotos", 0}, {"Enquadramento", 0}
 };
 static const BxMenuItem extras_items[] = {
-    {"Ferramentas", 0}, {"Favoritos", 0}, {"Preferencias", 0}
+    {"Tema", 1}, {"Cor de destaque", 1}, {"Trocar perfil", 1},
+    {"Ver favoritos", 1}, {"Ver recentes", 1}, {"Pesquisa rapida", 1},
+    {"Salvar perfil", 1}, {"Carregar perfil", 1}, {"Paleta do painel futuro", 1}
 };
 static const BxMenuItem server_items[] = {
     {"Servidor atual", 0}, {"Permissoes", 0}, {"Acoes autorizadas", 0}
