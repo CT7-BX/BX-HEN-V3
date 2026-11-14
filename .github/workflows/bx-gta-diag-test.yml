@@ -1,4 +1,4 @@
-name: BX-GTA v1.0 minimalist menu build
+name: BX-GTA v1.1 black-red grouped menu build
 on:
   push:
     branches: [bx-gta-diag-test]
@@ -25,6 +25,21 @@ jobs:
           /tmp/bxgta-v1-gcc
           clang -std=c11 -O2 -DNDEBUG -Wall -Wextra -Werror bx-gta/menu_v1.c bx-gta/synapse_catalog.c bx-gta/test_v1.c -o /tmp/bxgta-v1-clang
           /tmp/bxgta-v1-clang
+          gcc -std=c11 -O2 -DNDEBUG -Wall -Wextra -Werror bx-gta/menu_v2.c bx-gta/synapse_catalog.c bx-gta/test_v2.c -o /tmp/bxgta-v2-gcc
+          /tmp/bxgta-v2-gcc
+          clang -std=c11 -O2 -DNDEBUG -Wall -Wextra -Werror bx-gta/menu_v2.c bx-gta/synapse_catalog.c bx-gta/test_v2.c -o /tmp/bxgta-v2-clang
+          /tmp/bxgta-v2-clang
+          python3 - <<'PY'
+          import json
+          data=json.load(open("bx-gta/menu_taxonomy_v2.json"))
+          assert len(data["sections"])==10
+          assert sum(len(s["groups"]) for s in data["sections"])==33
+          assert sum(len(g["items"]) for s in data["sections"] for g in s["groups"])==190
+          html=open("bx-gta/preview-v2.html").read()
+          assert '#e02d38' in html and '#08090b' in html
+          assert '"schema":"bx-gta/menu-taxonomy-v2"' in html
+          print("PASS: taxonomy JSON and black/red preview")
+          PY
       - name: Sanitizer test
         run: |
           gcc -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer             bx-gta/menu_core.c bx-gta/test_menu.c -o /tmp/bxgta-san
@@ -33,6 +48,8 @@ jobs:
           /tmp/bxgta-features-san
           gcc -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer bx-gta/menu_v1.c bx-gta/synapse_catalog.c bx-gta/test_v1.c -o /tmp/bxgta-v1-san
           /tmp/bxgta-v1-san
+          gcc -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer bx-gta/menu_v2.c bx-gta/synapse_catalog.c bx-gta/test_v2.c -o /tmp/bxgta-v2-san
+          /tmp/bxgta-v2-san
   build-prx:
     needs: host-tests
     runs-on: ubuntu-22.04
@@ -60,15 +77,15 @@ jobs:
           git clone --depth 1 https://github.com/GoldHEN/GoldHEN_Plugins_Repository.git "$RUNNER_TEMP/plugins"
           echo "GOLDHEN_SDK=$RUNNER_TEMP/sdk" >> "$GITHUB_ENV"
           echo "GOLDHEN_PLUGIN_REPO=$RUNNER_TEMP/plugins" >> "$GITHUB_ENV"
-      - name: Build BX-GTA v1.0 menu PRX
+      - name: Build BX-GTA v1.1 menu PRX
         shell: bash
         run: |
           set -euo pipefail
-          TARGET="$GOLDHEN_PLUGIN_REPO/plugin_src/BXGTA_v1"
+          TARGET="$GOLDHEN_PLUGIN_REPO/plugin_src/BXGTA_v2"
           mkdir -p "$TARGET/source" "$GOLDHEN_PLUGIN_REPO/bin/plugins/prx_final" "$GOLDHEN_PLUGIN_REPO/bin/plugins/elf_final" dist
           cp "$GOLDHEN_PLUGIN_REPO/plugin_src/plugin_template/Makefile" "$TARGET/Makefile"
           sed -i '/^LIBS :=/s/$/ -lScePad -lSceUserService/' "$TARGET/Makefile"
-          cp "$GITHUB_WORKSPACE/bx-gta/main_v1.c" "$TARGET/source/main.c"
+          cp "$GITHUB_WORKSPACE/bx-gta/main_v2.c" "$TARGET/source/main.c"
           cp "$GITHUB_WORKSPACE/bx-gta/menu_core.c" "$TARGET/source/menu_core.c"
           cp "$GITHUB_WORKSPACE/bx-gta/menu_core.h" "$TARGET/source/menu_core.h"
           cp "$GITHUB_WORKSPACE/bx-gta/feature_catalog.c" "$TARGET/source/feature_catalog.c"
@@ -79,32 +96,36 @@ jobs:
           cp "$GITHUB_WORKSPACE/bx-gta/palette.h" "$TARGET/source/palette.h"
           cp "$GITHUB_WORKSPACE/bx-gta/menu_v1.c" "$TARGET/source/menu_v1.c"
           cp "$GITHUB_WORKSPACE/bx-gta/menu_v1.h" "$TARGET/source/menu_v1.h"
+          cp "$GITHUB_WORKSPACE/bx-gta/menu_v2.c" "$TARGET/source/menu_v2.c"
+          cp "$GITHUB_WORKSPACE/bx-gta/menu_v2.h" "$TARGET/source/menu_v2.h"
           cp "$GITHUB_WORKSPACE/bx-gta/synapse_catalog.c" "$TARGET/source/synapse_catalog.c"
           cp "$GITHUB_WORKSPACE/bx-gta/synapse_catalog.h" "$TARGET/source/synapse_catalog.h"
           make -C "$GOLDHEN_SDK" PRINTF=1
           make -C "$TARGET" all
-          cp "$GOLDHEN_PLUGIN_REPO/bin/plugins/prx_final/BXGTA_v1.prx" dist/BXGTA_v1.prx
-          test -s dist/BXGTA_v1.prx
-          cp "$GITHUB_WORKSPACE/bx-gta/preview-v1.html" dist/BXGTA-preview.html
+          cp "$GOLDHEN_PLUGIN_REPO/bin/plugins/prx_final/BXGTA_v2.prx" dist/BXGTA_v2.prx
+          test -s dist/BXGTA_v2.prx
+          cp "$GITHUB_WORKSPACE/bx-gta/preview-v2.html" dist/BXGTA-preview.html
+          cp "$GITHUB_WORKSPACE/bx-gta/menu_taxonomy_v2.json" dist/BXGTA-options.json
           cat > dist/README.txt <<'README'
-          BX-GTA v1.0 experimental PS4 GoldHEN diagnostic/catalog
+          BX-GTA v1.1 PS4 GoldHEN menu scaffold / black and red
           Target: GTA V 1.57 / CUSA00419
-          Plugin: /data/GoldHEN/plugins/BXGTA_v1.prx
-          plugins.ini [CUSA00419]: /data/GoldHEN/plugins/BXGTA_v1.prx=true
+          Plugin: /data/GoldHEN/plugins/BXGTA_v2.prx
+          plugins.ini [CUSA00419]: /data/GoldHEN/plugins/BXGTA_v2.prx=true
           Remove older BXGTA entries to prevent duplicate plugins.
           L1 + RIGHT: open/close; UP/DOWN: navigate; X select; O back.
           L1 + LEFT: favorite focused action.
           Preferences: /data/GoldHEN/BXGTA/profile0.ini .. profile2.ini
           Error log: /data/GoldHEN/BXGTA/error.log
           Reference catalog metadata from user-supplied Synapse.rar.
-          This is a GoldHEN notification-based UI, NOT a graphical GTA overlay.
+          10 sections, 33 submenus, 190 entries. Black/red theme tokens and browser preview.
+          The PS4 uses notification-based UI, NOT a graphical GTA overlay.
           GTA actions (spawn, repairs, teleport, camera, server) NOT implemented.
           Themes are data tokens only. Actual PS4 hardware testing pending.
           README
-          sha256sum dist/BXGTA_v1.prx | tee dist/SHA256SUMS.txt
+          sha256sum dist/BXGTA_v2.prx | tee dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: BXGTA-menu-v100-CUSA00419-157
+          name: BXGTA-menu-v110-CUSA00419-157
           path: dist/
           if-no-files-found: error
 
@@ -114,13 +135,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag="bxgta-menu-v100-cusa00419-v157"
+          tag="bxgta-menu-v110-cusa00419-v157"
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$tag" dist/BXGTA_v1.prx dist/BXGTA-preview.html dist/README.txt --clobber --repo "$GITHUB_REPOSITORY"
+            gh release upload "$tag" dist/BXGTA_v2.prx dist/BXGTA-preview.html dist/BXGTA-options.json dist/README.txt --clobber --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$tag" dist/BXGTA_v1.prx dist/BXGTA-preview.html dist/README.txt --repo "$GITHUB_REPOSITORY" \
+            gh release create "$tag" dist/BXGTA_v2.prx dist/BXGTA-preview.html dist/BXGTA-options.json dist/README.txt --repo "$GITHUB_REPOSITORY" \
               --target "${GITHUB_SHA}" \
-              --title "BX-GTA menu v1.0 - CUSA00419 1.57" \
-              --notes "BX-GTA v1.0: rebuilt minimalist nine-section GoldHEN notification menu; reference catalog counts from user-provided Synapse.rar; core features include profiles, favorites, search and diagnostics. Does not include GTA graphics overlay nor gameplay modifications. Needs PS4 testing." \
+              --title "BX-GTA menu v1.1 - CUSA00419 1.57" \
+              --notes "BX-GTA v1.1: black-red interface preview with 10 sections, 33 submenus and 190 options. Native GoldHEN plugin handles grouped navigation, core preferences and diagnostics; GTA gameplay effects and actual overlay are not implemented. Physical PS4 test pending." \
               --latest=false
           fi
