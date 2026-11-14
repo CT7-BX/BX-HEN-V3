@@ -40,7 +40,7 @@ static const BxCatalogGroup groups[]={
  {BX_LIB_OBJECTS,"Pneus",4,"prop_tyre_spike_01","prop_tyre_wall_01"},
  {BX_LIB_OBJECTS,"Containers",13,"prop_container_01a","prop_container_02a"},
  {BX_LIB_OBJECTS,"Itens",12,"prop_money_bag_01","p_cash_case_s"},
- {BX_LIB_OBJECTS,"Cenario adulto",7,"prop_weed_01","prop_weed_02"},
+ {BX_LIB_OBJECTS,"Cenografia",7,"amostra indisponivel","amostra indisponivel"},
  {BX_LIB_OBJECTS,"Lazer",12,"prop_beach_fire","prop_bbq_2"},
  {BX_LIB_OBJECTS,"Moveis",23,"prop_couch_01a","prop_tv_01"},
  {BX_LIB_OBJECTS,"Maquinas",21,"prop_dumpster_01a","prop_dumpster_02a"},
