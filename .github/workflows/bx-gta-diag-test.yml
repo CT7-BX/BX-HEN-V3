@@ -46,13 +46,18 @@ jobs:
           attr_public const char* g_pluginName = "BXGTA_diag";
           attr_public const char* g_pluginDesc = "BX-GTA 1.57 CUSA00419 diagnostic";
           attr_public const char* g_pluginAuth = "BX-GTA";
-          attr_public uint32_t g_pluginVersion = 0x00000602;
+          attr_public uint32_t g_pluginVersion = 0x00000603;
           int32_t attr_public plugin_load(int32_t argc, const char* argv[]) {
+              final_printf("[BX-GTA] v0.6.3 plugin_load called\\n");
+              NotifyStatic(TEX_ICON_SYSTEM, "BX-GTA 0.6.3: plugin carregado");
               struct proc_info info = {0};
-              if (sys_sdk_proc_info(&info) != 0) {
+              int32_t proc_result = sys_sdk_proc_info(&info);
+              if (proc_result != 0) {
+                  final_printf("[BX-GTA] proc_info failed: 0x%08x\\n", proc_result);
                   NotifyStatic(TEX_ICON_SYSTEM, "BX-GTA: nao foi possivel identificar o jogo");
                   return 0;
               }
+              final_printf("[BX-GTA] proc_info OK\\n");
               info.titleid[sizeof(info.titleid)-1] = '\0';
               info.version[sizeof(info.version)-1] = '\0';
               if (strcmp(info.titleid,"CUSA00419") == 0 &&
@@ -74,7 +79,7 @@ jobs:
           sha256sum dist/BXGTA_diag.prx | tee dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: BXGTA-diagnostic-CUSA00419-157
+          name: BXGTA-diagnostic-v063-CUSA00419-157
           path: dist/
           if-no-files-found: error
 
@@ -84,13 +89,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag="bxgta-diag-cusa00419-v157"
+          tag="bxgta-diag-v063-cusa00419-v157"
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$tag" dist/BXGTA_diag.prx --clobber --repo "$GITHUB_REPOSITORY"
           else
             gh release create "$tag" dist/BXGTA_diag.prx --repo "$GITHUB_REPOSITORY" \
               --target "${GITHUB_SHA}" \
               --title "BX-GTA diagnostic - CUSA00419 1.57" \
-              --notes "Diagnostic GoldHEN plugin only. Not a mod menu. Console execution has not been verified." \
+              --notes "BX-GTA v0.6.3: plugin_load announces immediately before process detection. Diagnostic GoldHEN plugin only. Not a mod menu. Console execution not verified." \
               --latest=false
           fi
