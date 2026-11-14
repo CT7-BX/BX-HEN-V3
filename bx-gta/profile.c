@@ -106,21 +106,22 @@ int bx_prefs_read(BxPreferences *prefs, const char *path) {
         if(total>BX_FILE_LIMIT) {fclose(f);return -1;}
         trim(line);
         char *eq=strchr(line,'=');
-        if(!eq) {fclose(f);return -1;}
+        if(!eq) goto invalid;
         *eq++='\0';
         unsigned v=0;
         if(!strcmp(line,"theme")){
-            if(parse_unsigned(eq,&v,10)||bx_prefs_set_theme(&next,v))break;
+            if((readfields&1) || parse_unsigned(eq,&v,10)||bx_prefs_set_theme(&next,v))goto invalid;
             readfields|=1;
         } else if(!strcmp(line,"accent")){
-            if(parse_unsigned(eq,&v,10)||bx_prefs_set_accent(&next,v))break;
+            if((readfields&2) || parse_unsigned(eq,&v,10)||bx_prefs_set_accent(&next,v))goto invalid;
             readfields|=2;
         } else if(!strcmp(line,"favorites")){
-            if(parse_unsigned(eq,&v,16))break;
-            if(bx_feature_count()<32 && (v>>bx_feature_count()))break;
+            if((readfields&4) || parse_unsigned(eq,&v,16))goto invalid;
+            if(bx_feature_count()<32 && (v>>bx_feature_count()))goto invalid;
             next.favorites=(uint32_t)v;
             readfields|=4;
         } else if(!strcmp(line,"recent")){
+            if(readfields&8)goto invalid;
             if(*eq) {
                 char *cursor=eq;
                 for(;;) {
@@ -137,13 +138,13 @@ int bx_prefs_read(BxPreferences *prefs, const char *path) {
             }
             readfields|=8;
         } else if(!strcmp(line,"query")){
-            if(strlen(eq)>=BX_QUERY_CAP)break;
+            if((readfields&16) || strlen(eq)>=BX_QUERY_CAP)goto invalid;
             for(char *c=eq;*c;++c)
                 if(!isalnum((unsigned char)*c)&&*c!=' '&&*c!='-'&&*c!='_')
                     goto invalid;
             snprintf(next.query,sizeof(next.query),"%s",eq);
             readfields|=16;
-        } else {break;}
+        } else {goto invalid;}
         continue;
 invalid:
         fclose(f);
