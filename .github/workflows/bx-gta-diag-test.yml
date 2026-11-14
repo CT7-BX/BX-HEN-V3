@@ -1,0 +1,79 @@
+name: BX-GTA PS4 diagnostic build trial
+on:
+  push:
+    branches: [bx-gta-diag-test]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-prx:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    steps:
+      - name: Tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends clang lld llvm make curl git ca-certificates
+      - name: OpenOrbis v0.5.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.4/toolchain-llvm-18.tar.gz -o "$RUNNER_TEMP/sdk.tgz"
+          echo '3c7cd5bb593ca74fa1c13fd59f3938dc0fc07985167f7275063019e63abe4526  '"$RUNNER_TEMP/sdk.tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/sdk.tgz" -C "$RUNNER_TEMP"
+          test -f "$RUNNER_TEMP/OpenOrbis/PS4Toolchain/link.x"
+          echo "OO_PS4_TOOLCHAIN=$RUNNER_TEMP/OpenOrbis/PS4Toolchain" >> "$GITHUB_ENV"
+      - name: GoldHEN SDK and plugin repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/GoldHEN/GoldHEN_Plugins_SDK.git "$RUNNER_TEMP/sdk"
+          git clone --depth 1 https://github.com/GoldHEN/GoldHEN_Plugins_Repository.git "$RUNNER_TEMP/plugins"
+          echo "GOLDHEN_SDK=$RUNNER_TEMP/sdk" >> "$GITHUB_ENV"
+          echo "GOLDHEN_PLUGIN_REPO=$RUNNER_TEMP/plugins" >> "$GITHUB_ENV"
+      - name: Build BX-GTA diagnostic PRX
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET="$GOLDHEN_PLUGIN_REPO/plugin_src/BXGTA_diag"
+          mkdir -p "$TARGET/source" "$GOLDHEN_PLUGIN_REPO/bin/plugins/prx_final" "$GOLDHEN_PLUGIN_REPO/bin/plugins/elf_final" dist
+          cp "$GOLDHEN_PLUGIN_REPO/plugin_src/plugin_template/Makefile" "$TARGET/Makefile"
+          cat > "$TARGET/source/main.c" <<'SRC'
+          #include <stdint.h>
+          #include <string.h>
+          #include "plugin_common.h"
+          #include "GoldHEN.h"
+          attr_public const char* g_pluginName = "BXGTA_diag";
+          attr_public const char* g_pluginDesc = "BX-GTA 1.57 CUSA00419 diagnostic";
+          attr_public const char* g_pluginAuth = "BX-GTA";
+          attr_public uint32_t g_pluginVersion = 0x00000602;
+          int32_t attr_public plugin_load(int32_t argc, const char* argv[]) {
+              struct proc_info info = {0};
+              if (sys_sdk_proc_info(&info) != 0) {
+                  NotifyStatic(TEX_ICON_SYSTEM, "BX-GTA: nao foi possivel identificar o jogo");
+                  return 0;
+              }
+              info.titleid[sizeof(info.titleid)-1] = '\0';
+              info.version[sizeof(info.version)-1] = '\0';
+              if (strcmp(info.titleid,"CUSA00419") == 0 &&
+                  (strcmp(info.version,"1.57") == 0 || strcmp(info.version,"01.57") == 0)) {
+                  NotifyStatic(TEX_ICON_SYSTEM, "BX-GTA: GTA 1.57 detectado - diagnostico OK");
+              } else {
+                  NotifyStatic(TEX_ICON_SYSTEM, "BX-GTA: CUSA/versao diferente");
+              }
+              return 0;
+          }
+          int32_t attr_public plugin_unload(int32_t argc, const char* argv[]) { return 0; }
+          s32 attr_module_hidden module_start(s64 argc, const void* args) { return 0; }
+          s32 attr_module_hidden module_stop(s64 argc, const void* args) { return 0; }
+          SRC
+          make -C "$GOLDHEN_SDK" PRINTF=1
+          make -C "$TARGET" all
+          cp "$GOLDHEN_PLUGIN_REPO/bin/plugins/prx_final/BXGTA_diag.prx" dist/BXGTA_diag.prx
+          test -s dist/BXGTA_diag.prx
+          sha256sum dist/BXGTA_diag.prx | tee dist/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BXGTA-diagnostic-CUSA00419-157
+          path: dist/
+          if-no-files-found: error
