@@ -392,7 +392,7 @@ BxUiEvent bx_v2_input(BxMenuV2 *s,BxKey key){
   e.changed=1;return e;
  }
  if(key==BX_KEY_SELECT){
-  if(s->depth==0){s->depth=1;s->subgroup=0;e.changed=1;return e;}
+  if(s->depth==0){s->depth=1;s->subgroup=0;s->option=0;s->catalog_group=0;e.changed=1;return e;}
   if(s->depth==1){s->depth=2;s->option=0;e.changed=1;return e;}
   if(s->depth==3){e.action=BX_ACT_CATALOG_INFO;e.changed=1;return e;}
   const BxOption *opt=bx_v2_option(s->section,s->subgroup,s->option);
