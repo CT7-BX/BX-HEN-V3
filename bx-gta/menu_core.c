@@ -140,6 +140,12 @@ BxKey bx_pad_next(BxPadFilter *filter, uint32_t buttons) {
     const uint32_t previous = filter->previous;
     filter->previous = buttons;
     const uint32_t combo = BX_PAD_L1 | BX_PAD_RIGHT;
+    const uint32_t fav_combo = BX_PAD_L1 | BX_PAD_LEFT;
+    if ((buttons & fav_combo) == fav_combo) {
+        filter->direction = 0;
+        filter->held_cycles = 0;
+        return (previous & fav_combo) != fav_combo ? BX_KEY_FAVORITE : BX_KEY_NONE;
+    }
     if ((buttons & combo) == combo) {
         filter->direction = 0;
         filter->held_cycles = 0;
