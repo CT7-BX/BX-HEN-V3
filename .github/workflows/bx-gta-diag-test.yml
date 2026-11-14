@@ -76,19 +76,19 @@ jobs:
           cp "$GOLDHEN_PLUGIN_REPO/bin/plugins/prx_final/BXGTA_menu.prx" dist/BXGTA_menu.prx
           test -s dist/BXGTA_menu.prx
           cat > dist/README.txt <<'README'
-BX-GTA v0.9 experimental GoldHEN notification menu
-Target: GTA V 1.57 CUSA00419
-Plugin: /data/GoldHEN/plugins/BXGTA_menu.prx
-plugins.ini under [CUSA00419]: /data/GoldHEN/plugins/BXGTA_menu.prx=true
-L1 + RIGHT opens/closes; L1 + LEFT marks favorite when a menu item is selected
-Preference profiles: /data/GoldHEN/BXGTA/profile0.ini, profile1.ini, profile2.ini
-Error log: /data/GoldHEN/BXGTA/error.log
-Themes and palette are saved for a future overlay and do not affect system notifications.
-Search query can be edited in profileN.ini with query=camera etc and then reloaded.
-This plugin does NOT have an in-game graphics overlay or GTA V gameplay modifications.
-No private server permissions or Lua engine are implemented.
-Hardware behavior is unverified.
-README
+          BX-GTA v0.9 experimental GoldHEN notification menu
+          Target: GTA V 1.57 CUSA00419
+          Plugin: /data/GoldHEN/plugins/BXGTA_menu.prx
+          plugins.ini under [CUSA00419]: /data/GoldHEN/plugins/BXGTA_menu.prx=true
+          L1 + RIGHT opens/closes; L1 + LEFT marks favorite when a menu item is selected
+          Preference profiles: /data/GoldHEN/BXGTA/profile0.ini, profile1.ini, profile2.ini
+          Error log: /data/GoldHEN/BXGTA/error.log
+          Themes and palette are saved for a future overlay and do not affect system notifications.
+          Search query can be edited in profileN.ini with query=camera etc and then reloaded.
+          This plugin does NOT have an in-game graphics overlay or GTA V gameplay modifications.
+          No private server permissions or Lua engine are implemented.
+          Hardware behavior is unverified.
+          README
           sha256sum dist/BXGTA_menu.prx | tee dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
