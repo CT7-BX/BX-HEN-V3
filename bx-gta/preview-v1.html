@@ -87,8 +87,8 @@ function draw(){
  let title=categories[current];el("crumb").textContent=title;el("heading").textContent=view?view.label:title;el("actions").innerHTML="";
  if(view){let back=document.createElement("button");back.className="back";back.textContent="← Voltar à seção";back.onclick=()=>{view=null;draw()};el("actions").append(back);el("hint").textContent="Catálogo de referências do arquivo Synapse, não gera itens no GTA.";groups[view.key].forEach(([name,count])=>act(name,count+" entradas catalogadas","CATÁLOGO",()=>toast(name+": "+count+" nomes de referência. Sem ação sobre o jogo.")));return}
  el("hint").textContent="Navegue pelo menu redesenhado. Ações do GTA sem adaptador continuam desativadas.";
- sections[title].forEach(([label,key,desc])=>act(label,desc||(key?"Opção do núcleo":"Dependente de integração"),key?(groups[key]?"CATÁLOGO":"PREPARADO"):"EM BREVE",()=>{
- if(event&&event.shiftKey){fav.has(label)?fav.delete(label):fav.add(label);toast("Favorito atualizado: "+label);return}
+ sections[title].forEach(([label,key,desc])=>act(label,desc||(key?"Opção do núcleo":"Dependente de integração"),key?(groups[key]?"CATÁLOGO":"PREPARADO"):"EM BREVE",(ev)=>{
+ if(ev&&ev.shiftKey){fav.has(label)?fav.delete(label):fav.add(label);toast("Favorito atualizado: "+label);return}
  command(label,key)
  }));
 }
