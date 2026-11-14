@@ -22,7 +22,7 @@ static void test_menu(void) {
     bx_menu_reset(&m);
     check(!m.opened, "closed initially");
     check(bx_menu_category_count() == 8, "category count");
-    check(bx_menu_item_count(0) == 7, "seven system actions");
+    check(bx_menu_item_count(0) == 12, "twelve system actions");
     check(bx_menu_input(&m, BX_KEY_UP) == BX_NO_CHANGE, "ignore while closed");
     check(bx_menu_input(&m, BX_KEY_TOGGLE) == BX_OPENED, "open");
     check(bx_menu_render(&m, output, sizeof(output)) > 0, "render categories");
@@ -63,6 +63,11 @@ static void test_controller(void) {
     check(bx_pad_next(&filter, BX_PAD_L1 | BX_PAD_X) == BX_KEY_NONE,
           "ignore other keys with L1");
     check(bx_pad_next(&filter, 0) == BX_KEY_NONE, "release L1");
+    check(bx_pad_next(&filter, BX_PAD_L1 | BX_PAD_LEFT) == BX_KEY_FAVORITE,
+          "favorite combo edge");
+    check(bx_pad_next(&filter, BX_PAD_L1 | BX_PAD_LEFT) == BX_KEY_NONE,
+          "favorite not repeated while held");
+    check(bx_pad_next(&filter, 0) == BX_KEY_NONE, "release favorite combo");
     check(bx_pad_next(&filter, BX_PAD_DOWN) == BX_KEY_DOWN, "down edge");
     for (int i=0; i<5; ++i) {
         check(bx_pad_next(&filter, BX_PAD_DOWN) == BX_KEY_NONE, "repeat delay");
