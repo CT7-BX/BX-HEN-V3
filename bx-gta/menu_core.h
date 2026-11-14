@@ -10,7 +10,7 @@ extern "C" {
 
 typedef enum {
     BX_KEY_NONE = 0, BX_KEY_TOGGLE, BX_KEY_UP,
-    BX_KEY_DOWN, BX_KEY_SELECT, BX_KEY_BACK
+    BX_KEY_DOWN, BX_KEY_SELECT, BX_KEY_BACK, BX_KEY_FAVORITE
 } BxKey;
 
 typedef enum {
@@ -31,7 +31,8 @@ enum {
     BX_PAD_UP    = 1u << 2,
     BX_PAD_DOWN  = 1u << 3,
     BX_PAD_X     = 1u << 4,
-    BX_PAD_O     = 1u << 5
+    BX_PAD_O     = 1u << 5,
+    BX_PAD_LEFT  = 1u << 6
 };
 
 typedef struct {
