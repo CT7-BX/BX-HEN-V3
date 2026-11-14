@@ -166,9 +166,9 @@ int bx_v1_render(const BxMenuV1 *s,char *out,size_t cap){
   const int count=bx_v1_option_count(s->section);
   const BxOption *prev=bx_v1_option(s->section,(s->option+count-1)%count);
   const BxOption *next=bx_v1_option(s->section,(s->option+1)%count);
-  return snprintf(out,cap,"BX-GTA / %s\n  %s\n> %s (%d/%d)\n  %s%s",
+  return snprintf(out,cap,"BX-GTA / %s\n  %s\n> %s (%d/%d)%s\n  %s",
     bx_v1_section_title(s->section),prev->title,item->title,s->option+1,count,
-    next->title,item->action==BX_ACT_UNAVAILABLE?" [em breve]":"");
+    item->action==BX_ACT_UNAVAILABLE?" [em breve]":"",next->title);
  }
  if(s->depth==2){
   const BxCatalogGroup *g=bx_catalog_group((BxLibrary)s->library,s->group);
