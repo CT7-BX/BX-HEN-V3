@@ -1,0 +1,1216 @@
+{
+  "schema": "bx-gta/menu-taxonomy-v2",
+  "version": "1.1.0",
+  "theme": "black-red",
+  "sections": [
+    {
+      "name": "Início",
+      "groups": [
+        {
+          "name": "Acesso rápido",
+          "items": [
+            {
+              "title": "Resumo",
+              "type": "action",
+              "action": "SUMMARY",
+              "feature": 5
+            },
+            {
+              "title": "Pesquisar funções",
+              "type": "action",
+              "action": "SEARCH",
+              "feature": 15
+            },
+            {
+              "title": "Favoritos",
+              "type": "action",
+              "action": "FAVORITES",
+              "feature": 16
+            },
+            {
+              "title": "Últimas opções",
+              "type": "action",
+              "action": "RECENT",
+              "feature": 16
+            },
+            {
+              "title": "Diagnóstico rápido",
+              "type": "action",
+              "action": "GOLDHEN",
+              "feature": 5
+            }
+          ]
+        },
+        {
+          "name": "Biblioteca rápida",
+          "items": [
+            {
+              "title": "Veículos",
+              "type": "catalog",
+              "library": "VEHICLES",
+              "feature": -1
+            },
+            {
+              "title": "Personagens",
+              "type": "catalog",
+              "library": "MODELS",
+              "feature": -1
+            },
+            {
+              "title": "Objetos",
+              "type": "catalog",
+              "library": "OBJECTS",
+              "feature": -1
+            },
+            {
+              "title": "Animações",
+              "type": "catalog",
+              "library": "ANIMATIONS",
+              "feature": -1
+            },
+            {
+              "title": "Cenários",
+              "type": "catalog",
+              "library": "SCENARIOS",
+              "feature": -1
+            },
+            {
+              "title": "Partículas",
+              "type": "catalog",
+              "library": "PARTICLES",
+              "feature": -1
+            }
+          ]
+        },
+        {
+          "name": "Atalhos",
+          "items": [
+            {
+              "title": "Trocar perfil",
+              "type": "action",
+              "action": "PROFILE",
+              "feature": 20
+            },
+            {
+              "title": "Tema preto/vermelho",
+              "type": "action",
+              "action": "THEME",
+              "feature": 1
+            },
+            {
+              "title": "Salvar preferências",
+              "type": "action",
+              "action": "SAVE",
+              "feature": 17
+            },
+            {
+              "title": "Ver CUSA",
+              "type": "action",
+              "action": "CUSA",
+              "feature": 6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Jogador",
+      "groups": [
+        {
+          "name": "Aparência e roupas",
+          "items": [
+            {
+              "title": "Conjuntos de roupa",
+              "type": "planned",
+              "feature": 2
+            },
+            {
+              "title": "Camisas e jaquetas",
+              "type": "planned",
+              "feature": 2
+            },
+            {
+              "title": "Calças e bermudas",
+              "type": "planned",
+              "feature": 2
+            },
+            {
+              "title": "Sapatos",
+              "type": "planned",
+              "feature": 2
+            },
+            {
+              "title": "Chapéus e bonés",
+              "type": "planned",
+              "feature": 2
+            },
+            {
+              "title": "Óculos",
+              "type": "planned",
+              "feature": 2
+            },
+            {
+              "title": "Máscaras",
+              "type": "planned",
+              "feature": 2
+            },
+            {
+              "title": "Acessórios",
+              "type": "planned",
+              "feature": 2
+            },
+            {
+              "title": "Salvar aparência",
+              "type": "planned",
+              "feature": 12
+            },
+            {
+              "title": "Carregar aparência",
+              "type": "planned",
+              "feature": 12
+            }
+          ]
+        },
+        {
+          "name": "Modelos",
+          "items": [
+            {
+              "title": "Catálogo de personagens",
+              "type": "catalog",
+              "library": "MODELS",
+              "feature": -1
+            },
+            {
+              "title": "Trocar personagem",
+              "type": "planned",
+              "feature": 14
+            },
+            {
+              "title": "Restaurar personagem original",
+              "type": "planned",
+              "feature": 14
+            },
+            {
+              "title": "Modelos favoritos",
+              "type": "planned",
+              "feature": 14
+            },
+            {
+              "title": "Compatibilidade de modelos",
+              "type": "planned",
+              "feature": 14
+            }
+          ]
+        },
+        {
+          "name": "Animações e gestos",
+          "items": [
+            {
+              "title": "Catálogo de animações",
+              "type": "catalog",
+              "library": "ANIMATIONS",
+              "feature": -1
+            },
+            {
+              "title": "Cenários de animação",
+              "type": "catalog",
+              "library": "SCENARIOS",
+              "feature": -1
+            },
+            {
+              "title": "Gestos rápidos",
+              "type": "planned",
+              "feature": 13
+            },
+            {
+              "title": "Animações favoritas",
+              "type": "planned",
+              "feature": 13
+            },
+            {
+              "title": "Interromper animação",
+              "type": "planned",
+              "feature": 13
+            },
+            {
+              "title": "Prévia de animação",
+              "type": "planned",
+              "feature": 13
+            }
+          ]
+        },
+        {
+          "name": "Movimento",
+          "items": [
+            {
+              "title": "Velocidade de caminhada",
+              "type": "planned",
+              "feature": 13
+            },
+            {
+              "title": "Velocidade de corrida",
+              "type": "planned",
+              "feature": 13
+            },
+            {
+              "title": "Altura do salto",
+              "type": "planned",
+              "feature": 13
+            },
+            {
+              "title": "Estilo de caminhada",
+              "type": "planned",
+              "feature": 13
+            },
+            {
+              "title": "Ações contextuais",
+              "type": "planned",
+              "feature": 13
+            },
+            {
+              "title": "Restaurar movimento",
+              "type": "planned",
+              "feature": 13
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Veículos",
+      "groups": [
+        {
+          "name": "Catálogo e seleção",
+          "items": [
+            {
+              "title": "Todos os veículos",
+              "type": "catalog",
+              "library": "VEHICLES",
+              "feature": -1
+            },
+            {
+              "title": "Pesquisar veículo",
+              "type": "planned",
+              "feature": 3
+            },
+            {
+              "title": "Veículos recentes",
+              "type": "planned",
+              "feature": 3
+            },
+            {
+              "title": "Veículos favoritos",
+              "type": "planned",
+              "feature": 10
+            },
+            {
+              "title": "Selecionar veículo",
+              "type": "planned",
+              "feature": 3
+            }
+          ]
+        },
+        {
+          "name": "Oficina e pintura",
+          "items": [
+            {
+              "title": "Cor primária",
+              "type": "planned",
+              "feature": 8
+            },
+            {
+              "title": "Cor secundária",
+              "type": "planned",
+              "feature": 8
+            },
+            {
+              "title": "Acabamento da pintura",
+              "type": "planned",
+              "feature": 8
+            },
+            {
+              "title": "Rodas",
+              "type": "planned",
+              "feature": 8
+            },
+            {
+              "title": "Cor das rodas",
+              "type": "planned",
+              "feature": 8
+            },
+            {
+              "title": "Pneus",
+              "type": "planned",
+              "feature": 8
+            },
+            {
+              "title": "Vidros",
+              "type": "planned",
+              "feature": 8
+            },
+            {
+              "title": "Faróis",
+              "type": "planned",
+              "feature": 8
+            },
+            {
+              "title": "Luzes decorativas",
+              "type": "planned",
+              "feature": 8
+            },
+            {
+              "title": "Placa",
+              "type": "planned",
+              "feature": 8
+            },
+            {
+              "title": "Buzina",
+              "type": "planned",
+              "feature": 8
+            }
+          ]
+        },
+        {
+          "name": "Desempenho",
+          "items": [
+            {
+              "title": "Motor",
+              "type": "planned",
+              "feature": 8
+            },
+            {
+              "title": "Freios",
+              "type": "planned",
+              "feature": 8
+            },
+            {
+              "title": "Transmissão",
+              "type": "planned",
+              "feature": 8
+            },
+            {
+              "title": "Suspensão",
+              "type": "planned",
+              "feature": 8
+            },
+            {
+              "title": "Turbo",
+              "type": "planned",
+              "feature": 8
+            },
+            {
+              "title": "Aderência",
+              "type": "planned",
+              "feature": 8
+            },
+            {
+              "title": "Restaurar desempenho",
+              "type": "planned",
+              "feature": 8
+            }
+          ]
+        },
+        {
+          "name": "Utilidades",
+          "items": [
+            {
+              "title": "Reparar veículo",
+              "type": "planned",
+              "feature": 9
+            },
+            {
+              "title": "Limpar veículo",
+              "type": "planned",
+              "feature": 9
+            },
+            {
+              "title": "Colocar veículo no chão",
+              "type": "planned",
+              "feature": 9
+            },
+            {
+              "title": "Ligar/desligar motor",
+              "type": "planned",
+              "feature": 9
+            },
+            {
+              "title": "Trancar/destrancar portas",
+              "type": "planned",
+              "feature": 9
+            },
+            {
+              "title": "Abrir/fechar portas",
+              "type": "planned",
+              "feature": 9
+            },
+            {
+              "title": "Velocímetro",
+              "type": "planned",
+              "feature": 11
+            }
+          ]
+        },
+        {
+          "name": "Garagem",
+          "items": [
+            {
+              "title": "Salvar veículo",
+              "type": "planned",
+              "feature": 10
+            },
+            {
+              "title": "Carregar veículo",
+              "type": "planned",
+              "feature": 10
+            },
+            {
+              "title": "Garagem por categoria",
+              "type": "planned",
+              "feature": 10
+            },
+            {
+              "title": "Favoritos da garagem",
+              "type": "planned",
+              "feature": 10
+            },
+            {
+              "title": "Presets de personalização",
+              "type": "planned",
+              "feature": 10
+            },
+            {
+              "title": "Excluir preset",
+              "type": "planned",
+              "feature": 10
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Mapa",
+      "groups": [
+        {
+          "name": "Teleporte",
+          "items": [
+            {
+              "title": "Ir ao marcador",
+              "type": "planned",
+              "feature": 4
+            },
+            {
+              "title": "Ir a coordenadas",
+              "type": "planned",
+              "feature": 4
+            },
+            {
+              "title": "Voltar à posição anterior",
+              "type": "planned",
+              "feature": 4
+            },
+            {
+              "title": "Locais predefinidos",
+              "type": "planned",
+              "feature": 4
+            },
+            {
+              "title": "Locais favoritos",
+              "type": "planned",
+              "feature": 25
+            },
+            {
+              "title": "Salvar local atual",
+              "type": "planned",
+              "feature": 25
+            }
+          ]
+        },
+        {
+          "name": "Marcadores",
+          "items": [
+            {
+              "title": "Criar marcador",
+              "type": "planned",
+              "feature": 27
+            },
+            {
+              "title": "Renomear marcador",
+              "type": "planned",
+              "feature": 27
+            },
+            {
+              "title": "Excluir marcador",
+              "type": "planned",
+              "feature": 27
+            },
+            {
+              "title": "Mostrar marcadores",
+              "type": "planned",
+              "feature": 27
+            },
+            {
+              "title": "Organizar favoritos",
+              "type": "planned",
+              "feature": 25
+            }
+          ]
+        },
+        {
+          "name": "Rotas e pontos",
+          "items": [
+            {
+              "title": "Salvar rota",
+              "type": "planned",
+              "feature": 25
+            },
+            {
+              "title": "Carregar rota",
+              "type": "planned",
+              "feature": 25
+            },
+            {
+              "title": "Ponto inicial",
+              "type": "planned",
+              "feature": 27
+            },
+            {
+              "title": "Ponto final",
+              "type": "planned",
+              "feature": 27
+            },
+            {
+              "title": "Restaurar mapa",
+              "type": "planned",
+              "feature": 27
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Mundo",
+      "groups": [
+        {
+          "name": "Clima e horário",
+          "items": [
+            {
+              "title": "Ensolarado",
+              "type": "planned",
+              "feature": 26
+            },
+            {
+              "title": "Nublado",
+              "type": "planned",
+              "feature": 26
+            },
+            {
+              "title": "Chuva",
+              "type": "planned",
+              "feature": 26
+            },
+            {
+              "title": "Nevoeiro",
+              "type": "planned",
+              "feature": 26
+            },
+            {
+              "title": "Hora do dia",
+              "type": "planned",
+              "feature": 26
+            },
+            {
+              "title": "Hora da noite",
+              "type": "planned",
+              "feature": 26
+            },
+            {
+              "title": "Congelar horário",
+              "type": "planned",
+              "feature": 26
+            },
+            {
+              "title": "Restaurar clima",
+              "type": "planned",
+              "feature": 26
+            }
+          ]
+        },
+        {
+          "name": "Ambiente",
+          "items": [
+            {
+              "title": "Densidade de tráfego",
+              "type": "planned",
+              "feature": 26
+            },
+            {
+              "title": "Densidade de pedestres",
+              "type": "planned",
+              "feature": 26
+            },
+            {
+              "title": "Iluminação ambiente",
+              "type": "planned",
+              "feature": 26
+            },
+            {
+              "title": "Gravidade ambiente",
+              "type": "planned",
+              "feature": 26
+            },
+            {
+              "title": "Ondas do mar",
+              "type": "planned",
+              "feature": 26
+            },
+            {
+              "title": "Restaurar ambiente",
+              "type": "planned",
+              "feature": 26
+            }
+          ]
+        },
+        {
+          "name": "Objetos e efeitos",
+          "items": [
+            {
+              "title": "Catálogo de objetos",
+              "type": "catalog",
+              "library": "OBJECTS",
+              "feature": -1
+            },
+            {
+              "title": "Partículas e efeitos",
+              "type": "catalog",
+              "library": "PARTICLES",
+              "feature": -1
+            },
+            {
+              "title": "Gerenciar objetos",
+              "type": "planned",
+              "feature": 26
+            },
+            {
+              "title": "Limpar objetos de sessão",
+              "type": "planned",
+              "feature": 26
+            },
+            {
+              "title": "Presets de cenário",
+              "type": "planned",
+              "feature": 26
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Câmera e visual",
+      "groups": [
+        {
+          "name": "Câmera livre",
+          "items": [
+            {
+              "title": "Ativar câmera livre",
+              "type": "planned",
+              "feature": 24
+            },
+            {
+              "title": "Velocidade da câmera",
+              "type": "planned",
+              "feature": 24
+            },
+            {
+              "title": "Campo de visão (FOV)",
+              "type": "planned",
+              "feature": 24
+            },
+            {
+              "title": "Altura e distância",
+              "type": "planned",
+              "feature": 24
+            },
+            {
+              "title": "Salvar posição",
+              "type": "planned",
+              "feature": 24
+            },
+            {
+              "title": "Restaurar câmera",
+              "type": "planned",
+              "feature": 24
+            }
+          ]
+        },
+        {
+          "name": "Cinematografia",
+          "items": [
+            {
+              "title": "Preset cinematográfico",
+              "type": "planned",
+              "feature": 21
+            },
+            {
+              "title": "Movimento suave",
+              "type": "planned",
+              "feature": 21
+            },
+            {
+              "title": "Enquadramento",
+              "type": "planned",
+              "feature": 21
+            },
+            {
+              "title": "Transições",
+              "type": "planned",
+              "feature": 21
+            },
+            {
+              "title": "Salvar preset",
+              "type": "planned",
+              "feature": 21
+            },
+            {
+              "title": "Carregar preset",
+              "type": "planned",
+              "feature": 21
+            }
+          ]
+        },
+        {
+          "name": "Filtros",
+          "items": [
+            {
+              "title": "Filtro neutro",
+              "type": "planned",
+              "feature": 22
+            },
+            {
+              "title": "Filtro cinematográfico",
+              "type": "planned",
+              "feature": 22
+            },
+            {
+              "title": "Contraste",
+              "type": "planned",
+              "feature": 22
+            },
+            {
+              "title": "Saturação",
+              "type": "planned",
+              "feature": 22
+            },
+            {
+              "title": "Brilho",
+              "type": "planned",
+              "feature": 22
+            },
+            {
+              "title": "Restaurar filtros",
+              "type": "planned",
+              "feature": 22
+            }
+          ]
+        },
+        {
+          "name": "HUD e painel",
+          "items": [
+            {
+              "title": "Ocultar HUD",
+              "type": "planned",
+              "feature": 23
+            },
+            {
+              "title": "Restaurar HUD",
+              "type": "planned",
+              "feature": 23
+            },
+            {
+              "title": "Elementos da tela",
+              "type": "planned",
+              "feature": 23
+            },
+            {
+              "title": "Painel gráfico integrado",
+              "type": "planned",
+              "feature": 0
+            },
+            {
+              "title": "Posição do painel",
+              "type": "planned",
+              "feature": 0
+            },
+            {
+              "title": "Escala do painel",
+              "type": "planned",
+              "feature": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Biblioteca",
+      "groups": [
+        {
+          "name": "Catálogos",
+          "items": [
+            {
+              "title": "Veículos (20 categorias)",
+              "type": "catalog",
+              "library": "VEHICLES",
+              "feature": -1
+            },
+            {
+              "title": "Personagens (7 grupos)",
+              "type": "catalog",
+              "library": "MODELS",
+              "feature": -1
+            },
+            {
+              "title": "Objetos (13 grupos)",
+              "type": "catalog",
+              "library": "OBJECTS",
+              "feature": -1
+            },
+            {
+              "title": "Animações",
+              "type": "catalog",
+              "library": "ANIMATIONS",
+              "feature": -1
+            },
+            {
+              "title": "Cenários",
+              "type": "catalog",
+              "library": "SCENARIOS",
+              "feature": -1
+            },
+            {
+              "title": "Partículas",
+              "type": "catalog",
+              "library": "PARTICLES",
+              "feature": -1
+            }
+          ]
+        },
+        {
+          "name": "Organização",
+          "items": [
+            {
+              "title": "Pesquisa no catálogo",
+              "type": "action",
+              "action": "SEARCH",
+              "feature": 15
+            },
+            {
+              "title": "Favoritos",
+              "type": "action",
+              "action": "FAVORITES",
+              "feature": 16
+            },
+            {
+              "title": "Histórico",
+              "type": "action",
+              "action": "RECENT",
+              "feature": 16
+            },
+            {
+              "title": "Importar presets",
+              "type": "planned",
+              "feature": 17
+            },
+            {
+              "title": "Exportar presets",
+              "type": "planned",
+              "feature": 17
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Configurações",
+      "groups": [
+        {
+          "name": "Aparência do menu",
+          "items": [
+            {
+              "title": "Tema preto e vermelho",
+              "type": "action",
+              "action": "THEME",
+              "feature": 1
+            },
+            {
+              "title": "Tom de vermelho",
+              "type": "action",
+              "action": "ACCENT",
+              "feature": 1
+            },
+            {
+              "title": "Transparência do painel",
+              "type": "planned",
+              "feature": 0
+            },
+            {
+              "title": "Tamanho da fonte",
+              "type": "planned",
+              "feature": 0
+            },
+            {
+              "title": "Tamanho do painel",
+              "type": "planned",
+              "feature": 0
+            },
+            {
+              "title": "Posição na tela",
+              "type": "planned",
+              "feature": 0
+            },
+            {
+              "title": "Efeito de entrada",
+              "type": "planned",
+              "feature": 0
+            }
+          ]
+        },
+        {
+          "name": "Perfis",
+          "items": [
+            {
+              "title": "Alternar perfil",
+              "type": "action",
+              "action": "PROFILE",
+              "feature": 20
+            },
+            {
+              "title": "Salvar configuração",
+              "type": "action",
+              "action": "SAVE",
+              "feature": 17
+            },
+            {
+              "title": "Recarregar configuração",
+              "type": "action",
+              "action": "LOAD",
+              "feature": 17
+            },
+            {
+              "title": "Renomear perfil",
+              "type": "planned",
+              "feature": 20
+            },
+            {
+              "title": "Duplicar perfil",
+              "type": "planned",
+              "feature": 20
+            },
+            {
+              "title": "Restaurar padrão",
+              "type": "planned",
+              "feature": 20
+            }
+          ]
+        },
+        {
+          "name": "Navegação",
+          "items": [
+            {
+              "title": "Mostrar controles",
+              "type": "action",
+              "action": "HELP",
+              "feature": 15
+            },
+            {
+              "title": "Personalizar atalho",
+              "type": "planned",
+              "feature": 15
+            },
+            {
+              "title": "Velocidade de rolagem",
+              "type": "planned",
+              "feature": 15
+            },
+            {
+              "title": "Som de seleção",
+              "type": "planned",
+              "feature": 15
+            },
+            {
+              "title": "Favoritos automáticos",
+              "type": "planned",
+              "feature": 16
+            }
+          ]
+        },
+        {
+          "name": "Extensões",
+          "items": [
+            {
+              "title": "Scripts Lua",
+              "type": "planned",
+              "feature": 19
+            },
+            {
+              "title": "Gerenciador de scripts",
+              "type": "planned",
+              "feature": 19
+            },
+            {
+              "title": "Permissões do servidor",
+              "type": "planned",
+              "feature": 18
+            },
+            {
+              "title": "Verificar compatibilidade externa",
+              "type": "planned",
+              "feature": 18
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Diagnóstico",
+      "groups": [
+        {
+          "name": "Estado do sistema",
+          "items": [
+            {
+              "title": "Status GoldHEN",
+              "type": "action",
+              "action": "GOLDHEN",
+              "feature": 5
+            },
+            {
+              "title": "Identificar CUSA e versão",
+              "type": "action",
+              "action": "CUSA",
+              "feature": 6
+            },
+            {
+              "title": "Resumo do plugin",
+              "type": "action",
+              "action": "SUMMARY",
+              "feature": 5
+            },
+            {
+              "title": "Teste de notificações",
+              "type": "action",
+              "action": "NOTIFY",
+              "feature": 5
+            }
+          ]
+        },
+        {
+          "name": "Logs e testes",
+          "items": [
+            {
+              "title": "Registrar teste no log",
+              "type": "action",
+              "action": "LOG",
+              "feature": 7
+            },
+            {
+              "title": "Mostrar controles",
+              "type": "action",
+              "action": "HELP",
+              "feature": 15
+            },
+            {
+              "title": "Relatório completo",
+              "type": "planned",
+              "feature": 7
+            },
+            {
+              "title": "Exportar diagnóstico",
+              "type": "planned",
+              "feature": 7
+            }
+          ]
+        },
+        {
+          "name": "Manutenção",
+          "items": [
+            {
+              "title": "Salvar preferências",
+              "type": "action",
+              "action": "SAVE",
+              "feature": 17
+            },
+            {
+              "title": "Recarregar preferências",
+              "type": "action",
+              "action": "LOAD",
+              "feature": 17
+            },
+            {
+              "title": "Teste de painel gráfico",
+              "type": "planned",
+              "feature": 0
+            },
+            {
+              "title": "Verificar adaptador GTA",
+              "type": "planned",
+              "feature": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Servidor privado",
+      "groups": [
+        {
+          "name": "Informações",
+          "items": [
+            {
+              "title": "Estado da conexão",
+              "type": "planned",
+              "feature": 18
+            },
+            {
+              "title": "Permissões disponíveis",
+              "type": "planned",
+              "feature": 18
+            },
+            {
+              "title": "Identificar servidor",
+              "type": "planned",
+              "feature": 18
+            },
+            {
+              "title": "Modos autorizados",
+              "type": "planned",
+              "feature": 18
+            }
+          ]
+        },
+        {
+          "name": "Integração autorizada",
+          "items": [
+            {
+              "title": "API do servidor",
+              "type": "planned",
+              "feature": 18
+            },
+            {
+              "title": "Solicitar permissão",
+              "type": "planned",
+              "feature": 18
+            },
+            {
+              "title": "Logs de permissões",
+              "type": "planned",
+              "feature": 18
+            },
+            {
+              "title": "Desativar integração",
+              "type": "planned",
+              "feature": 18
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
