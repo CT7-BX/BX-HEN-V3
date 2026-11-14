@@ -4,7 +4,7 @@ on:
     branches: [bx-gta-diag-test]
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   build-prx:
     runs-on: ubuntu-22.04
@@ -77,3 +77,20 @@ jobs:
           name: BXGTA-diagnostic-CUSA00419-157
           path: dist/
           if-no-files-found: error
+
+      - name: Publish direct download release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="bxgta-diag-cusa00419-v157"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/BXGTA_diag.prx --clobber
+          else
+            gh release create "$tag" dist/BXGTA_diag.prx \
+              --target "${GITHUB_SHA}" \
+              --title "BX-GTA diagnostic - CUSA00419 1.57" \
+              --notes "Diagnostic GoldHEN plugin only. Not a mod menu. Console execution has not been verified." \
+              --latest=false
+          fi
