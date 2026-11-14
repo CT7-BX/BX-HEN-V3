@@ -48,6 +48,7 @@ jobs:
           TARGET="$GOLDHEN_PLUGIN_REPO/plugin_src/BXGTA_menu"
           mkdir -p "$TARGET/source" "$GOLDHEN_PLUGIN_REPO/bin/plugins/prx_final" "$GOLDHEN_PLUGIN_REPO/bin/plugins/elf_final" dist
           cp "$GOLDHEN_PLUGIN_REPO/plugin_src/plugin_template/Makefile" "$TARGET/Makefile"
+          sed -i '/^LIBS :=/s/$/ -lScePad -lSceUserService/' "$TARGET/Makefile"
           cp "$GITHUB_WORKSPACE/bx-gta/main.c" "$TARGET/source/main.c"
           cp "$GITHUB_WORKSPACE/bx-gta/menu_core.c" "$TARGET/source/menu_core.c"
           cp "$GITHUB_WORKSPACE/bx-gta/menu_core.h" "$TARGET/source/menu_core.h"
