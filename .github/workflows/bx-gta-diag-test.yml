@@ -85,10 +85,10 @@ jobs:
         run: |
           set -euo pipefail
           tag="bxgta-diag-cusa00419-v157"
-          if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" dist/BXGTA_diag.prx --clobber
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/BXGTA_diag.prx --clobber --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$tag" dist/BXGTA_diag.prx \
+            gh release create "$tag" dist/BXGTA_diag.prx --repo "$GITHUB_REPOSITORY" \
               --target "${GITHUB_SHA}" \
               --title "BX-GTA diagnostic - CUSA00419 1.57" \
               --notes "Diagnostic GoldHEN plugin only. Not a mod menu. Console execution has not been verified." \
