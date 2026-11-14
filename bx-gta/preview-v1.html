@@ -1,100 +1,284 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BX-GTA v1.0 — Prévia de interface</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>BX-GTA | Prévia completa das opções</title>
 <style>
-:root{color-scheme:dark;--accent:#68a8ff;--bg:#0c1019;--panel:#141b26;--card:#1d2837;--text:#ecf4ff;--muted:#95a9bf;--border:#2e3d4d}
-*{box-sizing:border-box}body{margin:0;font:14px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text);background:radial-gradient(ellipse at 90% 12%,#203557 0,transparent 40%),linear-gradient(145deg,#0a1424,#091017 70%);min-height:100vh}
-.shell{padding:clamp(18px,4vw,48px);max-width:1150px;margin:auto}.top{display:flex;gap:12px;justify-content:space-between;align-items:center;margin-bottom:22px;flex-wrap:wrap}
-.logo{font-weight:800;letter-spacing:.04em;font-size:22px}.logo em{font-style:normal;color:var(--accent)}.subtitle{color:var(--muted);font-size:12px}
-.flag{font:600 11px/1.5 system-ui;padding:6px 10px;border:1px solid #4d586a;border-radius:100px;color:#bbc8d4}
-.window{background:color-mix(in srgb,var(--bg),transparent 7%);border:1px solid var(--border);box-shadow:0 30px 90px #0008;border-radius:18px;overflow:hidden;display:grid;grid-template-columns:220px minmax(0,1fr);min-height:570px}
-nav{padding:20px 12px;border-right:1px solid var(--border);background:#101722}
-nav .cap,main .cap{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:800;padding:8px 12px}
-.nav{display:flex;align-items:center;justify-content:space-between;width:100%;background:transparent;color:#bccbdc;border:0;text-align:left;padding:12px 14px;border-radius:9px;cursor:pointer;font:inherit}
-.nav.active{background:var(--card);color:var(--text);box-shadow:inset 3px 0 var(--accent)}.nav:hover,.action:hover{background:#263446}
-.nav small{color:var(--muted);font-size:11px}main{padding:28px;min-width:0}
-.view-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
-h1{font-size:23px;font-weight:700;line-height:1.1;margin:0}p{color:var(--muted);margin:9px 0 15px}
-.section{display:grid;gap:8px;margin-top:12px}
-.action{width:100%;display:flex;gap:12px;align-items:center;justify-content:space-between;text-align:left;color:var(--text);background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:13px 15px;cursor:pointer;font:inherit}
-.action .title{font-size:14px;font-weight:550}.action .desc{font-size:11px;color:var(--muted);padding-top:3px}
-.state{font-size:11px;color:var(--muted);white-space:nowrap}.state.ready{color:#74d4ac}.state.lib{color:#87b8ff}
-.back{border:0;background:transparent;color:var(--accent);font:600 12px system-ui;cursor:pointer;padding:9px 0}
-.controls{margin-top:20px;border-top:1px solid var(--border);padding-top:16px;display:flex;gap:8px;flex-wrap:wrap}
-kbd{font:600 11px system-ui;background:#263242;color:#bdcde0;border:1px solid #465468;border-radius:5px;padding:4px 6px}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);max-width:min(550px,90vw);padding:13px 17px;border-radius:10px;background:#202d3b;border:1px solid #53718b;box-shadow:0 6px 30px #0009;display:none;z-index:2}
-.preview{text-align:center;font-size:12px;margin-top:15px;color:#8197b1}
-@media(max-width:650px){.window{grid-template-columns:1fr}.nav-items{display:flex;overflow:auto;gap:6px}.nav{min-width:max-content;padding:10px}nav{border-right:0;border-bottom:1px solid var(--border);padding:9px}nav .cap{display:none}main{padding:18px;min-height:470px}}
+:root{
+ --bg:#0c111a;--sidebar:#101822;--surface:#151e2b;--surface2:#1c2837;
+ --stroke:#2b3a4b;--text:#eef4fc;--muted:#99acc0;--accent:#77aeff;
+ --green:#74d1af;--amber:#efc180;--shadow:#0006
+}
+*{box-sizing:border-box}
+html{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{margin:0;background:radial-gradient(ellipse at 85% 5%,#20334a,transparent 45%),var(--bg);color:var(--text);font-size:14px}
+button,input{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1310px;margin:auto;padding:24px}
+.header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px}
+.brand{display:flex;align-items:center;gap:13px}
+.brandmark{background:var(--accent);color:#07111f;font-size:16px;font-weight:900;letter-spacing:-.05em;width:44px;height:44px;display:grid;place-items:center;border-radius:12px}
+.brandname{font-size:23px;font-weight:800;letter-spacing:-.04em}
+.brandname b{color:var(--accent)}
+.small,.sub{font-size:12px;color:var(--muted)}
+.tag{font-size:11px;color:var(--muted);padding:7px 11px;border:1px solid var(--stroke);border-radius:30px}
+.layout{display:grid;grid-template-columns:218px minmax(0,1fr);border:1px solid var(--stroke);min-height:710px;border-radius:18px;background:var(--surface);overflow:hidden;box-shadow:0 25px 80px var(--shadow)}
+aside{padding:21px 12px;background:var(--sidebar);border-right:1px solid var(--stroke)}
+.caps{padding:4px 11px 11px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;font-weight:700}
+nav{display:grid;gap:3px}
+.navitem{border:0;background:transparent;color:var(--muted);padding:10px 12px;border-radius:9px;display:flex;align-items:center;justify-content:space-between;text-align:left;gap:10px;width:100%}
+.navitem:hover{background:var(--surface2);color:var(--text)}
+.navitem.active{background:var(--surface2);color:var(--text);box-shadow:inset 3px 0 var(--accent);font-weight:650}
+.navcount{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.asidefoot{border-top:1px solid var(--stroke);padding:16px 11px;margin-top:22px;font-size:11px;color:var(--muted);line-height:1.65}
+main{padding:27px;min-width:0}
+.breadcrumb{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:9px}
+h1{font-size:26px;letter-spacing:-.035em;margin:0 0 7px}
+h2{font-size:16px;margin:0 0 12px}
+p{line-height:1.55;color:var(--muted);margin:0 0 16px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-bottom:20px}
+.stat{padding:15px;background:var(--surface2);border:1px solid var(--stroke);border-radius:12px}
+.stat strong{font-size:24px;display:block}
+.stat span{font-size:11px;color:var(--muted)}
+.toolbar{display:flex;gap:9px;align-items:center;margin:17px 0;flex-wrap:wrap}
+.search{background:var(--sidebar);border:1px solid var(--stroke);border-radius:9px;color:var(--text);padding:12px 13px;flex:1 1 190px;min-width:0}
+.chip{background:transparent;border:1px solid var(--stroke);color:var(--muted);border-radius:8px;padding:10px 12px;white-space:nowrap}
+.chip:hover,.chip.on{color:var(--text);border-color:var(--accent);background:var(--surface2)}
+.countline{display:flex;justify-content:space-between;gap:10px;align-items:center;color:var(--muted);font-size:11px;margin-bottom:10px}
+.rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.option{border:1px solid var(--stroke);border-radius:11px;background:var(--sidebar);display:flex;gap:8px;align-items:center;padding:12px;min-width:0}
+.option:hover{border-color:var(--accent);background:var(--surface2)}
+.optionmain{display:block;flex:1;min-width:0;text-align:left;background:transparent;border:0;color:var(--text);padding:0}
+.optiontitle{font-weight:650;line-height:1.32;margin-bottom:5px;display:block;word-wrap:break-word}
+.optiondesc{font-size:11px;color:var(--muted);line-height:1.35}
+.state{font-size:10px;font-weight:650;color:var(--muted);display:block;margin-top:6px}
+.state.core{color:var(--green)}
+.fav{font-size:20px;border:0;background:transparent;color:#657991;padding:3px 5px;align-self:start}
+.fav.on{color:var(--amber)}
+.detail{display:none;margin-top:18px;border:1px solid var(--stroke);background:var(--surface2);border-radius:12px;padding:17px}
+.detail.show{display:block}
+.detailhead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:8px}
+.detail h2{margin:0}
+.detail button{background:transparent;border:0;color:var(--muted);font-size:18px}
+.detail p{margin-bottom:0}
+.catalogs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.catalogcard{background:var(--sidebar);border:1px solid var(--stroke);color:var(--text);text-align:left;border-radius:12px;padding:16px;cursor:pointer}
+.catalogcard:hover{border-color:var(--accent)}
+.catalogcard strong{font-size:25px;display:block;margin:5px 0}
+.catalogcard span{font-size:11px;color:var(--muted)}
+.catalogback{border:0;background:transparent;color:var(--accent);padding:6px 0 16px}
+.catrow{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--sidebar);border:1px solid var(--stroke);border-radius:9px;margin:7px 0;padding:12px 15px}
+.catrow span:last-child{color:var(--muted);font-size:12px}
+.note{border-top:1px solid var(--stroke);padding-top:14px;margin-top:25px;font-size:11px;color:var(--muted);line-height:1.55}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.swatch{width:25px;height:25px;border-radius:50%;border:2px solid #6b7280;cursor:pointer}
+.swatch.sel{outline:2px solid var(--text);outline-offset:3px}
+.empty{padding:30px;border:1px dashed var(--stroke);border-radius:10px;color:var(--muted);text-align:center}
+@media(max-width:850px){.rows{grid-template-columns:1fr}.catalogs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.wrap{padding:12px}.header{align-items:flex-start}.tag{max-width:150px;text-align:center}.layout{grid-template-columns:1fr}aside{padding:12px;border-right:0;border-bottom:1px solid var(--stroke)}aside .caps,.asidefoot{display:none}nav{display:flex;overflow-x:auto;scrollbar-width:thin}.navitem{width:auto;white-space:nowrap;flex:0 0 auto;padding:10px}.navcount{font-size:10px}main{padding:18px}.stats{gap:7px}.stat{padding:11px}.stat strong{font-size:19px}.stat span{font-size:10px}.catalogs{grid-template-columns:1fr 1fr}h1{font-size:23px}}
 </style>
-</head><body><div class="shell">
-<div class="top"><div><div class="logo">BX<em>–GTA</em> <span class="subtitle">1.0 / design de interface</span></div><div class="subtitle">GTA V 1.57 • CUSA00419 • referência estrutural Synapse</div></div><span class="flag">PRÉVIA INTERATIVA — NÃO É A TELA DO PS4</span></div>
-<div class="window"><nav><div class="cap">Navegação</div><div id="nav" class="nav-items"></div></nav><main>
-<div class="view-head"><div><div class="cap" style="padding-left:0">BX-GTA / <span id="crumb">Início</span></div><h1 id="heading">Início</h1></div><span id="version" class="flag">v1.0</span></div>
-<p id="hint">Navegue pelas seções do menu. Funções sem adaptador GTA ficam desativadas.</p>
-<div id="actions" class="section"></div>
-<div class="controls"><span><kbd>L1</kbd> + <kbd>→</kbd> abrir</span><span><kbd>↑</kbd><kbd>↓</kbd> navegar</span><span><kbd>X</kbd> selecionar</span><span><kbd>O</kbd> voltar</span></div>
-</main></div><div class="preview">Esta prévia funciona no navegador; o arquivo PRX atual mostra menus por notificações GoldHEN.</div></div><div id="toast" class="toast" role="status"></div>
+</head>
+<body>
+<div class="wrap">
+ <header class="header">
+  <div class="brand"><div class="brandmark">BX</div><div><div class="brandname">BX–<b>GTA</b></div><div class="sub">Prévia completa • GTA V 1.57 • PS4 CUSA00419</div></div></div>
+  <div class="tag">INTERFACE CONCEITUAL • v1.0</div>
+ </header>
+ <div class="layout">
+  <aside><div class="caps">Navegação</div><nav id="nav"></nav>
+   <div class="asidefoot">L1 + → abrir<br>↑ / ↓ navegar<br>X selecionar • O voltar<br>L1 + ← favorito<br><br>Na versão PRX, o menu usa notificações do GoldHEN.</div>
+  </aside>
+  <main>
+   <div class="breadcrumb" id="crumb">BX-GTA / Todas as opções</div>
+   <h1 id="heading">Todas as opções</h1>
+   <p id="lead">Veja todas as 28 funções solicitadas, explore cada categoria e confira o estado de implementação.</p>
+   <section id="stats" class="stats">
+    <div class="stat"><strong>28</strong><span>Funcionalidades mapeadas</span></div>
+    <div class="stat"><strong>8</strong><span>Núcleo/diagnóstico testável</span></div>
+    <div class="stat"><strong>20</strong><span>Integrações pendentes</span></div>
+   </section>
+   <div class="toolbar" id="toolbar">
+    <input class="search" id="search" placeholder="Buscar opção, ex.: câmera, veículo, tema" aria-label="Pesquisar funcionalidades">
+    <button class="chip" id="onlyAll">Todas</button>
+    <button class="chip" id="onlyCore">Núcleo</button>
+    <button class="chip" id="onlyFav">★ Favoritos</button>
+   </div>
+   <div id="extra"></div>
+   <div class="countline"><span id="count">28 opções</span><span id="current">Sem alterações no GTA</span></div>
+   <div class="rows" id="rows"></div>
+   <div id="detail" class="detail"></div>
+   <div class="note"><strong>Sobre esta prévia:</strong> estas telas funcionam somente neste navegador. Recursos marcados como “NÚCLEO” têm lógica testável no protótipo, não necessariamente uma ação funcionando dentro do GTA. Recursos “PLANEJADO” não executam mods. Os catálogos mostram a organização encontrada no arquivo Synapse fornecido, não um recurso ativo no jogo.</div>
+  </main>
+ </div>
+</div>
 <script>
-const sections={
-"Início":[["Resumo","info","Resumo do projeto"],["Favoritos","favorites","Opções salvas"],["Recentes","recent","Últimas opções"],["Pesquisar","search","Consulta por nome"]],
-"Jogador":[["Modelos","Models","275 referências em 7 categorias"],["Animações","Animations","204 referências"],["Cenários","Scenarios","134 referências"],["Roupas e aparência",null],["Gestos",null],["Presets",null]],
-"Veículos":[["Catálogo de veículos","Vehicles","812 modelos em 20 categorias"],["Oficina e personalização",null],["Reparo",null],["Garagem",null],["Velocímetro",null]],
-"Mapa":[["Teleporte por marcador",null],["Locais favoritos",null],["Marcadores",null]],
-"Mundo":[["Clima e horário",null],["Objetos","Objects","172 referências"],["Partículas","Particles","197 referências"]],
-"Câmera e visual":[["Câmera livre",null],["Presets cinematográficos",null],["Filtros visuais",null],["Ocultar HUD",null],["Painel gráfico do GTA",null]],
-"Biblioteca":[["Veículos","Vehicles"],["Personagens","Models"],["Objetos","Objects"],["Animações","Animations"],["Cenários","Scenarios"],["Partículas","Particles"]],
-"Configurações":[["Tema","theme","4 temas"],["Cor de destaque","accent","6 opções"],["Perfil","profile","3 espaços"],["Salvar preferências","save"],["Recarregar preferências","load"],["Scripts Lua",null],["Servidor privado",null]],
-"Diagnóstico":[["GoldHEN","info","Carregamento do plugin"],["Jogo e CUSA","cusa","CUSA00419 • GTA V 1.57"],["Registro de erros","log","Log disponível no PS4"],["Controles","help"],["Teste de notificação","notify"]]
-};
-const categories=Object.keys(sections);
-const groups={
-Vehicles:[["Super",71],["Esportivos",98],["Clássicos",47],["Muscle",76],["Sedãs",43],["Coupés",15],["Compactos",23],["SUV",48],["Off-road",57],["Vans",32],["Emergência",21],["Serviço",29],["Militares",22],["Motos",58],["Bicicletas",7],["Comerciais",43],["Helicópteros",28],["Aviões",40],["Barcos",26],["Trailers",28]],
-Models:[["História",98],["Ambiente",67],["Gangues",23],["Serviços",33],["Únicos",22],["Animais",30],["Multiplayer",2]],
-Objects:[["Rampas",16],["Acrobacias",23],["Skate",7],["Arena",6],["Barreiras",21],["Pneus",4],["Containers",13],["Itens",12],["Cenografia",7],["Lazer",12],["Móveis",23],["Máquinas",21],["Diversos",7]],
-Animations:[["Animações",204]],Scenarios:[["Cenários",134]],Particles:[["Partículas",197]]
-};
-let current=0,view=null,theme=0,accent=0,profile=0;
-const accents=["#68a8ff","#f16b76","#6fcfa7","#bc96fa","#ecc16e","#fff"];
-let fav=new Set(),recent=[];
-function el(id){return document.getElementById(id)}
-function toast(message){let node=el("toast");node.textContent=message;node.style.display="block";clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>node.style.display="none",3500)}
-function act(title,caption,tag,handler){
- let btn=document.createElement("button");btn.className="action";btn.innerHTML='<div><div class="title"></div><div class="desc"></div></div><span class="state"></span>';
- btn.querySelector(".title").textContent=title;
- btn.querySelector(".desc").textContent=caption||"";
- const status=btn.querySelector(".state");status.textContent=tag;status.className="state "+(tag==="PREPARADO"?"ready":tag==="CATÁLOGO"?"lib":"");
- btn.onclick=handler;el("actions").append(btn);
+'use strict';
+const features=[
+ ["Painel gráfico dentro do GTA","Câmera e visual",0,"Exibição persistente sobre o jogo: exige integração com renderizador PS4/GTA."],
+ ["Temas e cores personalizáveis","Configurações",1,"Paletas definidas no núcleo; altere o tema visual desta prévia."],
+ ["Personalização de roupas","Jogador",0,"Trocar componentes de roupa e acessórios; adaptador GTA pendente."],
+ ["Lista de veículos por categoria","Veículos",0,"Catálogo organizado por tipo; exibição/seleção dentro do GTA pendente."],
+ ["Teleporte por marcador","Mapa",0,"Mover o personagem para um marcador; sem adaptador integrado."],
+ ["Diagnóstico GoldHEN","Diagnóstico",1,"Mensagens básicas de carregamento e falhas do plugin; não lê a versão exata do GoldHEN."],
+ ["Detecção automática de CUSA","Diagnóstico",1,"Validação de CUSA00419 e versão 1.57 realizada pelo plugin."],
+ ["Registros de erro","Diagnóstico",1,"Registro local em /data/GoldHEN/BXGTA/error.log."],
+ ["Personalização de cores e rodas","Veículos",0,"Pintura, rodas e oficina; interface nativa ainda não implementada."],
+ ["Reparo de veículos","Veículos",0,"Restauração de veículo; integração GTA pendente."],
+ ["Garagem e favoritos","Veículos",0,"Armazenamento de veículos e presets; não confundir com favoritos do menu."],
+ ["Velocímetro","Veículos",0,"Leitura de velocidade e desenho na HUD ainda pendentes."],
+ ["Presets de aparência","Jogador",0,"Salvamento de combinações de roupas e personagem."],
+ ["Animações e gestos","Jogador",0,"Listas de referências disponíveis; execução de animações pendente."],
+ ["Modelos de personagem compatíveis","Jogador",0,"Catálogo de personagens sem alteração ativa de modelo."],
+ ["Pesquisa e navegação rápida","Configurações",1,"Catálogo pesquisável no núcleo; esta prévia permite busca livre."],
+ ["Favoritos e opções recentes","Início",1,"Preferências e histórico no núcleo; esta prévia permite favoritar."],
+ ["Salvar preferências","Configurações",1,"Persistência de perfis no plugin. Prévia salva só neste navegador."],
+ ["Permissões do servidor privado","Servidor privado",0,"Depende de integração e APIs de autorização do servidor."],
+ ["Scripts Lua compatíveis","Servidor privado",0,"Requer um interpretador isolado e APIs controladas; não integrado."],
+ ["Perfis de configuração","Configurações",1,"Três perfis no núcleo e alternância no menu."],
+ ["Presets cinematográficos","Câmera e visual",0,"Posições, movimentos e efeitos de câmera pendentes."],
+ ["Filtros visuais","Câmera e visual",0,"Filtros de imagem dependem do renderizador real."],
+ ["Ocultar elementos da HUD","Câmera e visual",0,"Ocultar e restaurar interface do jogo, ainda não implementado."],
+ ["Câmera livre","Câmera e visual",0,"Controle independente da câmera pendente."],
+ ["Locais favoritos","Mapa",0,"Catálogo e persistência de coordenadas ainda pendentes."],
+ ["Clima e horário","Mundo",0,"Controle de ambiente via motor do jogo ainda pendente."],
+ ["Marcadores personalizados","Mapa",0,"Criar e salvar marcações, ainda não integrado ao GTA."]
+].map(([title,section,core,description],id)=>({id,title,section,core,description}));
+const vehicleGroups=[["Super",71],["Esportivos",98],["Clássicos",47],["Muscle",76],["Sedãs",43],["Coupés",15],["Compactos",23],["SUV",48],["Off-road",57],["Vans",32],["Emergência",21],["Serviço",29],["Militares",22],["Motos",58],["Bicicletas",7],["Comerciais",43],["Helicópteros",28],["Aviões",40],["Barcos",26],["Trailers",28]];
+const modelGroups=[["História",98],["Ambiente",67],["Gangues",23],["Serviços",33],["Únicos",22],["Animais",30],["Multiplayer",2]];
+const objectGroups=[["Rampas",16],["Acrobacias",23],["Skate",7],["Arena",6],["Barreiras",21],["Pneus",4],["Containers",13],["Itens",12],["Cenografia",7],["Lazer",12],["Móveis",23],["Máquinas",21],["Diversos",7]];
+const libraries=[
+ {name:"Veículos",groups:vehicleGroups},
+ {name:"Personagens",groups:modelGroups},
+ {name:"Objetos",groups:objectGroups},
+ {name:"Animações",groups:[["Animações",204]]},
+ {name:"Cenários",groups:[["Cenários",134]]},
+ {name:"Partículas",groups:[["Partículas",197]]}
+];
+const navItems=["Todas as opções","Início","Jogador","Veículos","Mapa","Mundo","Câmera e visual","Biblioteca","Configurações","Diagnóstico","Servidor privado"];
+const themes=["Escuro","Claro","Neon","Contraste"];
+const accents=["#77aeff","#f27280","#70d5aa","#b28aff","#efbd6c","#f4f4f5"];
+let category="Todas as opções",query="",filter="all",favorite=new Set(),recent=[],theme=0,accent=0,profile=0,openedDetail=null,libraryIndex=null;
+const $=id=>document.getElementById(id);
+function node(tag,className,text){
+ const e=document.createElement(tag);if(className)e.className=className;
+ if(text!==undefined)e.textContent=text;return e;
 }
-function select(cat){current=cat;view=null;draw()}
-function command(label,key){
- if(!key){toast(label+": precisa de integração com o GTA V. Ainda não está operacional.");return}
- recent=[label,...recent.filter(x=>x!==label)].slice(0,8);
- if(groups[key]){view={key,label};draw();return}
- if(key==="theme"){theme=(theme+1)%4;document.documentElement.style.setProperty("--bg",theme===1?"#1e293b":theme===2?"#11132a":"#0c1019");toast("Tema: "+["Escuro","Claro","Neon","Contraste"][theme])}
- else if(key==="accent"){accent=(accent+1)%accents.length;document.documentElement.style.setProperty("--accent",accents[accent]);toast("Destaque atualizado")}
- else if(key==="profile"){profile=(profile+1)%3;toast("Perfil "+(profile+1)+" de 3")}
- else if(key==="favorites")toast(fav.size+" favoritos: "+[...fav].slice(0,3).join(", "));
- else if(key==="recent")toast("Recentes: "+recent.join(", "));
- else if(key==="search"){let q=prompt("Buscar funcionalidade na prévia:","veículo");if(q){let matched=Object.values(sections).flat().filter(v=>v[0].toLowerCase().includes(q.toLowerCase()));toast(matched.length+" encontrados: "+matched.slice(0,2).map(v=>v[0]).join(", "))}}
- else if(key==="save"){try{localStorage.setItem("bxgta-preview",JSON.stringify({theme,accent,profile,fav:[...fav]}));toast("Preferências salvas neste navegador")}catch{toast("Armazenamento indisponível")}}
- else if(key==="load"){try{let data=JSON.parse(localStorage.getItem("bxgta-preview"));if(data){theme=data.theme;accent=data.accent;profile=data.profile;fav=new Set(data.fav);document.documentElement.style.setProperty("--accent",accents[accent]);toast("Prévia recarregada")}else toast("Sem dados salvos")}catch{toast("Não foi possível carregar")}}
- else toast("Prévia: "+label+" — no PS4, verificar implementação do plugin");
+function clean(str){return String(str).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase()}
+function navRender(){
+ const root=$("nav");root.replaceChildren();
+ navItems.forEach(name=>{
+  const b=node("button","navitem"+(category===name?" active":""),name);
+  b.type="button";
+  const count=name==="Todas as opções"?features.length:name==="Biblioteca"?libraries.length:features.filter(f=>f.section===name).length;
+  b.append(node("span","navcount",String(count)));
+  b.onclick=()=>{category=name;query="";filter="all";libraryIndex=null;openedDetail=null;$("search").value="";render()};
+  root.append(b);
+ });
 }
-function draw(){
- el("nav").innerHTML="";categories.forEach((c,i)=>{let b=document.createElement("button");b.className="nav"+(i===current?" active":"");b.textContent=c;b.onclick=()=>select(i);el("nav").append(b)});
- let title=categories[current];el("crumb").textContent=title;el("heading").textContent=view?view.label:title;el("actions").innerHTML="";
- if(view){let back=document.createElement("button");back.className="back";back.textContent="← Voltar à seção";back.onclick=()=>{view=null;draw()};el("actions").append(back);el("hint").textContent="Catálogo de referências do arquivo Synapse, não gera itens no GTA.";groups[view.key].forEach(([name,count])=>act(name,count+" entradas catalogadas","CATÁLOGO",()=>toast(name+": "+count+" nomes de referência. Sem ação sobre o jogo.")));return}
- el("hint").textContent="Navegue pelo menu redesenhado. Ações do GTA sem adaptador continuam desativadas.";
- sections[title].forEach(([label,key,desc])=>act(label,desc||(key?"Opção do núcleo":"Dependente de integração"),key?(groups[key]?"CATÁLOGO":"PREPARADO"):"EM BREVE",(ev)=>{
- if(ev&&ev.shiftKey){fav.has(label)?fav.delete(label):fav.add(label);toast("Favorito atualizado: "+label);return}
- command(label,key)
- }));
+function itemCard(feature){
+ const row=node("div","option");
+ const main=node("button","optionmain");main.type="button";
+ main.append(node("span","optiontitle",feature.title));
+ main.append(node("span","optiondesc",feature.section));
+ main.append(node("span","state"+(feature.core?" core":""),feature.core?"● NÚCLEO / DIAGNÓSTICO":"○ PLANEJADO"));
+ main.onclick=()=>{openedDetail=feature.id;detailRender();$("detail").scrollIntoView({block:"nearest",behavior:"smooth"})};
+ const star=node("button","fav"+(favorite.has(feature.id)?" on":""),favorite.has(feature.id)?"★":"☆");
+ star.setAttribute("aria-label",(favorite.has(feature.id)?"Remover dos":"Adicionar aos")+" favoritos: "+feature.title);
+ star.type="button";
+ star.onclick=()=>{favorite.has(feature.id)?favorite.delete(feature.id):favorite.add(feature.id);recent=[feature.id,...recent.filter(x=>x!==feature.id)].slice(0,8);render()};
+ row.append(main,star);return row;
 }
-document.addEventListener("keydown",e=>{
- if(e.key==="Escape"){if(view){view=null;draw()}else select(0)}
-});
-draw();
+function detailRender(){
+ const d=$("detail");d.replaceChildren();
+ const f=features[openedDetail];if(!f){d.classList.remove("show");return}
+ d.classList.add("show");
+ const head=node("div","detailhead");
+ head.append(node("h2","",f.title));
+ const close=node("button","","×");close.setAttribute("aria-label","Fechar detalhes");close.onclick=()=>{openedDetail=null;detailRender()};
+ head.append(close);d.append(head);
+ d.append(node("p","",f.description));
+ d.append(node("p","",f.core?"Estado: estrutura implementada ou diagnóstico no protótipo. Teste físico e integração gráfica continuam necessários.":"Estado: planejado. Ainda não executa essa função dentro do GTA V."));
+ const fav=node("button","chip",favorite.has(f.id)?"★ Remover favorito":"☆ Adicionar favorito");
+ fav.onclick=()=>{favorite.has(f.id)?favorite.delete(f.id):favorite.add(f.id);render()};d.append(fav);
+}
+function btn(label,callback){
+ const b=node("button","chip",label);b.type="button";b.onclick=callback;return b;
+}
+function controlsRender(){
+ const root=$("extra");root.replaceChildren();
+ if(category!=="Configurações")return;
+ const heading=node("h2","","Personalizar a prévia");root.append(heading);
+ const actions=node("div","actions");
+ actions.append(btn("Tema: "+themes[theme],()=>{theme=(theme+1)%4;applyTheme();render()}));
+ actions.append(btn("Perfil "+(profile+1)+" / 3",()=>{profile=(profile+1)%3;render()}));
+ actions.append(btn("Salvar nesta prévia",()=>{try{localStorage.setItem("bxgta-full-preview",JSON.stringify({theme,accent,profile,favs:[...favorite]}));window.alert("Prévia salva neste navegador.")}catch{window.alert("Armazenamento do navegador indisponível.")}}));
+ actions.append(btn("Recarregar prévia",()=>{try{const v=JSON.parse(localStorage.getItem("bxgta-full-preview"));if(v){theme=Number(v.theme)||0;accent=Number(v.accent)||0;profile=Number(v.profile)||0;favorite=new Set(v.favs||[]);applyTheme();render()}else window.alert("Nenhum dado salvo.")}catch{window.alert("Não foi possível recarregar.")}}));
+ root.append(actions,node("p","","Cor de destaque (prévia visual)"));
+ const swatches=node("div","actions");
+ accents.forEach((color,i)=>{
+  const b=node("button","swatch"+(accent===i?" sel":""));
+  b.style.background=color;b.setAttribute("aria-label","Cor de destaque "+(i+1));
+  b.onclick=()=>{accent=i;applyTheme();render()};swatches.append(b);
+ });root.append(swatches);
+}
+function applyTheme(){
+ const root=document.documentElement;root.style.setProperty("--accent",accents[accent%accents.length]||accents[0]);
+ const themeValues=[
+  ["#0c111a","#101822","#151e2b","#1c2837","#eef4fc","#99acc0","#2b3a4b"],
+  ["#e5edf7","#edf3fa","#fafcff","#e1eaf3","#172236","#4f6380","#becbd8"],
+  ["#0c0b1c","#17132b","#1e1939","#312753","#f5eeff","#c5afe5","#443665"],
+  ["#050505","#0a0a0a","#101010","#1c1c1c","#ffffff","#eeeeee","#777777"]
+ ];
+ const t=themeValues[theme%themeValues.length];
+ ["--bg","--sidebar","--surface","--surface2","--text","--muted","--stroke"].forEach((p,i)=>root.style.setProperty(p,t[i]));
+}
+function libraryRender(){
+ const root=$("extra");root.replaceChildren();$("rows").replaceChildren();$("detail").classList.remove("show");
+ const cards=node("div","catalogs");
+ if(libraryIndex===null){
+  libraries.forEach((lib,index)=>{
+   const count=lib.groups.reduce((a,x)=>a+x[1],0);
+   const b=node("button","catalogcard");
+   b.append(node("span","",lib.name),node("strong","",String(count)),node("span","",lib.groups.length+" grupos catalogados"));
+   b.onclick=()=>{libraryIndex=index;render()};cards.append(b);
+  });root.append(cards);$("count").textContent="6 bibliotecas de referência";return;
+ }
+ const lib=libraries[libraryIndex];
+ root.append(btn("← Todas as bibliotecas",()=>{libraryIndex=null;render()}));
+ root.append(node("h2","",lib.name+" — "+lib.groups.reduce((a,x)=>a+x[1],0)+" entradas"));
+ lib.groups.forEach(([name,count])=>{
+  const row=node("div","catrow");row.append(node("span","",name),node("span","",count+" referências"));root.append(row)
+ });
+ $("count").textContent=lib.groups.length+" categorias"; 
+}
+function render(){
+ navRender();$("heading").textContent=category==="Biblioteca"&&libraryIndex!==null?libraries[libraryIndex].name:category;
+ $("crumb").textContent="BX-GTA / "+category;$("stats").hidden=category!=="Todas as opções";
+ $("toolbar").hidden=category==="Biblioteca";$("lead").textContent=category==="Biblioteca"?
+ "Catálogos de referência identificados no arquivo Synapse. Selecione uma biblioteca para ver todos os grupos.":
+ category==="Todas as opções"?"Todas as 28 opções do planejamento, sem omitir funcionalidades pendentes.":
+ "Funções organizadas por categoria. Clique para ver detalhes ou use ☆ para favoritar.";
+ $("onlyAll").classList.toggle("on",filter==="all");$("onlyCore").classList.toggle("on",filter==="core");$("onlyFav").classList.toggle("on",filter==="fav");
+ $("extra").replaceChildren();$("rows").replaceChildren();
+ if(category==="Biblioteca"){libraryRender();return}
+ controlsRender();
+ let found=features.filter(f=>(category==="Todas as opções"||f.section===category)
+   &&(filter!=="core"||f.core)&&(filter!=="fav"||favorite.has(f.id))
+   &&(!query||clean(f.title+" "+f.section+" "+f.description).includes(clean(query))));
+ found.forEach(f=>$("rows").append(itemCard(f)));
+ if(!found.length)$("rows").append(node("div","empty","Nenhuma opção encontrada com estes filtros."));
+ $("count").textContent=found.length+" opções exibidas";
+ $("current").textContent=found.filter(f=>f.core).length+" com núcleo / "+found.filter(f=>!f.core).length+" planejadas";
+ detailRender();
+}
+$("search").addEventListener("input",e=>{query=e.target.value;openedDetail=null;render()});
+$("onlyAll").onclick=()=>{filter="all";render()};
+$("onlyCore").onclick=()=>{filter="core";render()};
+$("onlyFav").onclick=()=>{filter="fav";render()};
+applyTheme();render();
 </script>
-</body></html>
+</body>
+</html>
