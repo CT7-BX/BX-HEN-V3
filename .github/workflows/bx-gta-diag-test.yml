@@ -85,6 +85,7 @@ jobs:
           make -C "$TARGET" all
           cp "$GOLDHEN_PLUGIN_REPO/bin/plugins/prx_final/BXGTA_v1.prx" dist/BXGTA_v1.prx
           test -s dist/BXGTA_v1.prx
+          cp "$GITHUB_WORKSPACE/bx-gta/preview-v1.html" dist/BXGTA-preview.html
           cat > dist/README.txt <<'README'
           BX-GTA v1.0 experimental PS4 GoldHEN diagnostic/catalog
           Target: GTA V 1.57 / CUSA00419
@@ -115,9 +116,9 @@ jobs:
           set -euo pipefail
           tag="bxgta-menu-v100-cusa00419-v157"
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$tag" dist/BXGTA_v1.prx --clobber --repo "$GITHUB_REPOSITORY"
+            gh release upload "$tag" dist/BXGTA_v1.prx dist/BXGTA-preview.html dist/README.txt --clobber --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$tag" dist/BXGTA_v1.prx --repo "$GITHUB_REPOSITORY" \
+            gh release create "$tag" dist/BXGTA_v1.prx dist/BXGTA-preview.html dist/README.txt --repo "$GITHUB_REPOSITORY" \
               --target "${GITHUB_SHA}" \
               --title "BX-GTA menu v1.0 - CUSA00419 1.57" \
               --notes "BX-GTA v1.0: rebuilt minimalist nine-section GoldHEN notification menu; reference catalog counts from user-provided Synapse.rar; core features include profiles, favorites, search and diagnostics. Does not include GTA graphics overlay nor gameplay modifications. Needs PS4 testing." \
