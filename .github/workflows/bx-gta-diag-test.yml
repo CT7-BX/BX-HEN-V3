@@ -1,4 +1,4 @@
-name: BX-GTA v0.7 controller menu test
+name: BX-GTA v0.8 controller menu test
 on:
   push:
     branches: [bx-gta-diag-test]
@@ -10,10 +10,17 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - name: Test menu state machine (Release + strict warnings)
+      - name: Run portable menu tests with GCC and Clang
         run: |
-          gcc -std=c11 -O2 -DNDEBUG -Wall -Wextra -Werror bx-gta/menu_core.c bx-gta/test_menu.c -o /tmp/bxgta-tests
-          /tmp/bxgta-tests
+          set -euo pipefail
+          gcc -std=c11 -O2 -DNDEBUG -Wall -Wextra -Werror bx-gta/menu_core.c bx-gta/test_menu.c -o /tmp/bxgta-gcc
+          /tmp/bxgta-gcc
+          clang -std=c11 -O2 -DNDEBUG -Wall -Wextra -Werror bx-gta/menu_core.c bx-gta/test_menu.c -o /tmp/bxgta-clang
+          /tmp/bxgta-clang
+      - name: Sanitizer test
+        run: |
+          gcc -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer             bx-gta/menu_core.c bx-gta/test_menu.c -o /tmp/bxgta-san
+          /tmp/bxgta-san
   build-prx:
     needs: host-tests
     runs-on: ubuntu-22.04
@@ -41,7 +48,7 @@ jobs:
           git clone --depth 1 https://github.com/GoldHEN/GoldHEN_Plugins_Repository.git "$RUNNER_TEMP/plugins"
           echo "GOLDHEN_SDK=$RUNNER_TEMP/sdk" >> "$GITHUB_ENV"
           echo "GOLDHEN_PLUGIN_REPO=$RUNNER_TEMP/plugins" >> "$GITHUB_ENV"
-      - name: Build BX-GTA diagnostic PRX
+      - name: Build BX-GTA v0.8 menu PRX
         shell: bash
         run: |
           set -euo pipefail
@@ -59,7 +66,7 @@ jobs:
           sha256sum dist/BXGTA_menu.prx | tee dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: BXGTA-menu-v070-CUSA00419-157
+          name: BXGTA-menu-v080-CUSA00419-157
           path: dist/
           if-no-files-found: error
 
@@ -69,13 +76,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag="bxgta-menu-v070-cusa00419-v157"
+          tag="bxgta-menu-v080-cusa00419-v157"
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$tag" dist/BXGTA_menu.prx --clobber --repo "$GITHUB_REPOSITORY"
           else
             gh release create "$tag" dist/BXGTA_menu.prx --repo "$GITHUB_REPOSITORY" \
               --target "${GITHUB_SHA}" \
-              --title "BX-GTA menu v0.7 - CUSA00419 1.57" \
-              --notes "BX-GTA v0.7: experimental GoldHEN notification menu with controller navigation. Gameplay modifications and graphical overlay are not included. Requires physical PS4 test." \
+              --title "BX-GTA menu v0.8 - CUSA00419 1.57" \
+              --notes "BX-GTA v0.8: experimental GoldHEN notification menu with controller navigation. Gameplay modifications and graphical overlay are not included. Requires physical PS4 test." \
               --latest=false
           fi
