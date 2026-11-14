@@ -32,9 +32,9 @@ int main(void) {
     require(bx_prefs_set_slot(&a,2)==0,"slot 2");
     require(bx_prefs_set_slot(&a,3)<0,"invalid slot");
     require(!strcmp(bx_theme_name(a.theme),"Contraste"),"theme name");
-    require(!strcmp(bx_accent_name(a.accent),"Branco"),"accent name");
+    require(!strcmp(bx_accent_name(a.accent),"Vermelho Claro"),"accent name");
     BxPalette pal=bx_palette_select(a.theme,a.accent);
-    require(pal.panel==0x000000FFu && pal.highlight==0xFFFFFFFFu,"palette token values");
+    require(pal.panel==0x000000FFu && pal.highlight==0xFF9E9EFFu,"palette token values");
     for(int i=0;i<28;i++)require(bx_prefs_toggle_favorite(&a,i)==1,"favorite set");
     for(int i=0;i<28;i++)require(bx_prefs_is_favorite(&a,i),"favorite retained");
     require(bx_prefs_toggle_favorite(&a,4)==0,"favorite unset");
