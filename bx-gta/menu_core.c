@@ -116,6 +116,7 @@ BxResult bx_menu_input(BxMenu *menu, BxKey key) {
             ? bx_menu_item_count(menu->category) : bx_menu_category_count();
         if (total <= 0) return BX_NO_CHANGE;
         *index = (*index + (key == BX_KEY_UP ? total - 1 : 1)) % total;
+        if (!menu->in_category) menu->item = 0;
         return BX_MOVED;
     }
     return BX_NO_CHANGE;
