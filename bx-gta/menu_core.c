@@ -1,15 +1,24 @@
 #include "menu_core.h"
 #include <stddef.h>
+#include <stdio.h>
 
-/* Read-only labels. Only the System page currently has active commands. */
+/*
+ * Navigation and controller filtering are portable and unit-tested.
+ * Gameplay options stay disabled until a server-specific adapter exists.
+ */
 typedef struct {
     const char *name;
     int implemented;
 } BxMenuItem;
 
 static const BxMenuItem system_items[] = {
-    {"Status do plugin", 1}, {"Versao do GTA", 1},
-    {"Controles", 1}, {"Compatibilidade", 1}, {"Fechar menu", 1}
+    {"Status do plugin", 1},
+    {"Versao do GTA", 1},
+    {"Controles", 1},
+    {"Compatibilidade", 1},
+    {"Teste de notificacao", 1},
+    {"Reiniciar navegacao", 1},
+    {"Fechar menu", 1}
 };
 static const BxMenuItem player_items[] = {
     {"Aparencia", 0}, {"Gestos", 0}, {"Animacoes", 0}
@@ -38,7 +47,6 @@ typedef struct {
     const BxMenuItem *items;
     int count;
 } BxCategory;
-
 #define BX_ITEMS(array) (int)(sizeof(array) / sizeof((array)[0]))
 static const BxCategory categories[] = {
     {"Sistema", system_items, BX_ITEMS(system_items)},
@@ -111,4 +119,85 @@ BxResult bx_menu_input(BxMenu *menu, BxKey key) {
         return BX_MOVED;
     }
     return BX_NO_CHANGE;
+}
+
+void bx_pad_reset(BxPadFilter *filter) {
+    if (!filter) return;
+    filter->previous = 0;
+    filter->direction = 0;
+    filter->held_cycles = 0;
+}
+BxKey bx_pad_next(BxPadFilter *filter, uint32_t buttons) {
+    if (!filter) return BX_KEY_NONE;
+    const uint32_t previous = filter->previous;
+    filter->previous = buttons;
+    const uint32_t combo = BX_PAD_L1 | BX_PAD_RIGHT;
+    if ((buttons & combo) == combo) {
+        filter->direction = 0;
+        filter->held_cycles = 0;
+        return (previous & combo) != combo ? BX_KEY_TOGGLE : BX_KEY_NONE;
+    }
+    if (buttons & BX_PAD_L1) {
+        filter->direction = 0;
+        filter->held_cycles = 0;
+        return BX_KEY_NONE;
+    }
+    const uint32_t pressed = buttons & ~previous;
+    if (pressed & BX_PAD_O) {
+        filter->direction = 0;
+        filter->held_cycles = 0;
+        return BX_KEY_BACK;
+    }
+    if (pressed & BX_PAD_X) {
+        filter->direction = 0;
+        filter->held_cycles = 0;
+        return BX_KEY_SELECT;
+    }
+    const uint32_t direction = (buttons & BX_PAD_UP) ? BX_PAD_UP :
+                               (buttons & BX_PAD_DOWN) ? BX_PAD_DOWN : 0;
+    if (!direction) {
+        filter->direction = 0;
+        filter->held_cycles = 0;
+        return BX_KEY_NONE;
+    }
+    const BxKey key = direction == BX_PAD_UP ? BX_KEY_UP : BX_KEY_DOWN;
+    if (direction != filter->direction) {
+        filter->direction = direction;
+        filter->held_cycles = 0;
+        return key;
+    }
+    if (filter->held_cycles < 100000) ++filter->held_cycles;
+    if (filter->held_cycles >= 6 && (filter->held_cycles - 6) % 3 == 0)
+        return key;
+    return BX_KEY_NONE;
+}
+
+int bx_menu_render(const BxMenu *menu, char *out, size_t capacity) {
+    if (!menu || !out || capacity == 0) return -1;
+    if (!menu->opened)
+        return snprintf(out, capacity, "BX-GTA v0.8 | Menu fechado");
+    if (!valid_category(menu->category))
+        return snprintf(out, capacity, "BX-GTA | Categoria invalida");
+    if (!menu->in_category) {
+        const char *previous = bx_menu_category_name(
+            (menu->category + bx_menu_category_count() - 1) % bx_menu_category_count());
+        const char *next = bx_menu_category_name(
+            (menu->category + 1) % bx_menu_category_count());
+        return snprintf(out, capacity,
+            "BX-GTA v0.8 | Categorias\n"
+            "  %s\n> %s (%d/%d)\n  %s",
+            previous, bx_menu_category_name(menu->category),
+            menu->category + 1, bx_menu_category_count(), next);
+    }
+    const int count = bx_menu_item_count(menu->category);
+    if (menu->item < 0 || menu->item >= count)
+        return snprintf(out, capacity, "BX-GTA | Opcao invalida");
+    return snprintf(out, capacity,
+        "BX-GTA > %s\n"
+        "[%d/%d] %s\n"
+        "%s",
+        bx_menu_category_name(menu->category), menu->item + 1, count,
+        bx_menu_item_name(menu->category, menu->item),
+        bx_menu_item_implemented(menu->category, menu->item)
+            ? "X selecionar | O voltar" : "Ainda nao integrado | O voltar");
 }
