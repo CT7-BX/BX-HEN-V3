@@ -1,6 +1,6 @@
 # BX-REMOTE-PLAY — aplicativo PS4 (primeira prova)
 
-## Estado: código-fonte experimental
+## Estado: PKG experimental gerado em CI; não testado no console
 
 Nesta primeira entrega, o programa para PS4 faz **uma consulta HTTPS de saída** ao arquivo público
 [`remote/ps4-probe.txt`](../remote/ps4-probe.txt) do mesmo projeto e verifica o conteúdo recebido.
@@ -11,7 +11,13 @@ no roteador ou depender de um computador ligado em casa**.
 
 **O programa ainda não transmite jogos, não captura imagem/áudio,
 não injeta comandos, não faz pareamento, não roda como serviço em segundo plano e
-não oferece Remote Play.** Não existe PKG compilado validado nesta entrega.
+não oferece Remote Play.** Há um PKG compilado e com hashes validados no CI, mas **nenhuma instalação ou execução em PS4 real foi confirmada**.
+
+### Pacote experimental do GitHub Actions
+
+Na página [Build PS4 Probe](https://github.com/CT7-BX/BX-REMOTE-PLAY/actions/workflows/ps4-build.yml), abra uma execução concluída e consulte **Artifacts**. O item `bx-remote-play-ps4-probe-pkg-untested` contém o PKG de diagnóstico e o arquivo SHA-256. Artefatos podem expirar após sete dias.
+
+**Não é o futuro aplicativo de jogo remoto**: este pacote fecha depois de uma única consulta HTTPS, sem imagem, áudio ou controle remoto. A validação do `pkg_validate` verifica integridade do pacote; não testa compatibilidade com o console.
 
 ### Operação prevista
 
@@ -58,10 +64,12 @@ make pkg
 # Pacote previsto: IV0000-BRPT00001_00-BXREMOTEPLAY0001.pkg
 ```
 
-A receita segue a estrutura do exemplo `samples/net_http` da OpenOrbis,
-mas ainda **precisa ser validada em uma toolchain real**. O PS4 firmware/GoldHEN
-específico do usuário também precisa de teste físico antes de instalar. Nenhum
-PKG gerado por este Makefile foi testado nesta conversa.
+A receita segue a estrutura do exemplo `samples/net_http` da OpenOrbis.
+O CI já compilou `eboot.bin`, gerou o PKG com OpenOrbis v0.5.4 e passou na
+checagem de hashes com `PkgTool.Core pkg_validate`. **Isso não comprova que o
+PKG instala ou executa no PS4.** O firmware/GoldHEN específico precisa de
+verificação física. Nenhum PKG gerado por este Makefile foi testado no console
+nesta conversa.
 
 ### Testes independentes do PS4
 
