@@ -77,10 +77,15 @@
       try {
         const state = await jsonRequest(base, "/v1/pair/status", { token: claimantToken });
         if (current !== requestId) return;
-        if (state.status === "approved" && typeof state.playerToken === "string") {
+        if (state.status === "approved") {
           $("pairClaim").disabled = false;
           if (state.controlAvailable === false) {
             report("Vínculo aprovado com o PS4 (HTTP). O agente ainda não possui canal de controle nem vídeo; nenhum jogo será transmitido.");
+            claimantToken = null;
+            return;
+          }
+          if (typeof state.playerToken !== "string") {
+            report("Servidor aprovou, mas não forneceu sessão de controles. Nenhum vídeo disponível.");
             claimantToken = null;
             return;
           }
