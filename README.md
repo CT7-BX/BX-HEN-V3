@@ -38,6 +38,12 @@ A raiz do site redireciona para `remote/`; mantemos esse caminho para evitar que
 
 **Importante:** o PKG atual continua sendo somente um diagnóstico HTTPS. O modelo de AutoRun não é um ELF residente e não foi aplicado ao console.
 
+## Revisões técnicas
+
+- **Verificação 1:** relay e botões virtuais agora liberam controles após desconexão, input parado ou perda de foco; limite de fila e testes de regressão para comandos perdidos.
+- **Verificação 2:** GitHub Pages publica somente o front-end explicitamente permitido; DDP UDP 987 permite consultar o estado de **um PS4 informado na LAN**, sem escanear redes ou acordar o console. CLI e testes em `relay/`.
+- Essas verificações são **automatizadas/simuladas**. A instalação e execução no PS4 físico ainda não foram confirmadas.
+
 ## Próximo passo: conexão real
 
 Veja o [plano do PS4 e do PKG](docs/PS4-CONNECTION-AND-PKG.md) para os requisitos de pareamento LAN, agente residente após GoldHEN e transporte de vídeo/áudio por gateway. O PKG atual continua sendo apenas um diagnóstico HTTPS, não executa streaming.

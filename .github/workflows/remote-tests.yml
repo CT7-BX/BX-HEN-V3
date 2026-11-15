@@ -3,11 +3,15 @@ name: BX-REMOTE-PLAY — Interface and Controller Tests
 on:
   pull_request:
     paths:
+      - ".github/scripts/build-pages.sh"
+      - ".github/workflows/pages.yml"
       - "index.html"
       - "remote/**"
       - ".github/workflows/remote-tests.yml"
   push:
     paths:
+      - ".github/scripts/build-pages.sh"
+      - ".github/workflows/pages.yml"
       - "index.html"
       - "remote/**"
       - ".github/workflows/remote-tests.yml"

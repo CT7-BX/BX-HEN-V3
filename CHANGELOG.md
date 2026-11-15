@@ -1,5 +1,14 @@
 # Histórico de atualizações — BX-REMOTE-PLAY
 
+## 2026-11-15 — Segunda verificação: publicação e descoberta na LAN
+
+- O site do GitHub Pages passa a publicar somente os arquivos estáticos necessários.
+- Os testes impedem que fontes do relay e do PS4 entrem no artefato público do Pages.
+- O build recusa pasta de saída não vazia para evitar conteúdo antigo.
+- Consulta DDP UDP 987 para **um endereço privado** com resposta simulada em CI.
+- O diagnóstico TCP 9295 existente foi mantido; nenhuma sessão real do PS4 foi aberta.
+- Ainda faltam payload residente, pareamento e transporte de vídeo/áudio.
+
 ## 2026-11-15 — Primeira verificação de segurança do relay
 - Envio de `reset` ao console simulado se o navegador cair ou os comandos pararem de chegar por 450 ms.
 - Proteção de fila de saída para não acumular controles atrasados.

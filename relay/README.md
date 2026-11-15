@@ -80,3 +80,15 @@ Substitua o IP de exemplo pelo endereço privado real. O comando tenta **uma ún
 ### Semântica de segurança do controle
 
 O evento JSON `{"type":"reset","reason":"stale_input"}` ou `player_disconnected` significa **soltar todos os botões, zerar eixos e gatilhos imediatamente** no simulador. O futuro agente nativo do PS4 precisará implementar a mesma proteção e também um timeout local independente, caso toda a conexão caia antes de receber o evento. **Nada disso comprova controle de um PS4 físico**.
+
+## Descoberta local do PS4 (UDP 987)
+
+Além do teste de porta TCP, há uma consulta **DDP de uma única máquina** que detecta respostas de um PS4 na mesma LAN. Não há varredura de endereços, comando de acordar console, abertura de portas nem conta PSN envolvida.
+
+```bash
+cd relay
+npm run discover:ps4 -- 192.168.1.20
+npm run probe:ps4 -- 192.168.1.20
+```
+
+Substitua pelo endereço privado correto do seu PS4. A descoberta pode indicar ligado/repouso, tipo e nome informado pelo console; por privacidade não apresenta o identificador de hardware `host-id`. **Ausência de resposta não significa necessariamente que não seja um PS4** (firewall, versões DDP ou configuração de descoberta podem interferir). Resposta DDP ou TCP 9295 **não equivale a pareamento nem transmissão de vídeo**. Os testes de integração desta ferramenta utilizam um dispositivo UDP simulado.

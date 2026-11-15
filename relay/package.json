@@ -11,7 +11,8 @@
     "start": "node server.mjs",
     "test": "node --test tests/*.test.mjs",
     "demo:console": "node demo-console.mjs",
-    "probe:ps4": "node tools/ps4-lan-probe.mjs"
+    "probe:ps4": "node tools/ps4-lan-probe.mjs",
+    "discover:ps4": "node tools/ps4-discover.mjs"
   },
   "dependencies": {
     "ws": "8.23.0"
