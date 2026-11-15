@@ -22,6 +22,9 @@ int bx_v2_option_count(int section,int subgroup);
 const BxOption *bx_v2_option(int section,int subgroup,int option);
 int bx_v2_total_options(void);
 int bx_v2_current_feature(const BxMenuV2 *state);
+int bx_v2_option_id(int section,int subgroup,int option);
+int bx_v2_current_option_id(const BxMenuV2 *state);
+const BxOption *bx_v2_option_by_id(int id);
 BxUiEvent bx_v2_input(BxMenuV2 *state,BxKey key);
 int bx_v2_render(const BxMenuV2 *state,char *out,size_t capacity);
 #endif
