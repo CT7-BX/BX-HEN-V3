@@ -1,4 +1,4 @@
-name: BX-GTA v1.1 black-red grouped menu build
+name: BX-GTA v1.2 options stability build
 on:
   push:
     branches: [bx-gta-diag-test]
@@ -29,6 +29,10 @@ jobs:
           /tmp/bxgta-v2-gcc
           clang -std=c11 -O2 -DNDEBUG -Wall -Wextra -Werror bx-gta/menu_v2.c bx-gta/synapse_catalog.c bx-gta/test_v2.c -o /tmp/bxgta-v2-clang
           /tmp/bxgta-v2-clang
+          gcc -std=c11 -O2 -DNDEBUG -Wall -Wextra -Werror bx-gta/menu_v2.c bx-gta/synapse_catalog.c bx-gta/ui_favorites.c bx-gta/test_ui_favorites.c -o /tmp/bxgta-favorites-gcc
+          /tmp/bxgta-favorites-gcc
+          clang -std=c11 -O2 -DNDEBUG -Wall -Wextra -Werror bx-gta/menu_v2.c bx-gta/synapse_catalog.c bx-gta/ui_favorites.c bx-gta/test_ui_favorites.c -o /tmp/bxgta-favorites-clang
+          /tmp/bxgta-favorites-clang
           python3 bx-gta/test_preview.py
       - name: Sanitizer test
         run: |
@@ -40,6 +44,8 @@ jobs:
           /tmp/bxgta-v1-san
           gcc -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer bx-gta/menu_v2.c bx-gta/synapse_catalog.c bx-gta/test_v2.c -o /tmp/bxgta-v2-san
           /tmp/bxgta-v2-san
+          gcc -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer bx-gta/menu_v2.c bx-gta/synapse_catalog.c bx-gta/ui_favorites.c bx-gta/test_ui_favorites.c -o /tmp/bxgta-favorites-san
+          /tmp/bxgta-favorites-san
   build-prx:
     needs: host-tests
     runs-on: ubuntu-22.04
@@ -67,7 +73,7 @@ jobs:
           git clone --depth 1 https://github.com/GoldHEN/GoldHEN_Plugins_Repository.git "$RUNNER_TEMP/plugins"
           echo "GOLDHEN_SDK=$RUNNER_TEMP/sdk" >> "$GITHUB_ENV"
           echo "GOLDHEN_PLUGIN_REPO=$RUNNER_TEMP/plugins" >> "$GITHUB_ENV"
-      - name: Build BX-GTA v1.1 menu PRX
+      - name: Build BX-GTA v1.2 menu PRX
         shell: bash
         run: |
           set -euo pipefail
@@ -88,6 +94,8 @@ jobs:
           cp "$GITHUB_WORKSPACE/bx-gta/menu_v1.h" "$TARGET/source/menu_v1.h"
           cp "$GITHUB_WORKSPACE/bx-gta/menu_v2.c" "$TARGET/source/menu_v2.c"
           cp "$GITHUB_WORKSPACE/bx-gta/menu_v2.h" "$TARGET/source/menu_v2.h"
+          cp "$GITHUB_WORKSPACE/bx-gta/ui_favorites.c" "$TARGET/source/ui_favorites.c"
+          cp "$GITHUB_WORKSPACE/bx-gta/ui_favorites.h" "$TARGET/source/ui_favorites.h"
           cp "$GITHUB_WORKSPACE/bx-gta/synapse_catalog.c" "$TARGET/source/synapse_catalog.c"
           cp "$GITHUB_WORKSPACE/bx-gta/synapse_catalog.h" "$TARGET/source/synapse_catalog.h"
           make -C "$GOLDHEN_SDK" PRINTF=1
@@ -97,7 +105,7 @@ jobs:
           cp "$GITHUB_WORKSPACE/bx-gta/preview-v2.html" dist/BXGTA-preview.html
           cp "$GITHUB_WORKSPACE/bx-gta/menu_taxonomy_v2.json" dist/BXGTA-options.json
           cat > dist/README.txt <<'README'
-          BX-GTA v1.1 PS4 GoldHEN menu scaffold / black and red
+          BX-GTA v1.2 PS4 GoldHEN native menu / black and red
           Target: GTA V 1.57 / CUSA00419
           Plugin: /data/GoldHEN/plugins/BXGTA_v2.prx
           plugins.ini [CUSA00419]: /data/GoldHEN/plugins/BXGTA_v2.prx=true
@@ -105,6 +113,7 @@ jobs:
           L1 + RIGHT: open/close; UP/DOWN: navigate; X select; O back.
           L1 + LEFT: favorite focused action.
           Preferences: /data/GoldHEN/BXGTA/profile0.ini .. profile2.ini
+          Per-option favorites/history: /data/GoldHEN/BXGTA/options0.txt .. options2.txt
           Error log: /data/GoldHEN/BXGTA/error.log
           Reference catalog metadata from user-supplied Synapse.rar.
           10 sections, 33 submenus, 190 entries. Black/red theme tokens and browser preview.
@@ -115,7 +124,7 @@ jobs:
           sha256sum dist/BXGTA_v2.prx | tee dist/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: BXGTA-menu-v110-CUSA00419-157
+          name: BXGTA-menu-v120-CUSA00419-157
           path: dist/
           if-no-files-found: error
 
@@ -125,13 +134,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tag="bxgta-menu-v110-cusa00419-v157"
+          tag="bxgta-menu-v120-cusa00419-v157"
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$tag" dist/BXGTA_v2.prx dist/BXGTA-preview.html dist/BXGTA-options.json dist/README.txt --clobber --repo "$GITHUB_REPOSITORY"
           else
             gh release create "$tag" dist/BXGTA_v2.prx dist/BXGTA-preview.html dist/BXGTA-options.json dist/README.txt --repo "$GITHUB_REPOSITORY" \
               --target "${GITHUB_SHA}" \
-              --title "BX-GTA menu v1.1 - CUSA00419 1.57" \
-              --notes "BX-GTA v1.1: black-red interface preview with 10 sections, 33 submenus and 190 options. Native GoldHEN plugin handles grouped navigation, core preferences and diagnostics; GTA gameplay effects and actual overlay are not implemented. Physical PS4 test pending." \
+              --title "BX-GTA menu v1.2 - CUSA00419 1.57" \
+              --notes "BX-GTA v1.2: fixed broken web preview CI, validates inline JavaScript + all 190 options, fixed unique per-option favorites/history with independent profile persistence. GoldHEN notifications only, no native GTA gameplay edits or overlay. Must test on physical PS4." \
               --latest=false
           fi
