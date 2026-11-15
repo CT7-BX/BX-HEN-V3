@@ -273,6 +273,77 @@
               "feature": 13
             }
           ]
+        },
+        {
+          "name": "Assistência de mira",
+          "items": [
+            {
+              "title": "Aimbot",
+              "type": "planned",
+              "feature": 28,
+              "control": "toggle",
+              "description": "Ative ou desative o estado do aimbot nesta prévia. Não controla a mira do GTA V; a execução depende de integração no PRX."
+            },
+            {
+              "title": "Campo de mira (FOV)",
+              "type": "planned",
+              "feature": 28,
+              "control": "range",
+              "range": {
+                "min": 5,
+                "max": 120,
+                "step": 5,
+                "initial": 30,
+                "unit": "°"
+              },
+              "description": "Define o campo de seleção de alvos na configuração demonstrativa."
+            },
+            {
+              "title": "Suavização da mira",
+              "type": "planned",
+              "feature": 28,
+              "control": "range",
+              "range": {
+                "min": 1,
+                "max": 100,
+                "step": 1,
+                "initial": 35,
+                "unit": "%"
+              },
+              "description": "Ajusta a suavização na configuração demonstrativa. Nenhum movimento de mira é enviado ao jogo."
+            },
+            {
+              "title": "Ponto de mira",
+              "type": "planned",
+              "feature": 28,
+              "control": "select",
+              "choices": [
+                "Cabeça",
+                "Peito",
+                "Centro do corpo"
+              ],
+              "description": "Escolha o ponto de mira da configuração demonstrativa."
+            },
+            {
+              "title": "Verificar visibilidade",
+              "type": "planned",
+              "feature": 28,
+              "control": "toggle",
+              "description": "Preferência para considerar apenas alvos visíveis. A prévia não detecta jogadores nem obstáculos."
+            },
+            {
+              "title": "Ativação da mira",
+              "type": "planned",
+              "feature": 28,
+              "control": "select",
+              "choices": [
+                "Ao segurar L2",
+                "Ao segurar L2 + R2",
+                "Alternar manualmente"
+              ],
+              "description": "Escolha o comando desejado para a configuração. O navegador não envia esse comando ao PS4."
+            }
+          ]
         }
       ]
     },
