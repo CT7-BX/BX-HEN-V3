@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0e0e12">
+  <meta name="description" content="BX-HEN Remote: protótipo de entrada de controles para acesso remoto ao PS4.">
+  <title>BX-HEN Remote · Controle</title>
+  <style>
+    :root {
+      color-scheme:dark;
+      font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:#0b0b0e;
+      color:#f5f4f6;
+      --panel:#17171c;--panel2:#1d1d23;--line:#34343d;
+      --accent:#ed2d49;--muted:#a6a3af;--green:#59d39c;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top,#35121b 0,#0b0b0e 45%)}
+    button{font:inherit}
+    button:focus-visible,a:focus-visible{outline:3px solid #ff7791;outline-offset:3px}
+    .wrap{max-width:1180px;margin:auto;padding:0 18px}
+    .top{border-bottom:1px solid var(--line);background:#101014bb}
+    .top .wrap{min-height:74px;display:flex;align-items:center;justify-content:space-between;gap:15px}
+    .brand{font-weight:900;letter-spacing:.025em;font-size:1.15rem}
+    .brand span{color:var(--accent)}
+    .version{border:1px solid #692b39;background:#361b26;border-radius:999px;color:#ffadc0;padding:7px 12px;font-size:.75rem}
+    main{padding-top:34px!important;padding-bottom:70px!important}
+    .eyebrow{text-transform:uppercase;color:#ff8ca4;letter-spacing:.18em;font-size:.75rem;font-weight:700}
+    h1{font-size:clamp(2.1rem,5vw,3.6rem);letter-spacing:-.055em;margin:10px 0 6px}
+    .lede{color:var(--muted);max-width:820px;line-height:1.6;margin-bottom:26px}
+    .grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(310px,1fr);gap:18px}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+    .bar{display:flex;justify-content:space-between;align-items:center;padding:15px 19px;border-bottom:1px solid var(--line);gap:9px}
+    h2{font-size:1rem;margin:0}
+    .pill{border-radius:999px;border:1px solid #46444a;color:#c5c1c9;padding:5px 10px;font-size:.74rem}
+    .pill.online{color:#a5f7cc;border-color:#216e4b;background:#103c2a}
+    .player{min-height:345px;display:flex;align-items:center;justify-content:center;padding:35px;background:repeating-linear-gradient(0deg,#0f1015,#0f1015 24px,#161219 25px);text-align:center}
+    .empty-icon{height:80px;width:80px;display:flex;align-items:center;justify-content:center;border:1px solid #793343;background:#32151e;border-radius:24px;color:#ff5b7b;margin:auto auto 18px;font-size:2.4rem}
+    .player strong{font-size:1.3rem}
+    .player p{color:var(--muted);max-width:360px;margin:9px auto 0;line-height:1.55;font-size:.9rem}
+    .player-footer{display:flex;gap:10px;flex-wrap:wrap;padding:16px;border-top:1px solid var(--line)}
+    .btn{min-height:44px;padding:10px 15px;border-radius:10px;border:1px solid #5c2936;background:#3d1c27;color:#ffe2e9;font-weight:750;cursor:pointer}
+    .btn.primary{background:var(--accent);color:#fff;border-color:#ff4a65}
+    .btn:disabled{opacity:.42;cursor:not-allowed}
+    .btn.secondary{background:#25252c;border:1px solid #494650;color:#ddd}
+    .body{padding:20px}
+    .status-line{display:flex;gap:10px;align-items:center}
+    .dot{display:inline-block;width:10px;height:10px;background:#88818b;border-radius:50%;flex:none}
+    .dot.ok{background:var(--green);box-shadow:0 0 12px #59d39c66}
+    .status-detail{color:var(--muted);font-size:.85rem;overflow-wrap:anywhere;margin-top:6px;line-height:1.45}
+    .label{font-size:.73rem;text-transform:uppercase;letter-spacing:.13em;font-weight:800;color:var(--muted);margin:22px 0 10px}
+    .inputs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+    .chip{font-size:.8rem;background:#25252c;border:1px solid #41414b;border-radius:9px;padding:9px 5px;text-align:center;transition:background .08s}
+    .chip.active{background:#7b2235;border-color:#ff5a79;color:white;box-shadow:inset 0 0 0 1px #ff597b}
+    .axis-line{color:#dfdce2;font-size:.87rem;margin:6px 0;display:flex;justify-content:space-between;gap:10px}
+    .axis-line strong{font-variant-numeric:tabular-nums}
+    .hint{background:#211c22;border:1px solid #4b323b;border-radius:11px;padding:12px 14px;color:#d8c6ce;font-size:.85rem;line-height:1.5;margin-top:16px}
+    .touch-card{margin-top:18px}
+    .touch-content{display:flex;justify-content:space-around;align-items:center;gap:24px;flex-wrap:wrap;padding:28px 15px;min-height:245px}
+    .pad-grid{display:grid;grid-template-columns:repeat(3,56px);grid-template-rows:repeat(3,56px);gap:5px}
+    .pad-grid button{border:1px solid #65404b;background:#33242b;border-radius:13px;color:#fff;font-weight:900;font-size:1.1rem;touch-action:none;user-select:none;cursor:pointer}
+    .pad-grid button:active,.pad-grid button.held{background:#c82443;border-color:#fc6a87}
+    .pad-grid [data-action="Cima"]{grid-column:2;grid-row:1}
+    .pad-grid [data-action="Esquerda"]{grid-column:1;grid-row:2}
+    .pad-grid [data-action="Direita"]{grid-column:3;grid-row:2}
+    .pad-grid [data-action="Baixo"]{grid-column:2;grid-row:3}
+    .pad-grid.face [data-action="Triângulo"]{grid-column:2;grid-row:1}
+    .pad-grid.face [data-action="Quadrado"]{grid-column:1;grid-row:2}
+    .pad-grid.face [data-action="Círculo"]{grid-column:3;grid-row:2}
+    .pad-grid.face [data-action="Cruz"]{grid-column:2;grid-row:3}
+    .foot-note{padding:0 20px 20px;color:var(--muted);font-size:.79rem;line-height:1.5}
+    .steps{margin-top:18px;padding:19px 22px}
+    .steps p{color:var(--muted);font-size:.9rem;line-height:1.6;margin:11px 0 0}
+    .small{font-size:.83rem;color:var(--muted)}
+    .footer{border-top:1px solid #38343a;color:#99929c;padding:20px;text-align:center;font-size:.8rem}
+    @media(max-width:830px){.grid{grid-template-columns:1fr}.player{min-height:260px}}
+    @media(max-width:390px){.pad-grid{grid-template-columns:repeat(3,49px);grid-template-rows:repeat(3,49px)}.touch-content{gap:12px}.top .wrap{min-height:64px}.version{font-size:.68rem}}
+    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap"><div class="brand">BX<span>-HEN</span> REMOTE</div><div class="version">Protótipo 0.1 · Controle local</div></div>
+  </header>
+  <main class="wrap">
+    <div class="eyebrow">Remote Play · Laboratório</div>
+    <h1>Seu controle. Qualquer tela.</h1>
+    <p class="lede">Primeira etapa do BX-HEN Remote: testar o DualShock 4 no iPhone ou MacBook. A transmissão do PS4 e o servidor de ligação ainda não estão disponíveis.</p>
+    <div class="grid">
+      <section class="card" aria-label="Área de transmissão">
+        <div class="bar"><h2>Transmissão do PS4</h2><span class="pill" id="console-pill">Desconectado</span></div>
+        <div class="player" id="player">
+          <div>
+            <div class="empty-icon" aria-hidden="true">▣</div>
+            <strong>Nenhum sinal de vídeo</strong>
+            <p>O agente do PS4, o serviço relay e a sessão de Remote Play ainda não foram implementados.</p>
+          </div>
+        </div>
+        <div class="player-footer">
+          <button class="btn primary" disabled title="A transmissão ainda não foi implementada">Iniciar jogo remoto</button>
+          <button class="btn secondary" id="check-button" type="button">Verificar controle</button>
+        </div>
+      </section>
+      <section class="card" aria-label="Diagnóstico do controle">
+        <div class="bar"><h2>DualShock 4 / Gamepad</h2><span class="pill" id="pad-pill">Aguardando</span></div>
+        <div class="body">
+          <div class="status-line"><span id="pad-dot" class="dot"></span><strong id="pad-state" role="status" aria-live="polite">Nenhum controle detectado</strong></div>
+          <div class="status-detail" id="pad-description">Conecte seu controle por Bluetooth ou cabo. Depois pressione um botão e selecione "Verificar controle".</div>
+          <div class="label">Botões físicos — leitura ao vivo</div>
+          <div class="inputs" id="buttons">
+            <span class="small">Aguardando controle…</span>
+          </div>
+          <div class="label">Analógicos</div>
+          <div class="axis-line"><span>Esquerdo (X / Y)</span><strong id="axis-left">0.00 / 0.00</strong></div>
+          <div class="axis-line"><span>Direito (X / Y)</span><strong id="axis-right">0.00 / 0.00</strong></div>
+          <div class="axis-line"><span>L2 / R2</span><strong id="triggers">0% / 0%</strong></div>
+          <div class="hint" id="support-hint">A leitura dos botões depende do suporte do Safari ou navegador à Gamepad API. Nenhum comando é enviado ao PS4 nesta etapa.</div>
+        </div>
+      </section>
+    </div>
+    <section class="card touch-card" aria-label="Controles virtuais">
+      <div class="bar"><h2>Botões virtuais · Teste de toque</h2><span class="pill">Apenas demonstração</span></div>
+      <div class="touch-content">
+        <div class="pad-grid" aria-label="Direcional">
+          <button data-action="Cima" aria-label="Cima">↑</button>
+          <button data-action="Esquerda" aria-label="Esquerda">←</button>
+          <button data-action="Direita" aria-label="Direita">→</button>
+          <button data-action="Baixo" aria-label="Baixo">↓</button>
+        </div>
+        <div class="pad-grid face" aria-label="Botões de ação">
+          <button data-action="Triângulo" aria-label="Triângulo">△</button>
+          <button data-action="Quadrado" aria-label="Quadrado">□</button>
+          <button data-action="Círculo" aria-label="Círculo">○</button>
+          <button data-action="Cruz" aria-label="Cruz">✕</button>
+        </div>
+      </div>
+      <p class="foot-note" id="virtual-state" aria-live="polite">Nenhum botão virtual pressionado. Os botões desta área apenas demonstram a interface; não controlam o PS4.</p>
+    </section>
+    <section class="card steps">
+      <h2>O que falta para jogar de outra internet?</h2>
+      <p><strong>Próxima etapa:</strong> validar a captura de vídeo e áudio no PS4, a injeção autorizada de comandos do controle e um agente que abra uma conexão criptografada de saída. Depois disso, implementar o servidor relay com autenticação e integrar o vídeo ao navegador. Não é necessário nem seguro expor o painel de administração do GoldHEN na internet.</p>
+      <p>O GitHub Pages hospeda esta interface, mas não pode executar o relay. Nenhuma senha, IP ou informação do controle é enviada a servidores por este protótipo.</p>
+    </section>
+  </main>
+  <footer class="footer">BX-HEN Remote · CT7-BX · Módulo isolado do host de desbloqueio</footer>
+  <script src="./controller-core.js"></script>
+  <script>
+    (function () {
+      "use strict";
+      const core = globalThis.BXRemoteController;
+      const byId = function (id) { return document.getElementById(id); };
+      const chips = byId("buttons");
+      const virtualButtons = Array.from(document.querySelectorAll("[data-action]"));
+      const held = new Set();
+      let currentPadIndex = null;
+      let lastState = "";
+      let notice = "";
+
+      const chipElements = core.labels.map(function (label, index) {
+        const node = document.createElement("span");
+        node.className = "chip";
+        node.textContent = label;
+        node.dataset.index = String(index);
+        chips.appendChild(node);
+        return node;
+      });
+      const empty = chips.querySelector(".small");
+      if (empty) empty.remove();
+
+      function setPadStatus(title, info, available, standard) {
+        const signature = [title, info, available, standard].join("|");
+        if (signature === lastState) return;
+        lastState = signature;
+        byId("pad-state").textContent = title;
+        byId("pad-description").textContent = info;
+        byId("pad-pill").textContent = available ? "Detectado" : "Aguardando";
+        byId("pad-pill").classList.toggle("online", available);
+        byId("pad-dot").classList.toggle("ok", available);
+        byId("support-hint").textContent = !available
+          ? "Se não detectar, conecte o controle nas configurações do dispositivo e pressione um botão. O navegador precisa oferecer suporte à Gamepad API."
+          : standard
+            ? "Mapeamento padrão detectado. O controle físico tem prioridade. Os comandos ainda não são enviados ao PS4."
+            : "Mapeamento não padronizado: a ordem dos botões pode variar neste dispositivo. Nenhum comando é enviado ao PS4.";
+      }
+
+      function readGamepads() {
+        if (typeof navigator.getGamepads !== "function") {
+          notice = "Este navegador não disponibiliza a Gamepad API.";
+          return [];
+        }
+        try {
+          notice = "";
+          return navigator.getGamepads() || [];
+        } catch (error) {
+          notice = "O navegador bloqueou a leitura do controle neste contexto.";
+          return [];
+        }
+      }
+
+      function scan() {
+        const raw = core.preferredGamepad(readGamepads());
+        const snap = core.readSnapshot(raw);
+        if (!snap) {
+          currentPadIndex = null;
+          setPadStatus("Nenhum controle detectado", notice || "Conecte o DualShock 4 e pressione qualquer botão para ativá-lo no navegador.", false, false);
+        } else {
+          currentPadIndex = snap.index;
+          setPadStatus("Controle conectado", snap.id, true, snap.mapping === "standard");
+        }
+        return snap;
+      }
+
+      function asAxis(value) {
+        return (typeof value === "number" ? value : 0).toFixed(2);
+      }
+
+      function update() {
+        const snap = scan();
+        const buttons = snap ? snap.buttons : [];
+        chipElements.forEach(function (chip, index) {
+          const active = Boolean(buttons[index] && buttons[index].pressed);
+          chip.classList.toggle("active", active);
+          chip.setAttribute("aria-label", core.labels[index] + (active ? " pressionado" : " solto"));
+        });
+        const axes = snap ? snap.axes : [];
+        byId("axis-left").textContent = asAxis(axes[0]) + " / " + asAxis(axes[1]);
+        byId("axis-right").textContent = asAxis(axes[2]) + " / " + asAxis(axes[3]);
+        byId("triggers").textContent =
+          Math.round(((buttons[6] && buttons[6].value) || 0) * 100) + "% / " +
+          Math.round(((buttons[7] && buttons[7].value) || 0) * 100) + "%";
+        virtualButtons.forEach(function (button) {
+          const action = button.dataset.action;
+          const ix = core.labels.indexOf(action);
+          const active = held.has(action) || Boolean(ix >= 0 && buttons[ix] && buttons[ix].pressed);
+          button.classList.toggle("held", active);
+          button.setAttribute("aria-pressed", String(active));
+        });
+        requestAnimationFrame(update);
+      }
+
+      byId("check-button").addEventListener("click", function () {
+        scan();
+        const target = byId("pad-state");
+        target.focus && target.focus();
+      });
+      virtualButtons.forEach(function (button) {
+        const action = button.dataset.action;
+        const end = function () {
+          held.delete(action);
+          byId("virtual-state").textContent = held.size
+            ? "Toque ativo: " + Array.from(held).join(", ") + ". Apenas demonstração."
+            : "Nenhum botão virtual pressionado. Nenhum comando é enviado ao PS4.";
+        };
+        button.addEventListener("pointerdown", function (event) {
+          if (event.pointerType === "mouse" && event.button !== 0) return;
+          event.preventDefault();
+          if (button.setPointerCapture) button.setPointerCapture(event.pointerId);
+          held.add(action);
+          byId("virtual-state").textContent = "Toque ativo: " + Array.from(held).join(", ") + ". Apenas demonstração.";
+        });
+        button.addEventListener("pointerup", end);
+        button.addEventListener("pointercancel", end);
+        button.addEventListener("lostpointercapture", end);
+        button.addEventListener("blur", end);
+      });
+      window.addEventListener("gamepadconnected", scan);
+      window.addEventListener("gamepaddisconnected", scan);
+      window.addEventListener("focus", scan);
+      scan();
+      requestAnimationFrame(update);
+    })();
+  </script>
+</body>
+</html>
