@@ -32,12 +32,12 @@ int main(void) {
 
     assert(bx_pair_code("{\"code\":\"04839172\",\"expiresInSeconds\":120}", code));
     assert(strcmp(code, "04839172") == 0);
-    assert(!bx_pair_code("{\\"code\\":\\"88888888\\",\\"code\\":\\"99999999\\"}", code));
+    assert(!bx_pair_code("{\"code\":\"88888888\",\"code\":\"99999999\"}", code));
     assert(strcmp(code, "04839172") == 0);
-    assert(!bx_pair_code("{\\"description\\":\\"code\\",\\"code\\":\\"00000000\\"} trailing", code));
-    assert(!bx_pair_code("{\\"metadata\\":{\\"code\\":\\"00000000\\"}}", code));
-    assert(!bx_pair_code("{\\"code\\":12345678}", code));
-    assert(!bx_pair_code("{\\"code\\":\\"00\\\\u0030\\\\u0030\\",\\"metadata\\":null}", code));
+    assert(!bx_pair_code("{\"description\":\"code\",\"code\":\"00000000\"} trailing", code));
+    assert(!bx_pair_code("{\"metadata\":{\"code\":\"00000000\"}}", code));
+    assert(!bx_pair_code("{\"code\":12345678}", code));
+    assert(!bx_pair_code("{\"code\":\"00\\u0030\\u0030\",\"metadata\":null}", code));
     assert(strcmp(code, "04839172") == 0);
     assert(!bx_pair_code("{\"code\":\"0483\\u0039\"}", code));
     assert(!bx_pair_code("{\"code\":\"0412a723\"}", code));
