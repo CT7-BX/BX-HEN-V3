@@ -1,5 +1,12 @@
 # Histórico de atualizações — BX-REMOTE-PLAY
 
+## 2026-11-15 — Primeira verificação de segurança do relay
+- Envio de `reset` ao console simulado se o navegador cair ou os comandos pararem de chegar por 450 ms.
+- Proteção de fila de saída para não acumular controles atrasados.
+- Filtro de query string em conexões WebSocket e novos testes de desconexão e inatividade.
+- Limpeza de ponteiros multitoque ao perder foco e deduplicação de estados enviados.
+- Ainda sem sessão PS4 real e sem canal de vídeo/áudio.
+
 ## 2026-11-15 — Interface 0.4 e início dos diagnósticos LAN
 
 - Refino visual do controle de toque, com referência de organização no PS Remote Play oficial, mas estilos próprios.
