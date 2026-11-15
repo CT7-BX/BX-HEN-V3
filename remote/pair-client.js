@@ -80,7 +80,7 @@
         if (state.status === "approved" && typeof state.playerToken === "string") {
           report("Vínculo aprovado. Conectando ao relay com o console simulado...");
           $("pairClaim").disabled = false;
-          // No localStorage, cookies, query strings, clipboard or permanent DOM text.
+          // Secrets stay in this transient browser session; no persistent storage.
           window.dispatchEvent(new CustomEvent("bxremote:paired", {
             detail: { endpoint, playerToken: state.playerToken }
           }));
