@@ -1,0 +1,53 @@
+name: BX-REMOTE-PLAY — Build PS4 eboot
+
+on:
+  pull_request:
+    paths:
+      - "ps4-agent/**"
+      - ".github/workflows/ps4-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-ps4:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 18
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install compiler and linker
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends clang lld ca-certificates
+
+      - name: Download pinned OpenOrbis release
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_URL="https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.4/toolchain-llvm-18.tar.gz"
+          curl --fail --location --retry 3 --connect-timeout 20 -o /tmp/openorbis.tar.gz "$SDK_URL"
+          echo "3c7cd5bb593ca74fa1c13fd59f3938dc0fc07985167f7275063019e63abe4526  /tmp/openorbis.tar.gz" | sha256sum -c -
+          mkdir -p /tmp/openorbis
+          tar -xzf /tmp/openorbis.tar.gz -C /tmp/openorbis
+          test -f /tmp/openorbis/OpenOrbis/PS4Toolchain/link.x
+          echo "OO_PS4_TOOLCHAIN=/tmp/openorbis/OpenOrbis/PS4Toolchain" >> "$GITHUB_ENV"
+
+      - name: Build eboot with OpenOrbis
+        run: make -C ps4-agent eboot PS4_CC=clang PS4_LD=ld.lld
+
+      - name: Check output and record digest
+        run: |
+          test -s ps4-agent/eboot.bin
+          sha256sum ps4-agent/eboot.bin | tee ps4-agent/eboot.sha256
+
+      - name: Upload untested developer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bx-remote-play-eboot-untested
+          path: |
+            ps4-agent/eboot.bin
+            ps4-agent/eboot.sha256
+          retention-days: 7
