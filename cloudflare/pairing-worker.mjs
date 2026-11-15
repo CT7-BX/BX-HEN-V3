@@ -262,6 +262,7 @@ export default {
       return reply({
         status: "ok", mode: "control-prototype",
         pairing: true, pairingBackend: "cloudflare-durable-object",
+        configured: /^[0-9a-f]{64}$/.test(env.BX_RELAY_CONSOLE_TOKEN || ""),
         ps4Control: false, video: false
       }, 200, origin);
     }
