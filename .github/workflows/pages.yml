@@ -1,4 +1,4 @@
-name: Publicar BX-HEN V3 no GitHub Pages
+name: Publicar BX-HEN Remote no GitHub Pages
 on:
   push:
     branches: [main]
