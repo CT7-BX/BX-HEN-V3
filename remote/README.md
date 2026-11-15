@@ -58,3 +58,7 @@ O vínculo por código pode ser testado com simulador ou com o PKG PS4 experimen
 O painel **Primeiros testes — checklist e diagnóstico** permite conferir recursos básicos do navegador, marcar etapas manualmente e copiar um **relatório local que não contém IP, endereço do relay, código do vínculo, token nem identificadores de controle**. Os campos de vídeo e controle real do PS4 permanecem explicitamente como não implementados. O relatório só é gerado no navegador; não é enviado para nenhum backend. Consulte o [guia de testes físicos](../docs/FIRST-HARDWARE-TESTS.md).
 
 As chamadas de pareamento HTTP no navegador agora possuem limite de 6,5 segundos cada e podem ser interrompidas ao cancelar, sair da página ou iniciar outra tentativa. Isso diminui a chance de uma solicitação ficar presa em redes instáveis.
+
+### Servidor de vínculo sugerido
+
+O site preenche automaticamente `wss://bx-remote-link.4rt949zpj8.workers.dev/v1/link`, correspondente ao Worker exclusivo BX-REMOTE-LINK implantado no Cloudflare. A URL WSS é usada **apenas para derivar as rotas HTTPS de pareamento**; o Worker não oferece WebSocket nem vídeo. O endpoint `/health` informa `configured:false` enquanto o titular da conta não definir o segredo privado do PS4. A configuração manual está em [cloudflare/README.md](../cloudflare/README.md). A disponibilidade do endereço público ainda precisa de um teste real no navegador.

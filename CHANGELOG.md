@@ -1,5 +1,13 @@
 # Histórico de atualizações — BX-REMOTE-PLAY
 
+## 2026-11-15 — BX-REMOTE-LINK: backend de vínculo HTTP no Cloudflare
+
+- Novo Worker separado `bx-remote-link`, com Durable Object SQLite persistente e endpoints de código temporário, aprovação, recusa, estado e revogação.
+- Instância implantada no Cloudflare sem modificar o Worker BX-HEN. CORS limitado à origem GitHub Pages; corpo HTTP limitado, rate limit e chaves fora do repositório.
+- Site recebeu endereço sugerido do Worker e indicador de configuração privada pendente.
+- Testes Node para backend, estado persistido, recusa de origens externas e ausência de controles/vídeo.
+- **A implantação não inclui o secret necessário ao PS4**, cuja configuração automática foi bloqueada; ainda não há sessão física validada, streaming nem controles remotos.
+
 ## 2026-11-15 — Preparação para testes físicos: PKG v0.12 e site v0.7
 
 - PKG de vínculo permite mais tempo para decisão pelo DualShock e mantém a notificação de vínculo autorizado por mais tempo antes da revogação.
