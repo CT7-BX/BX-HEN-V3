@@ -1,6 +1,6 @@
-# BX-REMOTE-PLAY — aplicativo PS4 (primeira prova)
+# BX-REMOTE-PLAY — PKG de diagnóstico v0.20
 
-## Estado: PKG experimental gerado em CI; não testado no console
+## Estado: código de diagnóstico aprimorado; validação física ainda pendente
 
 Nesta primeira entrega, o programa para PS4 faz **uma consulta HTTPS de saída** ao arquivo público
 [`remote/ps4-probe.txt`](../remote/ps4-probe.txt) do mesmo projeto e verifica o conteúdo recebido.
@@ -11,7 +11,7 @@ no roteador ou depender de um computador ligado em casa**.
 
 **O programa ainda não transmite jogos, não captura imagem/áudio,
 não injeta comandos, não faz pareamento, não roda como serviço em segundo plano e
-não oferece Remote Play.** Há um PKG compilado e com hashes validados no CI, mas **nenhuma instalação ou execução em PS4 real foi confirmada**.
+não oferece Remote Play.** O PKG anterior v0.10 foi gerado com validação de hashes no CI. A versão v0.20 adiciona notificação de resultado e verificações extras de recursos do pacote; **instalação e execução no PS4 real ainda precisam de teste**.
 
 ### Pacote experimental do GitHub Actions
 
@@ -24,12 +24,13 @@ Na página [Build PS4 Probe](https://github.com/CT7-BX/BX-REMOTE-PLAY/actions/wo
 - Executar o aplicativo uma vez no PS4 com homebrew habilitado.
 - O programa inicializa rede, SSL e HTTP, faz **GET HTTPS** com verificação TLS padrão,
   lê o marcador de resposta (limite de 128 bytes) e encerra os recursos.
+- Tenta exibir uma notificação do sistema com **HTTPS OK** ou o estágio/código de falha, via SysUtil do OpenOrbis. **A aparição da notificação ainda não foi confirmada no console físico**.
 - Salva um diagnóstico textual em `/data/bx-remote-play-probe.txt`:
-  `stage`, `result`, `error`, `http_status`, `body_bytes`.
+  `stage`, `result`, `error`, `error_hex`, `http_status`, `body_bytes`.
 - `result=OK` significa **somente** que o aplicativo recebeu resposta HTTP 200
   com o marcador exato. Não comprova Remote Play, latência ou áudio/vídeo.
 - Se não conseguir gravar o arquivo, a aplicação tenta escrever o diagnóstico
-  em `stdout`; isso não garante que o console mostre uma tela visual.
+  em `stdout`; isso não garante que o console mostre uma tela visual. A notificação também é experimental.
 - A mensagem `streaming=NOT_IMPLEMENTED` é intencional.
 
 **Privacidade:** não lê PSN, identificadores de hardware, senhas, conteúdo de jogos
@@ -109,3 +110,27 @@ Esse teste valida apenas o marcador de protocolo, não a execução do homebrew.
 
 O código desta pasta é original; não incorpora código nem bibliotecas
 terceirizadas ao repositório.
+
+## O que mudou na v0.20
+
+- Notificação de conclusão ou erro `sceSysUtilSendSystemNotificationWithText(222, ...)`, com código e estágio, sem PSN, serial ou dados privados.
+- Conferência dos retornos de configuração dos timeouts da API HTTP (antes ignorados).
+- Registro do erro em decimal e hexadecimal, útil para diagnosticar problemas TLS, DNS e rede.
+- Ícone BX original gerado no CI como PNG **512x512, RGB 24-bit sem alpha**, seguindo a exigência de empacotamento do OpenOrbis. O pacote anterior usava um ícone genérico da ferramenta.
+- Metadados `APP_VER` e `VERSION` alinhados em `0.20`, mantendo `TITLE_ID BRPT00001` e `CONTENT_ID IV0000-BRPT00001_00-BXREMOTEPLAY0001` para permitir atualização da mesma aplicação.
+- Validação do ícone, `param.sfo`, ID, título, versão, conteúdo e hash do PKG antes de disponibilizar o artefato.
+
+### Como verificar a instalação no PS4
+
+1. Use somente o **artefato de uma execução bem-sucedida** do workflow [Build PS4 Probe](https://github.com/CT7-BX/BX-REMOTE-PLAY/actions/workflows/ps4-build.yml); não confunda `eboot.bin` com PKG instalável.
+2. Com o PS4 já configurado para executar homebrew, instale o PKG v0.20 como atualização do mesmo aplicativo, usando o procedimento de instalação de PKGs do seu console.
+3. Ao abrir **BX Remote Play - Network Test**, o aplicativo faz um GET público e termina. A notificação pode mostrar `HTTPS OK` ou `falha <stage>, erro <código>, HTTP <status>`.
+4. Verifique `/data/bx-remote-play-probe.txt`. Um resultado `OK` indica **apenas conectividade HTTPS com o site**, não vídeo/áudio.
+5. Se aparecer erro ou o aplicativo fechar sem notificação, registre a **mensagem de erro que o PS4 mostrar** e os campos `stage`, `error_hex`, `http_status` do arquivo, caso ele exista. Não envie senhas, identificadores de conta ou dados privados.
+
+Se o pacote apresentar falha de instalação, é preciso testar o arquivo exato no console e inspecionar o erro; **passar em `PkgTool.Core pkg_validate` não garante instalação nem abertura no firmware/GoldHEN atual**. O programa não ativa automaticamente um serviço, não mexe em AutoRun e não abre portas na rede.
+
+### Fontes de empacotamento
+
+- [OpenOrbis — Building Homebrew](https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/blob/master/docs/MD/Building%20Homebrew.md)
+- [OpenOrbis — SysUtil.h](https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/blob/master/include/orbis/SysUtil.h)

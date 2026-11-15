@@ -1,5 +1,14 @@
 # Histórico de atualizações — BX-REMOTE-PLAY
 
+## 2026-11-15 — Correções PKG de diagnóstico v0.20
+
+- Adicionada notificação no PS4 com resultado HTTPS ou estágio/código da falha (ainda sem teste físico).
+- Erro da API HTTP em hexadecimal/decimal, checagem de configuração de timeout.
+- Ícone original BX-REMOTE-PLAY 512x512 RGB 24-bit, gerado e testado automaticamente.
+- Metadados APP_VER e VERSION 0.20; TITLE_ID e CONTENT_ID anteriores preservados.
+- Pré-validação do SFO e do PNG e geração do pacote com OpenOrbis em CI.
+- Continua sendo teste de rede, **não é serviço residente ou streaming**.
+
 ## 2026-11-15 — Segunda verificação: publicação e descoberta na LAN
 
 - O site do GitHub Pages passa a publicar somente os arquivos estáticos necessários.
