@@ -12,7 +12,7 @@ Permitir futuramente jogar e controlar um PS4 em casa por meio de um iPhone ou M
 
 **Interface 0.4 — controles refinados e diagnóstico LAN.** A página em [remote/](remote/) possui controles de toque automáticos no celular, dois sticks multitoque, suporte a DualShock 4, layout imersivo/tela cheia, metas de qualidade e uma interface para o relay de laboratório. O vídeo do PS4 ainda não está conectado.
 
-**O componente PS4 já compilou em OpenOrbis no GitHub Actions e gerou um PKG experimental de diagnóstico, com validação de hashes; não foi testado em console.**
+**O PKG PS4 de diagnóstico foi aprimorado na v0.20**, com notificação de resultado, ícone próprio e verificações extras de metadados e integridade. Continua sem validação em console físico e não transmite jogos.
 
 **Não funciona ainda como Remote Play:** não transmite vídeo/áudio nem envia comandos ao PS4 real. Existe agora um relay **experimental** com autenticação para ligar o navegador a um **console simulado**; ainda falta um agente PS4 persistente, transporte de mídia e integração do protocolo Remote Play. Nenhuma sessão com console físico foi comprovada.
 
