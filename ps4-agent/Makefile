@@ -8,10 +8,10 @@ PLATFORM := $(if $(filter Darwin,$(HOST_OS)),macos,linux)
 PS4_CC ?= clang
 PS4_LD ?= ld.lld
 PS4_ID := BRPT00001
-VERSION := 0.20
+VERSION := 0.21
 CONTENT_ID := IV0000-BRPT00001_00-BXREMOTEPLAY0001
 OUT := build
-OBJECTS := $(OUT)/main.o $(OUT)/probe_contract.o
+OBJECTS := $(OUT)/main.o $(OUT)/probe_contract.o $(OUT)/probe_diagnostics.o
 LIBS := -lc -lkernel -lSceNet -lSceSsl -lSceHttp -lSceSysmodule -lSceSysUtil
 
 CFLAGS := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables \
@@ -29,7 +29,7 @@ check-sdk:
 	@command -v $(PS4_CC) >/dev/null || (echo "clang nao encontrado." >&2; exit 1)
 	@command -v $(PS4_LD) >/dev/null || (echo "ld.lld nao encontrado." >&2; exit 1)
 
-$(OUT)/%.o: %.c probe_contract.h | check-sdk
+$(OUT)/%.o: %.c probe_contract.h probe_diagnostics.h | check-sdk
 	@mkdir -p $(OUT)
 	$(PS4_CC) $(CFLAGS) -o $@ $<
 

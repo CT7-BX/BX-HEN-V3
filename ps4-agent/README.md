@@ -1,4 +1,4 @@
-# BX-REMOTE-PLAY — PKG de diagnóstico v0.20
+# BX-REMOTE-PLAY — PKG de diagnóstico v0.21
 
 ## Estado: código de diagnóstico aprimorado; validação física ainda pendente
 
@@ -11,7 +11,7 @@ no roteador ou depender de um computador ligado em casa**.
 
 **O programa ainda não transmite jogos, não captura imagem/áudio,
 não injeta comandos, não faz pareamento, não roda como serviço em segundo plano e
-não oferece Remote Play.** O PKG anterior v0.10 foi gerado com validação de hashes no CI. A versão v0.20 adiciona notificação de resultado e verificações extras de recursos do pacote; **instalação e execução no PS4 real ainda precisam de teste**.
+não oferece Remote Play.** O PKG anterior v0.10 foi gerado com validação de hashes no CI. As versões v0.20/v0.21 adicionam notificações e verificações extras; a v0.21 inclui repetição limitada de falhas temporárias e um segundo caminho para salvar relatórios; **instalação e execução no PS4 real ainda precisam de teste**.
 
 ### Pacote experimental do GitHub Actions
 
@@ -134,3 +134,16 @@ Se o pacote apresentar falha de instalação, é preciso testar o arquivo exato 
 
 - [OpenOrbis — Building Homebrew](https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/blob/master/docs/MD/Building%20Homebrew.md)
 - [OpenOrbis — SysUtil.h](https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/blob/master/include/orbis/SysUtil.h)
+
+## Melhorias adicionais — v0.21
+
+- Uma segunda tentativa HTTPS de saída **somente** em erros de rede possivelmente temporários ou respostas HTTP 502/503/504; atraso de 1 segundo. Não repete erros 404 nem respostas com marcador inesperado.
+- O aplicativo mantém a execução por quatro segundos após solicitar a notificação do sistema. **A exibição da notificação depende de teste real no console**.
+- Quando a gravação em `/data/bx-remote-play-probe.txt` falhar, tenta `/user/data/bx-remote-play-probe.txt`; se ambos os caminhos falharem, envia o relatório ao stdout quando disponível. Não promete que stdout seja exibido na TV.
+- Registro de `attempts` (1 ou 2), `hint` com orientação genérica, `error`, `error_hex`, `stage`, `http_status` e tamanho da resposta. Não identifica o usuário nem envia credenciais.
+- Código C portátil das regras de repetição e explicações em `probe_diagnostics.c`, com testes automatizados.
+- Mantém `TITLE_ID BRPT00001` e `CONTENT_ID IV0000-BRPT00001_00-BXREMOTEPLAY0001`; `APP_VER` e `VERSION` passam a `0.21`.
+
+### Teste sugerido
+
+Na TV, ao abrir `BX Remote Play - Network Test`, verifique se aparece uma notificação de `HTTPS OK` ou uma etapa com erro; o aplicativo então encerra. Em caso de falha, verifique o relatório em `/data/` e, se ausente, `/user/data/`. O relatório oferece pistas mas não dá acesso à tela de jogo. **Testes automáticos e hash válido não demonstram execução no PS4.**

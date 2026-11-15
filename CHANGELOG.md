@@ -1,5 +1,15 @@
 # Histórico de atualizações — BX-REMOTE-PLAY
 
+## 2026-11-15 — Terceira revisão do PKG v0.21
+
+- Confirmada a integração anterior v0.20 ao repositório principal.
+- Adicionada segunda tentativa apenas para falhas transitórias de conectividade ou HTTP 502/503/504.
+- Notificação mantida em tela com breve espera de saída; comportamento real depende de teste físico.
+- Relatório com dica e contagem de tentativas; caminho alternativo `/user/data/` se `/data/` não permitir escrita.
+- Regras de retentativa e diagnóstico separadas em módulo C portável com novos testes.
+- Versão do pacote/APP_VER 0.21 e IDs mantidos para atualização.
+- **Ainda não é um PKG de Remote Play funcional**.
+
 ## 2026-11-15 — Correções PKG de diagnóstico v0.20
 
 - Adicionada notificação no PS4 com resultado HTTPS ou estágio/código da falha (ainda sem teste físico).

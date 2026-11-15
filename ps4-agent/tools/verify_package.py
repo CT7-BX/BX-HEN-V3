@@ -10,7 +10,7 @@ import sys
 
 EXPECTED_CONTENT_ID = "IV0000-BRPT00001_00-BXREMOTEPLAY0001"
 EXPECTED_TITLE_ID = "BRPT00001"
-EXPECTED_VERSION = "0.20"
+EXPECTED_VERSION = "0.21"
 
 def parse_sfo(data):
     if len(data) < 20 or data[:4] != b"\0PSF":
@@ -60,7 +60,7 @@ def validate(sfo_file, icon_file):
     )
     if (width, height, bits, colour, compression, flt, interlace) != (512, 512, 8, 2, 0, 0, 0):
         raise ValueError("icon0.png must be 512x512 24-bit RGB without alpha")
-    print("BX-REMOTE-PLAY v0.20: SFO content ID, title ID, title, version and icon validated")
+    print("BX-REMOTE-PLAY v0.21: SFO content ID, title ID, title, version and icon validated")
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
