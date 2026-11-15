@@ -123,6 +123,7 @@ export function createPairingStore({ now = Date.now } = {}) {
     active.sessionHash = digest(token);
     active.sessionToken = token;
     active.sessionExpiresAt = now() + SESSION_LIFETIME_MS;
+    active.expiresAt = active.sessionExpiresAt;
     active.status = "approved";
     return { status: "approved", expiresInSeconds: SESSION_LIFETIME_MS / 1000 };
   }
