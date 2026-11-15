@@ -10,11 +10,11 @@ Permitir futuramente jogar e controlar um PS4 em casa por meio de um iPhone ou M
 
 ## Situação real
 
-**Interface 0.6 — controles, diagnóstico LAN, vínculo experimental e teste de servidor.** A página em [remote/](remote/) possui controles de toque automáticos no celular, dois sticks multitoque, suporte a DualShock 4, layout imersivo/tela cheia, metas de qualidade e uma interface para o relay de laboratório. O vídeo do PS4 ainda não está conectado.
+**Interface 0.7 — controles, diagnóstico LAN, vínculo experimental e checklist de testes.** A página em [remote/](remote/) possui controles de toque automáticos no celular, dois sticks multitoque, suporte a DualShock 4, layout imersivo/tela cheia, metas de qualidade e uma interface para o relay de laboratório. O vídeo do PS4 ainda não está conectado.
 
 **O PKG PS4 de diagnóstico foi aprimorado na v0.21**, com notificação de resultado, ícone próprio, tratamento de erros de rede temporários e testes adicionais de metadados e integridade. Continua sem validação em console físico e não transmite jogos.
 
-**Prova nativa de vínculo PS4 v0.11:** há agora código OpenOrbis para um PKG **separado** em [native-pair/](native-pair/) que realiza vínculo por HTTPS, mostra código no console e pede autorização pelo DualShock 4. A v0.10 compilou no OpenOrbis; a v0.11 reforça a validação do protocolo e possui gerador local de configuração. A execução física ainda não foi comprovada. O app não transmite vídeo ou comandos e não tem AutoRun.
+**Prova nativa de vínculo PS4 v0.12:** há agora código OpenOrbis para um PKG **separado** em [native-pair/](native-pair/) que realiza vínculo por HTTPS, mostra código no console e pede autorização pelo DualShock 4. As versões anteriores compilaram no OpenOrbis; a v0.12 aumenta o tempo para confirmação e registra erros HTTP/nativos mais específicos. A execução física ainda não foi comprovada. O app não transmite vídeo ou comandos e não tem AutoRun.
 
 **Vínculo em desenvolvimento:** a interface e o relay têm agora solicitação de código de oito dígitos, aprovação por console **simulado** e credencial temporária. Esse fluxo NÃO vincula o PS4 físico, nem substitui o registro do protocolo Remote Play. [Documentação do teste de vínculo](docs/PAIRING-AND-REAL-PS4.md).
 
@@ -29,7 +29,7 @@ A raiz do site redireciona para `remote/`; mantemos esse caminho para evitar que
 - [remote/tests/](remote/tests/) — testes automatizados
 - [remote/README.md](remote/README.md) — requisitos, limitações e arquitetura futura
 - [ps4-agent/](ps4-agent/) — PKG v0.21 de diagnóstico HTTPS (inalterado)
-- [native-pair/](native-pair/) — novo aplicativo PS4 v0.10 de prova de vínculo HTTPS, separado e sem AutoRun, compatibilidade física ainda pendente
+- [native-pair/](native-pair/) — novo aplicativo PS4 v0.12 de prova de vínculo HTTPS, separado e sem AutoRun, compatibilidade física ainda pendente
 - [relay/](relay/) — servidor Node autenticado de controle e pareamento com console simulado (sem streaming)
 - [docs/PAIRING-AND-REAL-PS4.md](docs/PAIRING-AND-REAL-PS4.md) — código temporário, aprovação e próximos passos com o PS4 físico
 - [remote/relay-lab.html](remote/relay-lab.html) — laboratório de controle separado
@@ -87,3 +87,7 @@ Histórico: [CHANGELOG.md](CHANGELOG.md).
 ### Preparação de credenciais para teste físico
 
 Há um gerador local que cria um par de configurações privadas para PS4 e backend, sem embutir segredos no aplicativo: [Guia da prova de vínculo](native-pair/README.md). Nenhuma chave é registrada no repositório e nenhum serviço remoto é implantado automaticamente.
+
+### Primeiros testes físicos
+
+Use o [roteiro de testes no PS4 e no iPhone/Mac](docs/FIRST-HARDWARE-TESTS.md) para testar primeiro o PKG de diagnóstico HTTPS e depois o PKG de pareamento experimental. A interface tem checklist e relatório local sem credenciais; nenhum vídeo do console foi transmitido ou validado ainda.

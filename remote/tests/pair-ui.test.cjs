@@ -35,6 +35,14 @@ test("pairing uses expiring claimant bearer, never URL query or persistent stora
   assert.doesNotMatch(pairing, /console\.log\(.*[Tt]oken/);
 });
 
+test("mobile pairing calls have bounded timeouts and cancel outstanding requests", () => {
+  assert.match(pairing, /let activeClaimController = null/);
+  assert.match(pairing, /function cancelActiveClaim\(\)/);
+  assert.match(pairing, /setTimeout\(\(\) => controller\.abort\(\), 6500\)/);
+  assert.match(pairing, /signal: controller\.signal/);
+  assert.match(pairing, /window\.addEventListener\("pagehide", cancelActiveClaim\)/);
+});
+
 test("approved pairing connects to existing relay without manual secret entry", () => {
   assert.match(game, /function connectRelay\(endpoint, token\)/);
   assert.match(game, /addEventListener\("bxremote:paired"/);

@@ -1,5 +1,5 @@
 /*
- * BX-REMOTE-PLAY PS4 Pairing Proof v0.11
+ * BX-REMOTE-PLAY PS4 Pairing Proof v0.12
  *
  * NEW, SEPARATE PKG. Not the existing v0.21 HTTPS diagnostic.
  * Foreground-only console-side HTTP pairing test, with local DualShock consent.
@@ -33,6 +33,8 @@
 #define SSL_POOL_BYTES (128 * 1024)
 #define HTTP_MEMORY_BYTES (128 * 1024)
 #define POLL_ROUNDS 60
+#define APPROVAL_POLL_TICKS 80
+#define APPROVED_NOTICE_SECONDS 20
 
 typedef struct HttpContext {
     int initialized_net;
@@ -50,7 +52,7 @@ static void report(const char *stage, int code, int status) {
     FILE *f = fopen(REPORT_PATH, "w");
     if (!f) f = fopen("/user/data/bx-remote-pairing-report.txt", "w");
     if (!f) return;
-    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.11\n");
+    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.12\n");
     fprintf(f, "stage=%s\n", stage ? stage : "unknown");
     fprintf(f, "result_code=%d\nhttp_status=%d\n", code, status);
     fprintf(f, "streaming=NOT_IMPLEMENTED\n");
@@ -78,7 +80,7 @@ static int open_http(HttpContext *ctx) {
     if (ctx->ssl < 0) return 0;
     ctx->http = sceHttpInit(ctx->pool, ctx->ssl, HTTP_MEMORY_BYTES);
     if (ctx->http < 0) return 0;
-    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.11",
+    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.12",
         ORBIS_HTTP_VERSION_1_1, 1);
     return ctx->tmpl >= 0;
 }
@@ -206,7 +208,7 @@ int main(void) {
     char decision[250];
     char message[180];
     uint32_t last_buttons = 0;
-    int pad = -1, status = 0, result, accepted = 0, round, i;
+    int pad = -1, status = 0, result = -1, accepted = 0, round, i;
     const char *stage = "config";
     const char *final = "not_started";
 
@@ -237,9 +239,12 @@ int main(void) {
     if (result != 1) { final = "heartbeat_failed"; goto finish; }
     stage = "start";
     result = call_api(&http, &config, "/v1/pair/start", "{}", response, &status);
-    if (result != 1 || !bx_pair_code(response, code) ||
+    if (result != 1) { final = "start_http_failed"; goto finish; }
+    if (!bx_pair_code(response, code) ||
         !bx_pair_identifier(response, "requestId", request_id)) {
-        final = "start_failed"; goto finish;
+        final = "start_response_invalid";
+        result = -16;
+        goto finish;
     }
     show_code(code);
     stage = "poll";
@@ -249,22 +254,29 @@ int main(void) {
         result = call_api(&http, &config, "/v1/pair/heartbeat", "{}", response, &status);
         if (result != 1) { final = "heartbeat_lost"; break; }
         result = call_api(&http, &config, "/v1/pair/pending", NULL, response, &status);
-        if (result != 1 || !bx_pair_status(response, state_name)) {
-            final = "pending_failed"; break;
+        if (result != 1) { final = "pending_http_failed"; break; }
+        if (!bx_pair_status(response, state_name)) {
+            final = "pending_response_invalid";
+            result = -17;
+            break;
         }
         if (strcmp(state_name, "pending_confirmation") == 0) {
             if (!bx_pair_identifier(response, "claimId", claim_id)) {
-                final = "invalid_claim"; break;
+                final = "invalid_claim";
+                result = -18;
+                break;
             }
-            notice("BX-REMOTE: Novo vinculo! X aprova, O recusa, OPTIONS sai.");
+            notice("BX-REMOTE: Aprovar acesso de teste? X = SIM, O = NAO, OPTIONS sai.");
             stage = "user_consent";
-            for (i = 0; i < 20; ++i) {
+            for (i = 0; i < APPROVAL_POLL_TICKS; ++i) {
                 int choice = poll_decision(pad, &last_buttons);
                 if (choice != 0) {
                     if (choice == -2) { final = "cancelled"; goto finish; }
                     if (!bx_pair_decision_json(decision, sizeof(decision), request_id,
                                                claim_id, choice > 0)) {
-                        final = "decision_format_error"; goto finish;
+                        final = "decision_format_error";
+                        result = -19;
+                        goto finish;
                     }
                     result = call_api(&http, &config, "/v1/pair/decide",
                         decision, response, &status);
@@ -291,14 +303,17 @@ int main(void) {
 
 finish:
     stage = final;
-    report(stage, accepted ? 0 : -1, status);
+    /* Preserve native/HTTP failure code instead of converting all failures
+     * to -1. The log is safe to share after checking for local information. */
+    report(stage, accepted ? 0 : (result < 0 ? result : -1), status);
     if (accepted) {
         notice("BX-REMOTE: Vinculo aprovado (HTTP). SEM VIDEO OU CONTROLE.");
         /* Allow the paired browser to fetch approval before revocation. */
-        sleep(12);
+        sleep(APPROVED_NOTICE_SECONDS);
     } else {
         snprintf(message, sizeof(message),
-            "BX-REMOTE: %s (HTTP %d). Confira relatorio.", stage, status);
+            "BX-REMOTE: %s (HTTP %d, codigo %d). Ver relatorio.",
+            stage, status, result < 0 ? result : -1);
         notice(message);
         sleep(5);
     }

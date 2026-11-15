@@ -1,4 +1,4 @@
-# BX-REMOTE-PLAY — prova de vínculo NATIVA para PS4 (v0.11 experimental)
+# BX-REMOTE-PLAY — prova de vínculo NATIVA para PS4 (v0.12 experimental)
 
 **Estado: implementação separada e NÃO testada em um PS4 físico.** Este pacote não oferece Remote Play, streaming de vídeo/áudio, virtualização de controle, agente residente nem início automático.
 
@@ -72,6 +72,15 @@ Os seguintes pontos **não estão validados em hardware**: leitura de config em 
 Documentos complementares: `docs/PAIRING-AND-REAL-PS4.md`, `docs/LOW-LATENCY-AND-NETWORK.md`.
 
 Referência OpenOrbis: https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain .
+
+## Preparação para os primeiros testes — v0.12
+
+O novo guia [FIRST-HARDWARE-TESTS.md](../docs/FIRST-HARDWARE-TESTS.md) descreve os testes no PS4 e navegador, como verificar o relatório e quais informações podem ser compartilhadas sem expor credenciais.
+
+- Janela de confirmação pelo DualShock ampliada de aproximadamente 2 para 8 segundos por solicitação, permitindo mais tempo para apertar X (aprovar) ou O (recusar).
+- Depois de aprovar, a notificação permanece solicitada por cerca de 20 segundos antes da revogação do vínculo experimental, para o navegador ter mais tempo de consultar o estado.
+- Relatório do PS4 agora preserva o **código real da falha HTTP/nativa** em `result_code`, inclusive quando a resposta JSON é inválida. Antes, erros diferentes podiam aparecer todos como -1.
+- Esse intervalo não é sessão persistente: o aplicativo continua sendo apenas uma prova de vínculo em primeiro plano, sem AutoRun nem vídeo.
 
 ## Robustez da versão 0.11
 

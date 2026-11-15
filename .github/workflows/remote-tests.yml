@@ -34,6 +34,7 @@ jobs:
           node --check remote/game-core.js
           node --check remote/game.js
           node --check remote/pair-client.js
+          node --check remote/first-tests.js
           node -e "JSON.parse(require('node:fs').readFileSync('remote/manifest.webmanifest', 'utf8'))"
           test -s remote/icon.svg
       - name: Test controller, touch and homepage
