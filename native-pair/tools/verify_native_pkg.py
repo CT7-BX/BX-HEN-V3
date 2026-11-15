@@ -10,8 +10,8 @@ from verify_package import parse_sfo  # existing validated SFO parser
 expected = {
     "TITLE_ID": "BRPM00001",
     "CONTENT_ID": "IV0000-BRPM00001_00-BXREMOTEPAIR0001",
-    "APP_VER": "0.10",
-    "VERSION": "0.10",
+    "APP_VER": "0.11",
+    "VERSION": "0.11",
     "CATEGORY": "gd"
 }
 

@@ -14,11 +14,16 @@ test("main screen has honest pairing entry point with consent messaging", () => 
   assert.match(html, /id="pairCode"/);
   assert.match(html, /id="pairClaim"/);
   assert.match(html, /id="pairCancel"/);
-  assert.match(html, /console SIMULADO/);
+  assert.match(html, /PS4 com o PKG Pair Test/);
+  assert.match(html, /id="pairCheck"/);
+  assert.match(html, /id="pairServerStatus"/);
   assert.match(html, /src="\.\/pair-client\.js"/);
 });
 
 test("pairing uses expiring claimant bearer, never URL query or persistent storage", () => {
+  assert.match(pairing, /\+ "\/health"/);
+  assert.match(pairing, /controller\.abort\(\)/);
+  assert.match(pairing, /info\.mode !== "control-prototype"/);
   assert.match(pairing, /\/v1\/pair\/claim/);
   assert.match(pairing, /\/v1\/pair\/status/);
   assert.match(pairing, /authorization: "Bearer "/);
