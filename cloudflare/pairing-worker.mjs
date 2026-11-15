@@ -168,13 +168,19 @@ export class BXPairingRoom {
         // Store only a hash of the IP; no account identifiers or IP are reported.
         const ip = request.headers.get("CF-Connecting-IP") || "no-ip";
         const ipHash = await digest(ip);
-        const rateKey = "rate-" + ipHash;
-        let rate = await this.ctx.storage.get(rateKey);
-        if (!rate || now - rate.startedAt >= RATE_MS) {
-          rate = { startedAt: now, attempts: 0 };
+        const rateKey = "claim-rates-v1";
+        const oldRates = (await this.ctx.storage.get(rateKey)) || {};
+        // Prune old hashes and cap global distinct IP entries to prevent
+        // unbounded database growth from a rotating set of addresses.
+        const rates = Object.fromEntries(Object.entries(oldRates)
+          .filter(([, value]) => value && now - value.startedAt < RATE_MS));
+        if (!rates[ipHash] && Object.keys(rates).length >= 512) {
+          return problem("RATE_LIMITED", 429, origin);
         }
+        const rate = rates[ipHash] || { startedAt: now, attempts: 0 };
         rate.attempts++;
-        await this.ctx.storage.put(rateKey, rate);
+        rates[ipHash] = rate;
+        await this.ctx.storage.put(rateKey, rates);
         if (rate.attempts > MAX_ATTEMPTS) return problem("RATE_LIMITED", 429, origin);
         if (typeof input.code !== "string" || !/^\d{8}$/.test(input.code)
             || !entry || entry.status !== "waiting"
