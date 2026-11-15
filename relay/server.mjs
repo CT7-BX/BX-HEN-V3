@@ -77,7 +77,7 @@ export function createRelay({
   const pairing = createPairingStore();
   const pairingHttp = createPairingHttpHandler({
     pairing, consoleToken, allowedOrigins,
-    consoleOnline: () => Boolean(peers.console)
+    consoleOnline: () => Boolean(peers.console) || pairing.httpConsoleOnline()
   });
   const server = http.createServer((req, res) => {
     if (req.url?.startsWith("/v1/pair/")) {
