@@ -28,6 +28,10 @@ O Pair Test v0.12 não sobrescreve o Network Test v0.21. Nenhum deles recebe ví
 
 ## 3. Preparar backend privado e configuração PS4
 
+Existe agora um Worker experimental separado no Cloudflare para simplificar o primeiro teste HTTP. Sua instalação foi confirmada pela API, mas **a chave secreta não foi configurada automaticamente** e o acesso público ainda não foi verificado em navegador real. Para continuar, siga [cloudflare/README.md](../cloudflare/README.md) e configure o secret de console diretamente no painel Cloudflare; o gerador offline cria o mesmo segredo para o arquivo privado do PS4. O Worker só aceita pareamento, nunca vídeo/áudio ou controle nativo.
+
+#### Alternativa: relay Node local de laboratório
+
 O backend Node do repositório é **laboratório**, não um serviço de produção. Use apenas uma instância **sob HTTPS/WSS, autenticada e protegida contra tentativas indevidas**. Não publique diretamente o serviço HTTP, FTP, as portas de GoldHEN ou credenciais. Sem backend confiável implantado, o teste com Pair Test termina em erro de rede; isso não demonstra problema no PS4.
 
 Para gerar um par de credenciais correspondente **fora do repositório**, em seu computador:
