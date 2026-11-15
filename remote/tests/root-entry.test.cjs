@@ -7,7 +7,7 @@ const base = path.resolve(__dirname, "../..");
 
 test("the repository homepage links to the remote application", () => {
   const entry = fs.readFileSync(path.join(base, "index.html"), "utf8");
-  assert.match(entry, /<title>BX-HEN Remote Play<\/title>/);
+  assert.match(entry, /<title>BX-REMOTE-PLAY<\/title>/);
   assert.match(entry, /http-equiv="refresh" content="0; url=\.\/remote\/"/);
   assert.match(entry, /href="\.\/remote\/"/);
   assert.match(entry, /location\.replace\(new URL\("\.\/remote\/"/);
