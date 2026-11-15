@@ -1,5 +1,14 @@
 # Histórico de atualizações — BX-REMOTE-PLAY
 
+## 2026-11-15 — Preparação para testes físicos: PKG v0.12 e site v0.7
+
+- PKG de vínculo permite mais tempo para decisão pelo DualShock e mantém a notificação de vínculo autorizado por mais tempo antes da revogação.
+- Relatórios passam a registrar o código HTTP/nativo original e distinguem resposta inválida do servidor.
+- Nova área de checklist na interface, verificação local de recursos do navegador e exportação de diagnóstico sem credenciais.
+- Cliente do site cancela requisições de vínculo antigas e aplica timeout de 6,5 segundos às chamadas, evitando ficar preso após erro de rede.
+- Testes automatizados cobrem o relatório sanitizado e as salvaguardas de cancelamento; roteiro separado de primeiros testes físicos.
+- **Ainda não existe vídeo/áudio do PS4, agente residente ou teste físico aprovado.**
+
 ## 2026-11-15 — Pairing v0.11 e interface 0.6
 
 - Verificação mais estrita de domínio HTTPS e porta no componente C nativo, com testes de regressão.
