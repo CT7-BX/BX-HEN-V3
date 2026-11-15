@@ -1,5 +1,11 @@
 # Histórico de atualizações — BX-REMOTE-PLAY
 
+## 2026-11-15 — Ajuste do controle físico
+
+- Preservado o valor analógico de L2 e R2 no protocolo do relay e no laboratório do navegador.
+- Adicionados testes de valores válidos e fora da faixa permitida.
+- Ainda sem envio a PS4 real.
+
 ## 2026-11-15 — Pesquisa e relay experimental 0.2
 
 - Pesquisados GoldHEN Remote Play, Control4Free, Chiaki-ng e Chiaki-NG-Web.
