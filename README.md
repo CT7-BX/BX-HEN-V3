@@ -14,6 +14,8 @@ Permitir futuramente jogar e controlar um PS4 em casa por meio de um iPhone ou M
 
 **O PKG PS4 de diagnóstico foi aprimorado na v0.21**, com notificação de resultado, ícone próprio, tratamento de erros de rede temporários e testes adicionais de metadados e integridade. Continua sem validação em console físico e não transmite jogos.
 
+**Primeira prova nativa de vínculo PS4:** há agora código OpenOrbis para um PKG **separado** em [native-pair/](native-pair/) que realiza vínculo por HTTPS, mostra código no console e pede autorização pelo DualShock 4. A compilação e a execução física ainda precisam ser comprovadas. O app não transmite vídeo ou comandos e não tem AutoRun.
+
 **Vínculo em desenvolvimento:** a interface e o relay têm agora solicitação de código de oito dígitos, aprovação por console **simulado** e credencial temporária. Esse fluxo NÃO vincula o PS4 físico, nem substitui o registro do protocolo Remote Play. [Documentação do teste de vínculo](docs/PAIRING-AND-REAL-PS4.md).
 
 **Não funciona ainda como Remote Play:** não transmite vídeo/áudio nem envia comandos ao PS4 real. Existe agora um relay **experimental** com autenticação para ligar o navegador a um **console simulado**; ainda falta um agente PS4 persistente, transporte de mídia e integração do protocolo Remote Play. Nenhuma sessão com console físico foi comprovada.
@@ -26,7 +28,8 @@ A raiz do site redireciona para `remote/`; mantemos esse caminho para evitar que
 - [remote/controller-core.js](remote/controller-core.js) — processamento local da Gamepad API
 - [remote/tests/](remote/tests/) — testes automatizados
 - [remote/README.md](remote/README.md) — requisitos, limitações e arquitetura futura
-- [ps4-agent/](ps4-agent/) — prova HTTPS para PS4 e PKG experimental gerado em CI, ainda sem validação no console
+- [ps4-agent/](ps4-agent/) — PKG v0.21 de diagnóstico HTTPS (inalterado)
+- [native-pair/](native-pair/) — novo aplicativo PS4 v0.10 de prova de vínculo HTTPS, separado e sem AutoRun, compatibilidade física ainda pendente
 - [relay/](relay/) — servidor Node autenticado de controle e pareamento com console simulado (sem streaming)
 - [docs/PAIRING-AND-REAL-PS4.md](docs/PAIRING-AND-REAL-PS4.md) — código temporário, aprovação e próximos passos com o PS4 físico
 - [remote/relay-lab.html](remote/relay-lab.html) — laboratório de controle separado
