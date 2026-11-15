@@ -1,5 +1,13 @@
 # Histórico de atualizações — BX-REMOTE-PLAY
 
+## 2026-11-15 — Compilação e empacotamento PS4
+
+- GitHub Actions compilou o `eboot.bin` com OpenOrbis v0.5.4 fixado por SHA-256.
+- Gerado PKG experimental de diagnóstico `IV0000-BRPT00001_00-BXREMOTEPLAY0001.pkg`.
+- `PkgTool.Core pkg_validate` passou na checagem de integridade do pacote.
+- Arquivos disponibilizados temporariamente como artefatos do workflow.
+- **Sem teste físico; sem transmissão de vídeo, áudio ou comandos.**
+
 ## 2026-11-15 — Integração inicial PS4 e renomeação
 
 - Repositório renomeado para `CT7-BX/BX-REMOTE-PLAY`.
