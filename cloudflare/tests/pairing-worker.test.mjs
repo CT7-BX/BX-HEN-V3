@@ -19,8 +19,9 @@ function instance() {
     get: () => ({ fetch: request => room.fetch(request) })
   };
   let room = new BXPairingRoom({ storage }, env);
+  env.PAIRING_ROOM = namespace;
   return {
-    env: { ...env, PAIRING_ROOM: namespace },
+    env,
     storage,
     restart() { room = new BXPairingRoom({ storage }, env); }
   };
