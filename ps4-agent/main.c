@@ -17,11 +17,13 @@
 #include <orbis/Net.h>
 #include <orbis/Ssl.h>
 #include <orbis/Http.h>
+#include <orbis/SysUtil.h>
 
 #include "probe_contract.h"
 
 #define PROBE_URL "https://ct7-bx.github.io/BX-REMOTE-PLAY/remote/ps4-probe.txt"
 #define PROBE_LOG "/data/bx-remote-play-probe.txt"
+#define APP_VERSION "0.20"
 #define RESPONSE_CAP 128
 #define POOL_BYTES (256 * 1024)
 #define SSL_BYTES (128 * 1024)
@@ -44,10 +46,11 @@ static void log_result(const ProbeOutcome *outcome)
     for (i = 0; i < 2; ++i) {
         FILE *out = streams[i];
         if (out == NULL) continue;
-        fprintf(out, "BX-REMOTE-PLAY PS4 probe 0.1\n");
+        fprintf(out, "BX-REMOTE-PLAY PS4 probe %s\n", APP_VERSION);
         fprintf(out, "site=%s\n", PROBE_URL);
         fprintf(out, "stage=%s\n", outcome->stage);
         fprintf(out, "result=%s\n", outcome->matched ? "OK" : "FAILED");
+        fprintf(out, "error_hex=0x%08x\n", (unsigned int)outcome->error);
         fprintf(out, "error=%d\n", outcome->error);
         fprintf(out, "http_status=%d\n", outcome->status);
         fprintf(out, "body_bytes=%lu\n", (unsigned long)outcome->received);
@@ -73,6 +76,7 @@ int main(void)
     int n;
 
     memset(response, 0, sizeof(response));
+    /* This is a one-shot network diagnosis, never a persistent service. */
 
     result.stage = "net_init";
     result.error = sceNetInit();
@@ -93,7 +97,7 @@ int main(void)
 
     result.stage = "http_template";
     template_id = sceHttpCreateTemplate(
-        http_id, "BX-REMOTE-PLAY-PS4-Probe/0.1", ORBIS_HTTP_VERSION_1_1, 1);
+        http_id, "BX-REMOTE-PLAY-PS4-Probe/" APP_VERSION, ORBIS_HTTP_VERSION_1_1, 1);
     if (template_id < 0) { result.error = template_id; goto finish; }
 
     result.stage = "https_connect";
@@ -106,9 +110,15 @@ int main(void)
     if (request_id < 0) { result.error = request_id; goto finish; }
 
     /* Keep HTTPS certificate verification enabled (do not disable checks). */
-    sceHttpSetConnectTimeOut(request_id, 10000000);
-    sceHttpSetResolveTimeOut(request_id, 10000000);
-    sceHttpSetSendTimeOut(request_id, 10000000);
+    result.stage = "connect_timeout";
+    result.error = sceHttpSetConnectTimeOut(request_id, 10000000);
+    if (result.error < 0) goto finish;
+    result.stage = "resolve_timeout";
+    result.error = sceHttpSetResolveTimeOut(request_id, 10000000);
+    if (result.error < 0) goto finish;
+    result.stage = "send_timeout";
+    result.error = sceHttpSetSendTimeOut(request_id, 10000000);
+    if (result.error < 0) goto finish;
 
     result.stage = "https_send";
     result.error = sceHttpSendRequest(request_id, NULL, 0);
@@ -150,5 +160,21 @@ finish:
     if (net_ready) sceNetTerm();
 
     log_result(&result);
+    {
+        char notice[192];
+        if (result.matched) {
+            snprintf(notice, sizeof(notice),
+                "BX-REMOTE-PLAY: HTTPS OK! Apenas diagnostico; sem streaming.");
+        } else {
+            snprintf(notice, sizeof(notice),
+                "BX-REMOTE-PLAY: falha %s, erro %d, HTTP %d.",
+                result.stage, result.error, result.status);
+        }
+        /* OpenOrbis SysUtil notification, type 222 is the generic system toast.
+         * A toast is best-effort; a file report remains available in /data.
+         * Hardware compatibility still requires testing on a PS4.
+         */
+        sceSysUtilSendSystemNotificationWithText(222, notice);
+    }
     return result.matched ? 0 : 1;
 }
