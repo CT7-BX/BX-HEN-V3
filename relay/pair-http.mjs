@@ -34,7 +34,7 @@ async function jsonBody(req) {
   return body;
 }
 
-export function createPairingHttpHandler({ pairing, consoleToken, allowedOrigins }) {
+export function createPairingHttpHandler({ pairing, consoleToken, allowedOrigins, consoleOnline = () => true }) {
   const routes = new Map([
     ["POST /v1/pair/start", "console"],
     ["POST /v1/pair/claim", "browser"],
@@ -101,6 +101,7 @@ export function createPairingHttpHandler({ pairing, consoleToken, allowedOrigins
       let output;
       switch (url.pathname) {
         case "/v1/pair/start":
+          if (!consoleOnline()) { reply(409, { error: "CONSOLE_OFFLINE" }); return true; }
           await jsonBody(req);
           output = pairing.begin();
           break;
