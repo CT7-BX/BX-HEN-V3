@@ -1,0 +1,16 @@
+{
+  "name": "bx-remote-play-relay",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Authenticated control-channel research prototype. No PS4 streaming or media transport.",
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "demo:console": "node demo-console.mjs"
+  },
+  "dependencies": {
+    "ws": "8.23.0"
+  }
+}

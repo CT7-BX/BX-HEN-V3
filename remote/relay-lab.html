@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101014">
+<title>BX-REMOTE-PLAY | Laboratório de conexão</title>
+<style>
+:root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;background:#0b0b10;color:#f4f0f2}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(155deg,#291017,#0b0b10 45%)}
+main{max-width:850px;margin:auto;padding:24px 18px 60px}
+a{color:#ff9aaf}h1{letter-spacing:-.04em;font-size:clamp(1.9rem,5vw,3rem);margin:8px 0 12px}
+h1 span{color:#ef3454}p{color:#c6b9c2;line-height:1.55}
+section{background:#1c1a22;border:1px solid #4b313b;border-radius:16px;padding:20px;margin:16px 0}
+label{display:block;margin:16px 0 7px;font-size:.9rem;font-weight:700}
+input{font:inherit;width:100%;padding:12px 14px;border-radius:9px;background:#111015;color:white;border:1px solid #6e4a57}
+input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #ff7897;outline-offset:2px}
+button{font:inherit;background:#d52b4b;color:#fff;padding:12px 18px;font-weight:750;border:0;border-radius:10px;cursor:pointer;min-height:44px}
+button:disabled{cursor:not-allowed;opacity:.6}.secondary{background:#30232b;border:1px solid #674451}
+.status{border-radius:9px;background:#2f242c;padding:12px;color:#ffbbc9;font-weight:700}
+.status.active{background:#173528;color:#a5f4c8}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#131119;border:1px solid #44333d;padding:12px;border-radius:9px;color:#c8c2cb;min-height:75px}
+small{color:#aca1ab}code{font-size:.88em}
+</style>
+</head>
+<body><main>
+<p><a href="./">← Voltar ao BX-REMOTE-PLAY</a></p>
+<h1>Laboratório <span>Remote Link</span></h1>
+<p>Teste o envio dos comandos do controle físico a um <strong>console simulado</strong> através de um relay próprio. Esta tela <strong>não se conecta ao PS4 real</strong> e não recebe vídeo ou áudio.</p>
+<section>
+<h2>Conexão de teste</h2>
+<p>Requer um servidor BX-REMOTE-PLAY Relay iniciado por você. Não há servidor público configurado neste protótipo.</p>
+<label for="endpoint">Servidor WebSocket seguro</label>
+<input id="endpoint" type="url" placeholder="wss://seu-servidor.example/v1/link" autocomplete="off" spellcheck="false">
+<label for="token">Token de jogador (não fica salvo)</label>
+<input id="token" type="password" placeholder="Token da sessão de teste" autocomplete="off">
+<div class="row"><button type="button" id="connect">Conectar</button><button type="button" class="secondary" id="disconnect" disabled>Desconectar</button></div>
+<div class="status" role="status" aria-live="polite" id="status">Desconectado</div>
+</section>
+<section>
+<h2>Controle físico prioritário</h2>
+<p>Conecte um DualShock 4 ao iPhone ou MacBook e pressione um botão. A Gamepad API envia até 20 amostras por segundo, apenas durante uma sessão autenticada com console simulado presente.</p>
+<pre id="controller" aria-live="off">Aguardando DualShock 4...</pre>
+<pre id="diagnostic" aria-live="polite">Nenhuma sessão iniciada.</pre>
+<small>Não publique tokens no GitHub. Para conexões externas, use WSS e um servidor HTTPS com autenticação. O navegador não transmite nenhuma informação antes de você clicar em Conectar.</small>
+</section>
+<script src="./controller-core.js"></script>
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const core = window.BXRemoteController;
+  const status = $("status");
+  let socket = null;
+  let connected = false;
+  let peer = false;
+  let seq = 0;
+  let lastAck = null;
+  let lastPacket = 0;
+
+  function message(text) { $("diagnostic").textContent = text; }
+  function setState(text, active = false) {
+    status.textContent = text;
+    status.classList.toggle("active", active);
+  }
+  function safeEndpoint(text) {
+    let url;
+    try { url = new URL(text); } catch { return null; }
+    if (url.username || url.password || url.search || url.hash || url.pathname !== "/v1/link") return null;
+    const local = ["localhost","127.0.0.1","[::1]"].includes(url.hostname);
+    if (url.protocol !== "wss:" && !(local && url.protocol === "ws:")) return null;
+    return url.href;
+  }
+  function disconnect() {
+    if (socket) {
+      socket.onclose = null;
+      socket.close();
+    }
+    socket = null; connected = false; peer = false;
+    $("connect").disabled = false;
+    $("disconnect").disabled = true;
+    setState("Desconectado");
+  }
+  $("connect").addEventListener("click", () => {
+    const endpoint = safeEndpoint($("endpoint").value.trim());
+    const token = $("token").value;
+    if (!endpoint) {
+      message("Use wss://.../v1/link (ws:// somente no localhost).");
+      return;
+    }
+    if (token.length < 32) { message("O token precisa ter pelo menos 32 caracteres."); return; }
+    disconnect();
+    setState("Conectando ao relay...");
+    $("connect").disabled = true;
+    let ws;
+    try { ws = new WebSocket(endpoint); }
+    catch { $("connect").disabled = false; message("Falha ao iniciar WebSocket."); return; }
+    socket = ws;
+    ws.onopen = () => {
+      ws.send(JSON.stringify({type:"hello",role:"player",token}));
+      $("token").value = ""; // Never persist a secret in the form after authentication.
+      $("disconnect").disabled = false;
+    };
+    ws.onmessage = event => {
+      let frame;
+      try { frame = JSON.parse(event.data); } catch { return; }
+      if (frame.type === "authenticated" && frame.role === "player") {
+        connected = true;
+        setState("Sessão autenticada, aguardando console simulado...", true);
+      } else if (frame.type === "peer") {
+        peer = Boolean(frame.connected);
+        setState(peer ? "Relay conectado ao console simulado" : "Relay conectado, sem console simulado", true);
+      } else if (frame.type === "ack" && Number.isSafeInteger(frame.seq)) {
+        lastAck = frame.seq;
+      } else if (frame.type === "status") {
+        message("Status do console simulado: " + String(frame.state).slice(0,20));
+      }
+    };
+    ws.onclose = () => { if (socket === ws) { disconnect(); message("Sessão encerrada."); } };
+    ws.onerror = () => { message("Falha na ligação. Confira endereço, WSS, origem e token."); };
+  });
+  $("disconnect").addEventListener("click", disconnect);
+
+  function readController() {
+    const snap = core.readSnapshot(core.preferredGamepad(
+      typeof navigator.getGamepads === "function" ? navigator.getGamepads() : []
+    ));
+    if (!snap) {
+      $("controller").textContent = "Controle não detectado. Conecte o DualShock 4 e pressione um botão.";
+      return;
+    }
+    const buttons = snap.buttons.filter(b => b.pressed).map(b => b.index);
+    $("controller").textContent = "Detectado: " + snap.id +
+      "\nBotões: " + (buttons.length ? buttons.join(", ") : "nenhum") +
+      "\nAnalógicos: " + snap.axes.map(a => a.toFixed(2)).join(" / ") +
+      "\nÚltima confirmação do relay: " + (lastAck === null ? "nenhuma" : lastAck);
+    if (!connected || !peer || !socket || socket.readyState !== WebSocket.OPEN
+        || document.hidden || Date.now() - lastPacket < 50) return;
+    lastPacket = Date.now();
+    socket.send(JSON.stringify({
+      type: "input", seq: ++seq, buttons,
+      axes: Array.from({length:4}, (_, i) => snap.axes[i] ?? 0)
+    }));
+  }
+  setInterval(readController, 50);
+})();
+</script>
+</main></body></html>

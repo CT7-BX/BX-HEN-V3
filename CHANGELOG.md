@@ -1,5 +1,13 @@
 # Histórico de atualizações — BX-REMOTE-PLAY
 
+## 2026-11-15 — Pesquisa e relay experimental 0.2
+
+- Pesquisados GoldHEN Remote Play, Control4Free, Chiaki-ng e Chiaki-NG-Web.
+- Criado estudo comparando quatro arquiteturas, com limitações de CGNAT, vídeo e licenças.
+- Adicionado servidor relay Node com autenticação separada para navegador e console simulado.
+- Implementada interface de laboratório para enviar botões e analógicos do DualShock 4.
+- Testes de autenticação, origem e comandos inválidos; **sem PS4 físico, vídeo ou áudio**.
+
 ## 2026-11-15 — Compilação e empacotamento PS4
 
 - GitHub Actions compilou o `eboot.bin` com OpenOrbis v0.5.4 fixado por SHA-256.
