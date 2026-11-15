@@ -12,6 +12,10 @@ fi
 case "$dest" in
   "$root"|"$root/"|"/") echo "Refusing unsafe deployment output directory" >&2; exit 2;;
 esac
+if [[ -d "$dest" && -n "$(ls -A "$dest")" ]]; then
+  echo "Refusing nonempty output directory: $dest" >&2
+  exit 3
+fi
 mkdir -p "$dest/remote"
 cp "$root/index.html" "$dest/index.html"
 
