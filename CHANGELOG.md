@@ -1,5 +1,15 @@
 # Histórico de atualizações — BX-REMOTE-PLAY
 
+## 2026-11-15 — Pairing v0.11 e interface 0.6
+
+- Verificação mais estrita de domínio HTTPS e porta no componente C nativo, com testes de regressão.
+- Parser simples do protocolo agora valida toda a resposta JSON e evita sobrescrever dados válidos ao rejeitar mensagens malformadas ou duplicadas.
+- Novo gerador offline de credenciais, criando arquivos privados separados para PS4 e servidor fora do repositório.
+- Teste de servidor no site por `/health` com timeout, indicador de indisponibilidade e CORS restrito.
+- Relay publica capacidades estáticas sem revelar segredos nem afirmar controle PS4 ou streaming.
+- Workflow PS4 passa a testar também o gerador Node antes de compilar o PKG v0.11.
+- **Instalação e execução no PS4 real continuam não verificadas; sem vídeo ou áudio.**
+
 ## 2026-11-15 — Prova de vínculo PS4 via HTTPS (experimental)
 
 - Backend recebe `POST /v1/pair/heartbeat` autenticado para demonstrar presença temporária de um console sem WebSocket.
