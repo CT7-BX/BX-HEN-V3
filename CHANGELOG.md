@@ -1,5 +1,14 @@
 # Histórico de atualizações — BX-REMOTE-PLAY
 
+## 2026-11-15 — Interface 0.4 e início dos diagnósticos LAN
+
+- Refino visual do controle de toque, com referência de organização no PS Remote Play oficial, mas estilos próprios.
+- Botões translúcidos circulares, D-pad, analógicos, ombros e controles centrais adaptados para retrato e paisagem.
+- Ajustes de transparência e tamanho na interface e gesto de toque duplo para L3/R3.
+- Ferramenta Node de teste de alcance TCP 9295 para um único IPv4 privado do PS4, com testes automatizados.
+- Plano técnico separado para pareamento, vídeo/áudio via Remote Play, gateway, PKG gerenciador e payload residente.
+- **Ainda não houve pareamento com PS4 físico, streaming, ELF residente ou PKG novo.**
+
 ## 2026-11-15 — Interface 0.3 e projeto do payload AutoRun
 
 - Tela de jogo redesenhada com prioridade para imagem, botões virtuais sobrepostos e controles físicos.
