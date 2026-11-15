@@ -34,7 +34,7 @@ async function jsonBody(req) {
   return body;
 }
 
-export function createPairingHttpHandler({ pairing, consoleToken, allowedOrigins, consoleOnline = () => true }) {
+export function createPairingHttpHandler({ pairing, consoleToken, allowedOrigins, consoleOnline = () => true, consoleSocketOnline = () => false }) {
   const routes = new Map([
     ["POST /v1/pair/start", "console"],
     ["POST /v1/pair/heartbeat", "console"],
@@ -127,6 +127,7 @@ export function createPairingHttpHandler({ pairing, consoleToken, allowedOrigins
         }
         case "/v1/pair/status":
           output = pairing.status(token);
+          if (output.status === "approved") output.controlAvailable = consoleSocketOnline();
           break;
         case "/v1/pair/revoke":
           await jsonBody(req);
