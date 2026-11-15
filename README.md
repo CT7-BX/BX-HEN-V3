@@ -1,23 +1,52 @@
-# BX-HEN V3
+# BX-HEN Remote Play
 
-Interface experimental para PS4, desenvolvida por **CT7-BX**.
+Projeto de **acesso remoto ao PS4**, desenvolvido por **CT7-BX**. Este repositório é dedicado ao **BX-HEN Remote**; não é o host de desbloqueio do console.
 
-🌐 **[Acessar o BX-HEN V3](https://ct7-bx.github.io/BX-HEN-V3/)**
+🌐 **[Abrir BX-HEN Remote](https://ct7-bx.github.io/BX-HEN-V3/)**
 
-## Sobre o projeto
+## Objetivo
 
-- Interface simples, responsiva e em tons neutros.
-- Página inicial hospedada pelo GitHub Pages.
-- Acesso à área experimental do BX-HEN por link externo.
-- Sem carregadores GoldHEN ou PS4HEN nesta versão.
-- Esta página não executa desbloqueio do console.
+Permitir futuramente jogar e controlar um PS4 em casa por meio de um iPhone ou MacBook em outra rede, com prioridade para o **DualShock 4 físico** e controles virtuais opcionais.
 
-## Status
+## Situação real
 
-**Site publicado** — [Abrir site](https://ct7-bx.github.io/BX-HEN-V3/).
+**Protótipo 0.1 — diagnóstico de controle.** A interface em [remote/](remote/) identifica e exibe entradas da Gamepad API do navegador e demonstra botões virtuais.
 
-O código-fonte fica neste repositório. Para acompanhar as publicações, consulte a aba [Actions](https://github.com/CT7-BX/BX-HEN-V3/actions).
+**Não funciona ainda como Remote Play:** não transmite vídeo/áudio, não envia comandos ao PS4, não tem PKG, agente de PS4, autenticação ou servidor relay. Nenhuma conexão remota com o console foi comprovada.
 
-## Atualizações
+A raiz do site redireciona para `remote/`; mantemos esse caminho para evitar quebrar links anteriores. O código original da página experimental anterior permanece no histórico do GitHub, sem ser a página inicial.
 
-Veja o histórico completo em [CHANGELOG.md](CHANGELOG.md).
+## Organização
+
+- [remote/index.html](remote/index.html) — interface responsiva preta e vermelha
+- [remote/controller-core.js](remote/controller-core.js) — processamento local da Gamepad API
+- [remote/tests/](remote/tests/) — testes automatizados
+- [remote/README.md](remote/README.md) — requisitos, limitações e arquitetura futura
+- [.github/workflows/remote-tests.yml](.github/workflows/remote-tests.yml) — CI para controles e navegação
+
+## Validação
+
+```sh
+node --test remote/tests/*.test.cjs
+```
+
+A leitura do DualShock 4 depende do navegador; validar fisicamente no Safari do iPhone e no MacBook.
+
+## Próximos marcos
+
+1. Testar leitura real de botões e analógicos nos dispositivos.
+2. Investigar captura de vídeo/áudio e entrada de controles no PS4 com GoldHEN.
+3. Implementar um agente PS4 ou gateway Remote Play com sessão autenticada e transporte de mídia.
+4. Criar sinalização/relay seguro, necessário para conexão entre redes em cenários como CGNAT.
+5. Validar ponta a ponta controle e vídeo no iPhone e MacBook.
+
+O **GitHub Pages** hospeda apenas o front-end; não substitui o servidor de relay e não permite conexão direta automática ao PS4.
+
+## Host de desbloqueio — separado
+
+O host de desbloqueio é um projeto distinto:
+[CT7-BX/BX-CT7.github.io](https://github.com/CT7-BX/BX-CT7.github.io).
+
+Este repositório não publica nem executa cargas de desbloqueio. O host separado não é alterado pelas mudanças deste projeto.
+
+Histórico: [CHANGELOG.md](CHANGELOG.md).
