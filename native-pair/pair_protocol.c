@@ -64,9 +64,12 @@ int bx_pair_code(const char *json, char out[9]) {
 }
 
 int bx_pair_identifier(const char *json, const char *field, char out[65]) {
+    char candidate[65];
     size_t i;
-    if (!bx_pair_field(json, field, out, 65) || strlen(out) != 64) return 0;
-    for (i = 0; i < 64; i++) if (!ishex(out[i])) return 0;
+    if (!out || !bx_pair_field(json, field, candidate, sizeof(candidate))
+        || strlen(candidate) != 64) return 0;
+    for (i = 0; i < 64; i++) if (!ishex(candidate[i])) return 0;
+    memcpy(out, candidate, sizeof(candidate));
     return 1;
 }
 
