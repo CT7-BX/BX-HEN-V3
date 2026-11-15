@@ -72,6 +72,15 @@ jobs:
           python3 ps4-agent/tools/make_icon.py ps4-agent/sce_sys/icon0.png
           test -s ps4-agent/sce_sys/icon0.png
 
+      - name: Generate and validate PKG metadata before packaging
+        env:
+          DOTNET_ROLL_FORWARD: Major
+          DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: '1'
+        run: |
+          make -C ps4-agent sce_sys/param.sfo
+          python3 ps4-agent/tools/verify_package.py \
+            ps4-agent/sce_sys/param.sfo ps4-agent/sce_sys/icon0.png
+
       - name: Build diagnostic PKG with OpenOrbis
         env:
           DOTNET_ROLL_FORWARD: Major
