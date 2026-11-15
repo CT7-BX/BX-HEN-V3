@@ -1,6 +1,5 @@
 #include "pair_protocol.h"
 
-#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -8,20 +7,53 @@ static int ishex(char value) {
     return (value >= '0' && value <= '9') || (value >= 'a' && value <= 'f');
 }
 
+static int isalnum_ascii(char c) {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+        || (c >= '0' && c <= '9');
+}
+
+static int isspace_json(char c) {
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+}
+
+/* Accept only plain DNS names and optional valid TCP port. Reject userinfo,
+ * query strings, paths, empty port, malformed labels, and characters that
+ * could make a serialized URL different from its validated origin.
+ * Native pairing requires a trusted HTTPS certificate; never disable TLS.
+ */
 int bx_pair_valid_origin(const char *origin) {
+    const char *host;
     const char *s;
-    size_t len;
+    size_t n;
+    unsigned long port = 0;
+    int dots = 0;
+    int label = 0;
+
     if (!origin || strncmp(origin, "https://", 8) != 0) return 0;
-    s = origin + 8;
-    len = strlen(s);
-    if (len < 4 || len > 180 || s[0] == '.' || s[0] == ':') return 0;
-    for (; *s; ++s) {
-        if (!((*s >= 'a' && *s <= 'z') ||
-              (*s >= 'A' && *s <= 'Z') ||
-              (*s >= '0' && *s <= '9') ||
-              *s == '.' || *s == '-' || *s == ':')) return 0;
+    if (strlen(origin) > 180) return 0;
+    host = origin + 8;
+    if (!isalnum_ascii(*host)) return 0;
+
+    for (s = host; *s != '\0' && *s != ':'; ++s) {
+        if (*s == '.') {
+            if (label == 0 || s[-1] == '-') return 0;
+            dots++;
+            label = 0;
+        } else if (isalnum_ascii(*s) || *s == '-') {
+            if (label == 0 && *s == '-') return 0;
+            if (++label > 63) return 0;
+        } else return 0;
     }
-    return 1;
+    if (label == 0 || s[-1] == '-' || dots < 1) return 0;
+
+    if (*s == '\0') return 1;
+    ++s;
+    if (!*s) return 0;
+    for (n = 0; s[n]; ++n) {
+        if (s[n] < '0' || s[n] > '9' || n >= 5) return 0;
+        port = port * 10u + (unsigned)(s[n] - '0');
+    }
+    return port > 0 && port <= 65535;
 }
 
 int bx_pair_valid_token(const char *token) {
@@ -31,35 +63,97 @@ int bx_pair_valid_token(const char *token) {
     return 1;
 }
 
+/* Minimal strict parser for the flat JSON responses of this relay.
+ * Does NOT accept nesting, JSON string escapes or duplicate requested keys.
+ * Copy into output only after validating the entire response.
+ * This avoids choosing a key from inside a quoted value or a malformed body.
+ */
 int bx_pair_field(const char *json, const char *name, char *out, size_t capacity) {
-    char key[80];
     const char *p;
-    size_t len;
-    if (!json || !name || !out || capacity < 2 || strlen(name) >= 70) return 0;
-    if (snprintf(key, sizeof(key), "\"%s\"", name) < 0) return 0;
-    p = strstr(json, key);
-    if (!p) return 0;
-    p += strlen(key);
-    while (*p == ' ' || *p == '\t') p++;
-    if (*p++ != ':') return 0;
-    while (*p == ' ' || *p == '\t') p++;
-    if (*p++ != '"') return 0;
-    len = 0;
-    while (p[len] && p[len] != '"' && len < capacity) {
-        unsigned char value = (unsigned char)p[len];
-        if (value < 33 || value > 126 || value == '\\') return 0;
-        len++;
+    const char *found = NULL;
+    size_t length = 0;
+    int count = 0;
+
+    if (!json || !name || !out || !*name || capacity < 2 || strlen(json) > 1024)
+        return 0;
+    p = json;
+    while (isspace_json(*p)) ++p;
+    if (*p++ != '{') return 0;
+    while (isspace_json(*p)) ++p;
+    if (*p == '}') return 0;
+
+    for (;;) {
+        const char *key;
+        const char *value = NULL;
+        size_t key_length, value_length = 0;
+
+        if (*p++ != '"') return 0;
+        key = p;
+        while (*p && *p != '"') {
+            if (*p == '\\' || (unsigned char)*p < 32) return 0;
+            ++p;
+        }
+        if (*p != '"') return 0;
+        key_length = (size_t)(p - key);
+        if (!key_length) return 0;
+        ++p;
+        while (isspace_json(*p)) ++p;
+        if (*p++ != ':') return 0;
+        while (isspace_json(*p)) ++p;
+
+        if (*p == '"') {
+            ++p;
+            value = p;
+            while (*p && *p != '"') {
+                if (*p == '\\' || (unsigned char)*p < 32) return 0;
+                ++p;
+            }
+            if (*p != '"') return 0;
+            value_length = (size_t)(p - value);
+            ++p;
+        } else {
+            const char *primitive = p;
+            while (*p && *p != ',' && *p != '}' && !isspace_json(*p)) {
+                if (*p == '{' || *p == '[' || *p == '"') return 0;
+                ++p;
+            }
+            if (p == primitive) return 0;
+            value_length = (size_t)(p - primitive);
+            if (!((value_length == 4 && memcmp(primitive, "null", 4) == 0)
+               || (value_length == 4 && memcmp(primitive, "true", 4) == 0)
+               || (value_length == 5 && memcmp(primitive, "false", 5) == 0)
+               || (primitive[0] >= '0' && primitive[0] <= '9'))) return 0;
+        }
+
+        if (key_length == strlen(name) && memcmp(key, name, key_length) == 0) {
+            if (++count != 1 || !value || !value_length || value_length >= capacity)
+                return 0;
+            found = value;
+            length = value_length;
+        }
+        while (isspace_json(*p)) ++p;
+        if (*p == '}') {
+            ++p;
+            break;
+        }
+        if (*p++ != ',') return 0;
+        while (isspace_json(*p)) ++p;
     }
-    if (p[len] != '"' || len == 0 || len >= capacity) return 0;
-    memcpy(out, p, len);
-    out[len] = '\0';
+
+    while (isspace_json(*p)) ++p;
+    if (*p != '\0' || count != 1) return 0;
+    memcpy(out, found, length);
+    out[length] = '\0';
     return 1;
 }
 
 int bx_pair_code(const char *json, char out[9]) {
+    char candidate[9];
     size_t i;
-    if (!bx_pair_field(json, "code", out, 9) || strlen(out) != 8) return 0;
-    for (i = 0; i < 8; i++) if (out[i] < '0' || out[i] > '9') return 0;
+    if (!out || !bx_pair_field(json, "code", candidate, sizeof(candidate))
+        || strlen(candidate) != 8) return 0;
+    for (i = 0; i < 8; i++) if (candidate[i] < '0' || candidate[i] > '9') return 0;
+    memcpy(out, candidate, sizeof(candidate));
     return 1;
 }
 
@@ -74,12 +168,16 @@ int bx_pair_identifier(const char *json, const char *field, char out[65]) {
 }
 
 int bx_pair_status(const char *json, char out[32]) {
-    if (!bx_pair_field(json, "status", out, 32)) return 0;
-    return strcmp(out, "waiting") == 0 ||
-        strcmp(out, "pending_confirmation") == 0 ||
-        strcmp(out, "approved") == 0 ||
-        strcmp(out, "denied") == 0 ||
-        strcmp(out, "idle") == 0;
+    char candidate[32];
+    if (!out || !bx_pair_field(json, "status", candidate, sizeof(candidate)))
+        return 0;
+    if (strcmp(candidate, "waiting") != 0 &&
+        strcmp(candidate, "pending_confirmation") != 0 &&
+        strcmp(candidate, "approved") != 0 &&
+        strcmp(candidate, "denied") != 0 &&
+        strcmp(candidate, "idle") != 0) return 0;
+    memcpy(out, candidate, strlen(candidate) + 1);
+    return 1;
 }
 
 int bx_pair_decision_json(char *dest, size_t cap, const char *request, const char *claim, int allow) {
