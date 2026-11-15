@@ -1,5 +1,14 @@
 # Histórico de atualizações — BX-REMOTE-PLAY
 
+## 2026-11-15 — Prova de vínculo PS4 via HTTPS (experimental)
+
+- Backend recebe `POST /v1/pair/heartbeat` autenticado para demonstrar presença temporária de um console sem WebSocket.
+- Página distingue vínculo HTTP autorizado de console realmente capaz de receber controles; não entrega token de controles quando só existe HTTP.
+- Novo projeto `native-pair/`: aplicativo OpenOrbis separado, com identificação própria, configuração privada, consulta ao relay e aceitação/negação via DualShock 4.
+- O novo aplicativo não tem AutoRun, plugin, serviço residente, vídeo, áudio ou controle remoto de jogos.
+- Workflow separado de compilação/validação OpenOrbis, com testes de contrato e configuração.
+- **Não há backend público implantado nem teste físico no PS4**; PKG v0.21 de diagnóstico preservado.
+
 ## 2026-11-15 — Vínculo com consentimento, laboratório v0.5
 
 - Relay Node com código aleatório de oito dígitos, expiração curta, limitação de tentativas e confirmação explícita no console simulado.
