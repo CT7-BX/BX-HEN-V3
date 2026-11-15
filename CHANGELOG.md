@@ -1,17 +1,26 @@
-# Histórico de atualizações — BX-HEN V3
+# Histórico de atualizações — BX-HEN Remote
 
-## 2026-11-05 — Publicação inicial
+## 2026-11-15 — Foco exclusivo no Remote Play
 
-- Criada a base do BX-HEN V3, com visual neutro e layout responsivo.
-- Adicionado acesso à área experimental BX-HEN hospedada externamente.
-- Removidos os botões GoldHEN e PS4HEN enquanto não houver integração validada.
-- Configurado o GitHub Pages por GitHub Actions.
-- Confirmada a execução bem-sucedida do workflow de publicação.
-- Repositório alterado para público.
-- Adicionados README e histórico de atualizações.
+- O repositório BX-HEN-V3 passou a ter o **BX-HEN Remote Play** como projeto principal.
+- A página inicial agora encaminha para `remote/` e mantém o endereço anterior funcionando.
+- O README esclarece os recursos realmente implementados e separa o host de desbloqueio.
+- Sem exclusão do histórico ou alteração do repositório de desbloqueio.
+- Esta mudança **não** implementa conexão remota, streaming ou agente PS4.
 
-> Observação: a publicação da interface não significa que o desbloqueio do PS4 foi implementado ou validado.
+## 2026-11-15 — Protótipo de controles 0.1
 
-## Próximas atualizações
+- Interface preta e vermelha em `remote/`.
+- Detecção local de controle físico pela Gamepad API.
+- Exibição de botões, gatilhos e eixos dos analógicos.
+- Botões virtuais demonstrativos, sem conexão ao console.
+- CI com testes do módulo de controles.
 
-Novas alterações serão registradas aqui, com data e descrição do que foi realmente modificado.
+## 2026-11-05 — Publicação inicial do antigo BX-HEN V3
+
+- Criada a base experimental com visual neutro e layout responsivo.
+- Incluído acesso à área experimental externa.
+- Removidos botões GoldHEN e PS4HEN sem integração validada.
+- Configurado o GitHub Pages e histórico de atualizações.
+
+> O código e o histórico anterior permanecem rastreáveis no GitHub, mas a página inicial agora é dedicada ao BX-HEN Remote.
