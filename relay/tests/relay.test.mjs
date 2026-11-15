@@ -153,3 +153,55 @@ test("reject out-of-range input values rather than passing raw packets", async (
   }));
   await close;
 });
+
+test("a disconnected player immediately releases the simulated console state", async (t) => {
+  const relay = createRelay({
+    consoleToken: CONSOLE, playerToken: PLAYER, allowedOrigins: [ORIGIN], port: 0
+  });
+  const { port } = await relay.listen();
+  t.after(() => relay.close());
+  const url = "ws://127.0.0.1:" + port + "/v1/link";
+  const consoleWs = await authenticated(url, "console", CONSOLE);
+  const playerWs = await authenticated(url, "player", PLAYER);
+  t.after(() => { consoleWs.terminate(); playerWs.terminate(); });
+
+  const expectedInput = nextFrame(consoleWs, "input");
+  playerWs.send(JSON.stringify({
+    type: "input", seq: 1, buttons: [7], axes: [0, 0, 0, 0], triggers: [0, 1]
+  }));
+  await expectedInput;
+  const reset = nextFrame(consoleWs, "reset");
+  playerWs.close();
+  assert.deepEqual(await reset, { type: "reset", reason: "player_disconnected" });
+});
+
+test("a stalled stream of pressed buttons is neutralized within one second", async (t) => {
+  const relay = createRelay({
+    consoleToken: CONSOLE, playerToken: PLAYER, allowedOrigins: [ORIGIN], port: 0
+  });
+  const { port } = await relay.listen();
+  t.after(() => relay.close());
+  const url = "ws://127.0.0.1:" + port + "/v1/link";
+  const consoleWs = await authenticated(url, "console", CONSOLE);
+  const playerWs = await authenticated(url, "player", PLAYER);
+  t.after(() => { consoleWs.terminate(); playerWs.terminate(); });
+
+  const expectedInput = nextFrame(consoleWs, "input");
+  playerWs.send(JSON.stringify({
+    type: "input", seq: 9, buttons: [0, 6], axes: [0, -1, 0, 0], triggers: [1, 0]
+  }));
+  await expectedInput;
+  const reset = nextFrame(consoleWs, "reset");
+  assert.deepEqual(await reset, { type: "reset", reason: "stale_input" });
+});
+
+test("upgrade URLs containing token query strings are rejected", async (t) => {
+  const relay = createRelay({
+    consoleToken: CONSOLE, playerToken: PLAYER, allowedOrigins: [ORIGIN], port: 0
+  });
+  const { port } = await relay.listen();
+  t.after(() => relay.close());
+  await assert.rejects(
+    () => open("ws://127.0.0.1:" + port + "/v1/link?token=should-not-log", ORIGIN)
+  );
+});
