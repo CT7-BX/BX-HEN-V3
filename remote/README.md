@@ -1,4 +1,4 @@
-# BX-REMOTE-PLAY — tela de jogo experimental 0.5
+# BX-REMOTE-PLAY — tela de jogo experimental 0.6
 
 A página principal em [index.html](index.html) prioriza a tela e o controle físico. Sem controle conectado no iPhone, o modo automático mostra um DualShock virtual **sobre a área de vídeo**.
 
@@ -46,3 +46,9 @@ O comando `npm run probe:ps4 -- 192.168.1.20` na pasta `relay/` testa **somente*
 No painel lateral, abra **Vincular console (laboratório)**. Um servidor relay de teste e um console **simulado** devem estar ativos; digite o código apresentado pelo simulador e aguarde aprovação explícita. Quando aprovado, a interface passa o token temporário diretamente ao WebSocket de controle. O token não é guardado no navegador e não é exibido no HTML.
 
 **Ainda não vincula um PS4 físico nem transmite vídeo.** O site público GitHub Pages não tem backend próprio implantado. Consulte [o guia de vínculo](../docs/PAIRING-AND-REAL-PS4.md).
+
+## Teste de conexão com o relay
+
+Na seção **Vincular PS4 — conexão experimental**, informe seu endpoint WSS de laboratório e selecione **Testar servidor**. O site consulta o endpoint público `/health` com limite de 5,5 segundos e informa se encontrou um relay compatível. Esse teste **não vincula o PS4, não verifica um console online e não confirma imagem ou áudio**.
+
+O vínculo por código pode ser testado com simulador ou com o PKG PS4 experimental ainda não validado em hardware. A geração local e privada de credenciais está descrita em [native-pair/README.md](../native-pair/README.md). O GitHub Pages não hospeda o backend.
