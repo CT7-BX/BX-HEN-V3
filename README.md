@@ -10,7 +10,7 @@ Permitir futuramente jogar e controlar um PS4 em casa por meio de um iPhone ou M
 
 ## Situação real
 
-**Interface 0.3 — tela de jogo preparada.** A página em [remote/](remote/) possui controles de toque automáticos no celular, dois sticks multitoque, suporte a DualShock 4, layout imersivo/tela cheia, metas de qualidade e uma interface para o relay de laboratório. O vídeo do PS4 ainda não está conectado.
+**Interface 0.4 — controles refinados e diagnóstico LAN.** A página em [remote/](remote/) possui controles de toque automáticos no celular, dois sticks multitoque, suporte a DualShock 4, layout imersivo/tela cheia, metas de qualidade e uma interface para o relay de laboratório. O vídeo do PS4 ainda não está conectado.
 
 **O componente PS4 já compilou em OpenOrbis no GitHub Actions e gerou um PKG experimental de diagnóstico, com validação de hashes; não foi testado em console.**
 
@@ -29,12 +29,18 @@ A raiz do site redireciona para `remote/`; mantemos esse caminho para evitar que
 - [remote/relay-lab.html](remote/relay-lab.html) — laboratório de controle separado
 - [remote/game-core.js](remote/game-core.js) — estado de controles, seleção automático/toque/físico e metas de qualidade
 - [remote/game.js](remote/game.js) — interação da tela, multitoque, tela cheia e enlace ao relay simulado
+- [remote/touch-layout.css](remote/touch-layout.css) — controles translúcidos responsivos inspirados na organização do Remote Play
+- [relay/tools/ps4-lan-probe.mjs](relay/tools/ps4-lan-probe.mjs) — teste de alcance TCP 9295 de um IP privado, sem pareamento
 - [ps4-agent/AUTORUN-DESIGN.md](ps4-agent/AUTORUN-DESIGN.md) — plano de payload residente após GoldHEN, **não instalável ainda**
 - [docs/LOW-LATENCY-AND-NETWORK.md](docs/LOW-LATENCY-AND-NETWORK.md) — estratégia LAN, CGNAT e atraso
 - [Pesquisa de alternativas](docs/REMOTE-PLAY-RESEARCH-2026-11-15.md) — opções, limites e arquitetura recomendada
 - [.github/workflows/remote-tests.yml](.github/workflows/remote-tests.yml) — CI para controles e navegação
 
 **Importante:** o PKG atual continua sendo somente um diagnóstico HTTPS. O modelo de AutoRun não é um ELF residente e não foi aplicado ao console.
+
+## Próximo passo: conexão real
+
+Veja o [plano do PS4 e do PKG](docs/PS4-CONNECTION-AND-PKG.md) para os requisitos de pareamento LAN, agente residente após GoldHEN e transporte de vídeo/áudio por gateway. O PKG atual continua sendo apenas um diagnóstico HTTPS, não executa streaming.
 
 ## Validação
 

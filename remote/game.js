@@ -15,6 +15,18 @@
   const mode = $("touchMode");
   const quality = $("quality");
   const route = $("connectionRoute");
+  const touchOpacity = $("touchOpacity");
+  const touchSize = $("touchSize");
+  function applyTouchAppearance() {
+    const alpha = Math.min(90, Math.max(35, Number(touchOpacity.value) || 65));
+    const scale = Math.min(1.12, Math.max(.85, Number(touchSize.value) || 1));
+    stage.style.setProperty("--touch-alpha", (alpha / 100).toFixed(2));
+    stage.style.setProperty("--touch-scale", scale.toFixed(2));
+    $("touchOpacityValue").textContent = alpha + "% de opacidade";
+  }
+  touchOpacity.addEventListener("input", applyTouchAppearance);
+  touchSize.addEventListener("change", applyTouchAppearance);
+  applyTouchAppearance();
   const touch = game.touchState();
   const coarse = Boolean((window.matchMedia && matchMedia("(pointer: coarse)").matches)
     || navigator.maxTouchPoints > 0);
@@ -115,6 +127,10 @@
   stickElements.forEach((el) => {
     const side = el.dataset.stick;
     let activePointer = null;
+    let tapOrigin = null;
+    let previousTap = 0;
+    const stickButton = side === "left" ? 10 : 11;
+
     function update(event) {
       if (activePointer !== event.pointerId) return;
       const rect = el.getBoundingClientRect();
@@ -131,8 +147,31 @@
     }
     function release(event) {
       if (activePointer !== event.pointerId) return;
+      const elapsed = performance.now() - (tapOrigin?.at ?? -1000);
+      const travel = tapOrigin
+        ? Math.hypot(event.clientX - tapOrigin.x, event.clientY - tapOrigin.y)
+        : Infinity;
+      const shortTap = elapsed < 240 && travel < 14;
       activePointer = null;
       resetStick(el);
+      if (shortTap) {
+        const now = performance.now();
+        if (now - previousTap < 380) {
+          // Two quick taps reproduce L3 / R3 clicks from the mobile Remote Play UI.
+          touch.pressed.add(stickButton);
+          maybeSend();
+          setTimeout(() => {
+            touch.pressed.delete(stickButton);
+            maybeSend();
+          }, 95);
+          previousTap = 0;
+        } else {
+          previousTap = now;
+        }
+      } else {
+        previousTap = 0;
+      }
+      tapOrigin = null;
       maybeSend();
     }
     el.addEventListener("pointerdown", (event) => {
@@ -140,6 +179,7 @@
       if (event.pointerType === "mouse" && event.button !== 0) return;
       event.preventDefault();
       activePointer = event.pointerId;
+      tapOrigin = { x: event.clientX, y: event.clientY, at: performance.now() };
       try { el.setPointerCapture(event.pointerId); } catch {}
       update(event);
     });
@@ -438,7 +478,8 @@
   window.BXRemotePlayer = Object.freeze({
     attachMediaStream: attachMediaStream,
     getPreferences: () => Object.freeze({
-      quality: quality.value, route: route.value, touch: mode.value
+      quality: quality.value, route: route.value, touch: mode.value,
+      touchOpacity: Number(touchOpacity.value), touchSize: Number(touchSize.value)
     }),
     disconnect: () => closeRelay()
   });

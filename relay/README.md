@@ -62,3 +62,14 @@ Remote Play possui transporte e formatos próprios; uma conexão WebSocket de me
 - [Gamepad API (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API)
 
 **Não copiamos código de terceiros para este relay.** Antes de integrar componentes externos, é necessário preservar os avisos, licenças e disponibilização de código quando exigido.
+
+## Diagnóstico seguro da conexão local do PS4
+
+Ao estar temporariamente na mesma rede do seu PS4, anote o IP do console em Configurações > Rede > Ver status da conexão. No MacBook ou computador com Node.js, execute:
+
+```sh
+cd relay
+npm run probe:ps4 -- 192.168.1.20
+```
+
+Substitua o IP de exemplo pelo endereço privado real. O comando tenta **uma única conexão TCP** na porta 9295, sem varredura, credenciais nem escuta pública. Ele aceita somente IPv4 privado. `ACESSÍVEL` significa apenas que houve conexão TCP, **não que o PS4 foi identificado, pareado ou está transmitindo vídeo**. Em outra rede ou CGNAT, esse comando não faz a ligação remota. Não exponha as portas do GoldHEN ou do serviço de payload para executar esse teste.
