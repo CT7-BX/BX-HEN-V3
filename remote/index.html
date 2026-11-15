@@ -248,6 +248,19 @@
             <li><span class="indicator" id="relayIndicator"></span><span id="relayLabel">Relay de teste não conectado</span></li>
             <li><span class="indicator" id="mediaIndicator"></span><span id="mediaLabel">Vídeo PS4 não integrado</span></li>
           </ul>
+          <details class="relay-config" id="pairSection">
+            <summary>Vincular console (laboratório)</summary>
+            <p class="field-note">Primeiro teste com console SIMULADO. Não vincula seu PS4 físico e ainda não transmite vídeo.</p>
+            <label class="field" for="pairEndpoint">Servidor WSS do laboratório</label>
+            <input id="pairEndpoint" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="wss://seu-relay.example/v1/link">
+            <label class="field" for="pairCode">Código de 8 números mostrado no console simulado</label>
+            <input id="pairCode" type="text" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" autocomplete="off" placeholder="00000000">
+            <div class="toolbar-left" style="margin-top:11px">
+              <button class="action primary" type="button" id="pairClaim">Solicitar vínculo</button>
+              <button class="action plain" type="button" id="pairCancel">Cancelar</button>
+            </div>
+            <p class="field-note" id="pairStatus" role="status" aria-live="polite">Sem solicitação. O console simulado deve estar ativo para gerar um código.</p>
+          </details>
           <details class="relay-config" id="relaySection">
             <summary>Conectar ao simulador (avançado)</summary>
             <label class="field" for="relayEndpoint">Servidor WSS</label>
@@ -269,5 +282,6 @@
   <script src="./controller-core.js"></script>
   <script src="./game-core.js"></script>
   <script src="./game.js"></script>
+  <script src="./pair-client.js"></script>
 </body>
 </html>
