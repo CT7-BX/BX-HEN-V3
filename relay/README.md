@@ -100,3 +100,9 @@ Já existe um fluxo de pareamento com código de 8 números, expiração em 120 
 Execute npm run demo:pair após iniciar npm start para gerar o código de teste. Os endpoints e o exemplo completo estão em [docs/PAIRING-AND-REAL-PS4.md](../docs/PAIRING-AND-REAL-PS4.md).
 
 O servidor continua sendo uma prova de laboratório: sem infraestrutura de produção, armazenamento de dispositivos, antiabuso distribuído ou relay de mídia. Não expor via HTTP público ou usar credenciais permanentes em código.
+
+## Verificação de servidor no site
+
+O endpoint `GET /health` devolve somente capacidades estáticas do laboratório: `pairing: true`, `ps4Control: false`, `video: false`. O navegador pode lê-lo somente quando a origem HTTP está na lista configurada `BX_RELAY_ALLOWED_ORIGINS`; ele não devolve credenciais, identidade ou presença de consoles. **Uma resposta 200 não significa que existe um PS4 ligado.**
+
+Para criar tokens compatíveis com o PKG nativo PS4 v0.11, use o [gerador local de configuração](../native-pair/README.md). O gerador exige uma URL HTTPS válida, escreve fora do repositório e não implanta servidor. O relay Node continua exigindo proxy TLS, antiabuso e configuração segura antes de qualquer uso público.
