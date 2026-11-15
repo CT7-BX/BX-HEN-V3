@@ -154,3 +154,53 @@ test("browser claims a code, console approves, token connects to existing contro
   const after = await api(base, "/v1/pair/status", { token: claim.data.claimToken });
   assert.equal(after.status, 401);
 });
+
+
+test("PS4-compatible authenticated HTTP heartbeat enables code without a console websocket", async t => {
+  const relay = createRelay({
+    consoleToken: CONSOLE, playerToken: PLAYER, allowedOrigins: [ORIGIN], port: 0
+  });
+  const { port } = await relay.listen();
+  t.after(() => relay.close());
+  const base = "http://127.0.0.1:" + port;
+  const absent = await api(base, "/v1/pair/start", { token: CONSOLE, body: {} });
+  assert.equal(absent.status, 409);
+
+  const unauthorized = await api(base, "/v1/pair/heartbeat", { token: "incorrect", body: {} });
+  assert.equal(unauthorized.status, 401);
+  const heartbeat = await api(base, "/v1/pair/heartbeat", { token: CONSOLE, body: {} });
+  assert.equal(heartbeat.status, 200);
+  assert.equal(heartbeat.data.state, "online");
+
+  const started = await api(base, "/v1/pair/start", { token: CONSOLE, body: {} });
+  assert.match(started.data.code, /^\d{8}$/);
+  const claim = await api(base, "/v1/pair/claim", { body: { code: started.data.code } });
+  assert.equal(claim.status, 200);
+  const pending = await api(base, "/v1/pair/pending", { token: CONSOLE });
+  assert.equal(pending.data.status, "pending_confirmation");
+  const decision = await api(base, "/v1/pair/decide", {
+    token: CONSOLE,
+    body: { requestId: started.data.requestId, claimId: pending.data.claimId, allow: true }
+  });
+  assert.equal(decision.data.status, "approved");
+  const approved = await api(base, "/v1/pair/status", { token: claim.data.claimToken });
+  assert.equal(approved.status, 200);
+  assert.equal(approved.data.status, "approved");
+  assert.equal(approved.data.controlAvailable, false);
+  assert.equal(approved.data.playerToken, undefined, "Never advertise a control session without a native channel");
+
+  const revoked = await api(base, "/v1/pair/revoke", { token: CONSOLE, body: {} });
+  assert.equal(revoked.data.status, "revoked");
+  const expired = await api(base, "/v1/pair/status", { token: claim.data.claimToken });
+  assert.equal(expired.status, 401);
+});
+
+test("HTTP-only console heartbeat expires without continued presence", () => {
+  let time = 123456789;
+  const store = createPairingStore({ now: () => time });
+  assert.equal(store.httpConsoleOnline(), false);
+  assert.equal(store.consoleHeartbeat().state, "online");
+  assert.equal(store.httpConsoleOnline(), true);
+  time += 12001;
+  assert.equal(store.httpConsoleOnline(), false);
+});
