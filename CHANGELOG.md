@@ -1,4 +1,12 @@
-# Histórico de atualizações — BX-HEN Remote
+# Histórico de atualizações — BX-REMOTE-PLAY
+
+## 2026-11-15 — Integração inicial PS4 e renomeação
+
+- Repositório renomeado para `CT7-BX/BX-REMOTE-PLAY`.
+- Adicionado código-fonte de teste HTTPS para PS4 em `ps4-agent/`, sem PKG validado.
+- Criado marcador estático no próprio site para testar a comunicação.
+- CI testa o contrato do marcador, sem afirmar compilação nem compatibilidade do console.
+- Permanecem pendentes sessão, vídeo, áudio e comandos remotos.
 
 ## 2026-11-15 — Foco exclusivo no Remote Play
 
