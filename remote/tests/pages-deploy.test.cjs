@@ -37,6 +37,10 @@ test("GitHub Pages deployment stages only the public frontend allowlist", () => 
        "index.html", "manifest.webmanifest", "ps4-probe.txt",
        "relay-lab.html", "touch-layout.css"].sort()
     );
+    const rerun = spawnSync("bash", [path.join(root, ".github/scripts/build-pages.sh"), dir], {
+      cwd: root, encoding: "utf8"
+    });
+    assert.equal(rerun.status, 3, "stale output directory must be refused");
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
