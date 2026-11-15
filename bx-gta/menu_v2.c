@@ -355,6 +355,31 @@ int bx_v2_total_options(void){
   for(int g=0;g<sections[s].count;++g)sum+=sections[s].groups[g].count;
  return sum;
 }
+int bx_v2_option_id(int section,int subgroup,int index){
+ if(section<0||section>=N(sections)||subgroup<0||
+    subgroup>=sections[section].count||index<0||
+    index>=sections[section].groups[subgroup].count)return -1;
+ int id=0;
+ for(int s=0;s<section;++s)
+  for(int g=0;g<sections[s].count;++g)id+=sections[s].groups[g].count;
+ for(int g=0;g<subgroup;++g)id+=sections[section].groups[g].count;
+ return id+index;
+}
+int bx_v2_current_option_id(const BxMenuV2 *s){
+ if(!s||!s->opened||s->depth!=2)return -1;
+ return bx_v2_option_id(s->section,s->subgroup,s->option);
+}
+const BxOption *bx_v2_option_by_id(int id){
+ if(id<0||id>=bx_v2_total_options())return NULL;
+ for(int s=0;s<N(sections);++s){
+  for(int g=0;g<sections[s].count;++g){
+   const int count=sections[s].groups[g].count;
+   if(id<count)return &sections[s].groups[g].options[id];
+   id-=count;
+  }
+ }
+ return NULL;
+}
 void bx_v2_reset(BxMenuV2 *s){
  if(!s)return;
  *s=(BxMenuV2){0,0,0,0,0,-1,0};
