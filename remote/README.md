@@ -83,3 +83,7 @@ O caminho `remote/` é independente dos arquivos de desbloqueio e não altera o 
 ## Aplicativo experimental PS4
 
 O código-fonte do teste HTTPS de saída fica em [ps4-agent/](../ps4-agent/). O endpoint público de diagnóstico desta página é `ps4-probe.txt`; nenhuma informação do console é transmitida. Um teste positivo valida apenas a consulta HTTPS, **não** streaming, controles ou pareamento.
+
+## Laboratório de relay 0.2
+
+A página [relay-lab.html](relay-lab.html) pode testar um **controle físico** contra o servidor de laboratório em [relay/](../relay/), com console **simulado**. Ela só envia comandos após autenticação e não recebe imagem ou áudio. O relay exige um servidor Node executado separadamente; GitHub Pages só hospeda a página estática. Veja o [estudo técnico](../docs/REMOTE-PLAY-RESEARCH-2026-11-15.md).
