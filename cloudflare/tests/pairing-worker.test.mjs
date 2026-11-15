@@ -49,6 +49,7 @@ test("healthy public endpoint describes real limits and protects origin", async 
   assert.equal(good.status, 200);
   assert.equal(good.headers.get("access-control-allow-origin"), SITE);
   assert.equal(good.json.pairing, true);
+  assert.equal(good.json.configured, true);
   assert.equal(good.json.video, false);
   assert.equal(good.json.ps4Control, false);
   assert.equal(good.json.mode, "control-prototype");
@@ -57,6 +58,17 @@ test("healthy public endpoint describes real limits and protects origin", async 
   assert.equal(rejected.headers.get("access-control-allow-origin"), null);
   const leakage = await call(env, "/health?token=do-not-log");
   assert.equal(leakage.status, 403);
+});
+
+test("unconfigured worker fails closed but can report its public status", async () => {
+  const { env } = instance();
+  delete env.BX_RELAY_CONSOLE_TOKEN;
+  const health = await call(env, "/health");
+  assert.equal(health.status, 200);
+  assert.equal(health.json.configured, false);
+  const request = await post(env, "/v1/pair/heartbeat", {}, TOKEN);
+  assert.equal(request.status, 503);
+  assert.equal(request.json.error, "BACKEND_NOT_CONFIGURED");
 });
 
 test("PS4 HTTP pair is online only with authenticated heartbeat", async () => {
