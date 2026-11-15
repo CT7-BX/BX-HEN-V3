@@ -106,7 +106,7 @@ test("authenticated control frames reach only simulated console and ack returns"
   }));
   const received = await expected;
   assert.deepEqual(received, {
-    type: "input", seq: 1, buttons: [0, 4, 6], axes: [0, 0.8, -0.2, 0]
+    type: "input", seq: 1, buttons: [0, 4, 6], axes: [0, 0.8, -0.2, 0], triggers: [0.7, 0.2]
   });
   const ack = nextFrame(playerWs, "ack");
   consoleWs.send(JSON.stringify({ type: "ack", seq: 1 }));
