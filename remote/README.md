@@ -1,10 +1,13 @@
-# BX-REMOTE-PLAY — tela de jogo experimental 0.3
+# BX-REMOTE-PLAY — tela de jogo experimental 0.4
 
 A página principal em [index.html](index.html) prioriza a tela e o controle físico. Sem controle conectado no iPhone, o modo automático mostra um DualShock virtual **sobre a área de vídeo**.
 
 ## Funcionalidades implementadas no navegador
 
 - Reconhecimento de controle físico via Gamepad API e prioridade para ele em modo automático.
+- Controles translúcidos e mais circulares, posicionados nas bordas com organização inspirada no Remote Play oficial, sem reutilizar imagens ou código de terceiros.
+- Ajustes de tamanho e transparência do controle virtual (apenas na sessão atual).
+- Dois toques rápidos em um analógico acionam L3 ou R3, de forma semelhante aos gestos documentados do app oficial.
 - Modo automático, sempre mostrar ou ocultar os botões virtuais.
 - Dois analógicos multitoque com deadzone, cruz, círculo, quadrado, triângulo, D-pad, L1/R1/L2/R2, L3/R3, Share, Options, PS e toque no touchpad como botão. A superfície tátil com posições e gestos reais não está implementada.
 - Botão de tela cheia do palco (vídeo + controles) quando o navegador aceita Fullscreen API. No Safari do iPhone, usa modo imersivo CSS e pode ser aberto via **Adicionar à Tela de Início**. O Safari ainda pode apresentar barras e não oferece garantia de fullscreen nativo.
@@ -33,3 +36,7 @@ Os testes de interface são executados com:
     node --test remote/tests/*.test.cjs
 
 O núcleo do futuro payload tem documentação separada em [AUTORUN-DESIGN.md](../ps4-agent/AUTORUN-DESIGN.md). Confira também [LOW-LATENCY-AND-NETWORK.md](../docs/LOW-LATENCY-AND-NETWORK.md) e o [estudo técnico anterior](../docs/REMOTE-PLAY-RESEARCH-2026-11-15.md).
+
+## Verificação da rede local
+
+O comando `npm run probe:ps4 -- 192.168.1.20` na pasta `relay/` testa **somente** a conectividade TCP 9295 do IP privado indicado, sem autenticar ou abrir uma sessão Remote Play. Veja [PS4-CONNECTION-AND-PKG.md](../docs/PS4-CONNECTION-AND-PKG.md).
