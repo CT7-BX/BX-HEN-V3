@@ -235,6 +235,13 @@
     await requestWakeLock();
   });
 
+  $("exitFullscreenInStage").addEventListener("click", async () => {
+    if (document.fullscreenElement === stage && document.exitFullscreen) {
+      try { await document.exitFullscreen(); } catch {}
+    }
+    exitCinema();
+  });
+
   document.addEventListener("fullscreenchange", () => {
     if (document.fullscreenElement === stage) {
       $("fullscreenBtn").textContent = "↙ Sair da tela cheia";
