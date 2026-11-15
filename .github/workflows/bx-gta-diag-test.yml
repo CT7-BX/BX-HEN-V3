@@ -29,17 +29,7 @@ jobs:
           /tmp/bxgta-v2-gcc
           clang -std=c11 -O2 -DNDEBUG -Wall -Wextra -Werror bx-gta/menu_v2.c bx-gta/synapse_catalog.c bx-gta/test_v2.c -o /tmp/bxgta-v2-clang
           /tmp/bxgta-v2-clang
-          python3 - <<'PY'
-          import json
-          data=json.load(open("bx-gta/menu_taxonomy_v2.json"))
-          assert len(data["sections"])==10
-          assert sum(len(s["groups"]) for s in data["sections"])==33
-          assert sum(len(g["items"]) for s in data["sections"] for g in s["groups"])==190
-          html=open("bx-gta/preview-v2.html").read()
-          assert '#e02d38' in html and '#08090b' in html
-          assert '"schema":"bx-gta/menu-taxonomy-v2"' in html
-          print("PASS: taxonomy JSON and black/red preview")
-          PY
+          python3 bx-gta/test_preview.py
       - name: Sanitizer test
         run: |
           gcc -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer             bx-gta/menu_core.c bx-gta/test_menu.c -o /tmp/bxgta-san
