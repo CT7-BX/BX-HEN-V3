@@ -32,12 +32,15 @@
     || navigator.maxTouchPoints > 0);
   const buttons = Array.from(overlay.querySelectorAll("[data-button]"));
   const stickElements = Array.from(overlay.querySelectorAll("[data-stick]"));
+  const buttonPointers = new Map();
+  const resetStickPointers = [];
 
   let ws = null;
   let authorized = false;
   let peerConnected = false;
   let nextSeq = 0;
   let lastSent = 0;
+  let lastInputSignature = "";
   let lastPadName = "";
   let useTouch = false;
   let localCinema = false;
@@ -88,8 +91,11 @@
 
   function resetTouch() {
     touch.pressed.clear();
+    buttonPointers.forEach(pointers => pointers.clear());
     buttons.forEach(button => button.classList.remove("held"));
+    resetStickPointers.forEach(reset => reset());
     stickElements.forEach(resetStick);
+    lastInputSignature = "";
   }
 
   // Every virtual button supports independent pointers so combinations work
@@ -97,6 +103,7 @@
   buttons.forEach((button) => {
     const code = Number(button.dataset.button);
     const pointers = new Set();
+    buttonPointers.set(button, pointers);
     function release(event) {
       pointers.delete(event.pointerId);
       if (!pointers.size) {
@@ -130,6 +137,12 @@
     let tapOrigin = null;
     let previousTap = 0;
     const stickButton = side === "left" ? 10 : 11;
+    resetStickPointers.push(() => {
+      activePointer = null;
+      tapOrigin = null;
+      previousTap = 0;
+      resetStick(el);
+    });
 
     function update(event) {
       if (activePointer !== event.pointerId) return;
@@ -312,6 +325,8 @@
     peerConnected = false;
     pings.clear();
     rtts.length = 0;
+    lastInputSignature = "";
+    lastSent = 0;
     $("lagBadge").textContent = "RTT relay: —";
     if (sessionTimer) clearTimeout(sessionTimer);
     sessionTimer = null;
@@ -402,6 +417,14 @@
     const data = forceNeutral
       ? game.neutral()
       : game.input(snapshot, touch, mode.value, coarse);
+    // Send a changed input state immediately, but avoid flooding the relay
+    // with 55 identical frames each second. Keep 4 Hz refresh for robustness.
+    const signature = JSON.stringify([data.buttons, data.axes, data.triggers]);
+    if (!forceNeutral && signature === lastInputSignature && now - lastSent < 240) return;
+    if (ws.bufferedAmount > 64 * 1024) {
+      closeRelay("Conexão muito lenta; controles interrompidos por segurança.");
+      return;
+    }
     ws.send(JSON.stringify({
       type: "input",
       seq: ++nextSeq,
@@ -410,6 +433,7 @@
       triggers: data.triggers
     }));
     lastSent = now;
+    lastInputSignature = signature;
   }
 
   function resetOnBlur() {

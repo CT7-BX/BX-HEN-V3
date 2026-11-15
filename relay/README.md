@@ -8,7 +8,10 @@
 - Pacotes de botões, quatro eixos dos analógicos e pressão dos gatilhos L2/R2 (0 a 1) limitados e validados, enviados do navegador ao console simulado.
 - Resposta `ack` do simulador ao navegador para identificar perda de conexão.
 - Autenticação por credencial fornecida **somente por variável de ambiente**, comparação em tempo constante, uma conexão por papel, rejeição de mensagens inválidas e proteção básica contra replay/volume.
-- Restrição de `Origin`, limite de 4096 bytes por mensagem, compressão WebSocket desativada.
+- Restrição de `Origin`, recusa de URL com query string, limite de 4096 bytes por mensagem, compressão WebSocket desativada.
+- Proteção contra botão preso: comando explícito `reset` para o console simulado em caso de desconexão do jogador, 450 ms sem atualizações ou nova sessão de console.
+- Limite de fila de envio: conexões com mais de 64 KiB pendentes são encerradas em vez de acumular comandos de segundos atrás.
+- Cliente do navegador reduz comandos idênticos para cerca de quatro atualizações por segundo e mantém envio rápido ao detectar mudanças.
 - Nenhum token, IP particular ou credencial é versionado.
 
 **Segurança:** este é um laboratório; não publique o servidor em internet aberta. Configuração segura de produção requer HTTPS/WSS com proxy confiável, controle adicional de acesso e limites de taxa na borda, revogação de tokens, mecanismos de pareamento no console e revisão de segurança. Não encaminha vídeo nem portas de rede.
@@ -73,3 +76,7 @@ npm run probe:ps4 -- 192.168.1.20
 ```
 
 Substitua o IP de exemplo pelo endereço privado real. O comando tenta **uma única conexão TCP** na porta 9295, sem varredura, credenciais nem escuta pública. Ele aceita somente IPv4 privado. `ACESSÍVEL` significa apenas que houve conexão TCP, **não que o PS4 foi identificado, pareado ou está transmitindo vídeo**. Em outra rede ou CGNAT, esse comando não faz a ligação remota. Não exponha as portas do GoldHEN ou do serviço de payload para executar esse teste.
+
+### Semântica de segurança do controle
+
+O evento JSON `{"type":"reset","reason":"stale_input"}` ou `player_disconnected` significa **soltar todos os botões, zerar eixos e gatilhos imediatamente** no simulador. O futuro agente nativo do PS4 precisará implementar a mesma proteção e também um timeout local independente, caso toda a conexão caia antes de receber o evento. **Nada disso comprova controle de um PS4 físico**.

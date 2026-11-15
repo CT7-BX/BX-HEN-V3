@@ -15,6 +15,9 @@ import { WebSocket, WebSocketServer } from "ws";
 const MAX_JSON_BYTES = 4096;
 const INPUT_HZ_LIMIT = 100;
 const AUTH_TIMEOUT_MS = 5000;
+const INPUT_STALE_MS = 450;
+// A slow console must not accumulate seconds of outdated button commands.
+const MAX_BUFFERED_BYTES = 64 * 1024;
 
 export function safeTokenMatch(candidate, actual) {
   if (typeof candidate !== "string" || typeof actual !== "string") return false;
@@ -41,7 +44,12 @@ function validateInput(frame) {
 }
 
 function send(ws, frame) {
-  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(frame));
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  if (ws.bufferedAmount > MAX_BUFFERED_BYTES) {
+    ws.terminate();
+    return;
+  }
+  ws.send(JSON.stringify(frame));
 }
 
 export function createRelay({
@@ -76,6 +84,23 @@ export function createRelay({
   });
   const wss = new WebSocketServer({ noServer: true, maxPayload: MAX_JSON_BYTES, perMessageDeflate: false });
 
+  function resetConsole(reason) {
+    // This is a simulation-only stop signal. A future native agent must
+    // deliberately implement neutralisation on reception and on link loss.
+    send(peers.console, { type: "reset", reason });
+  }
+
+  const idleMonitor = setInterval(() => {
+    const player = peers.player;
+    const session = player?.bxSession;
+    if (!session || !session.lastInputAt || session.inputExpired) return;
+    if (Date.now() - session.lastInputAt >= INPUT_STALE_MS) {
+      session.inputExpired = true;
+      resetConsole("stale_input");
+    }
+  }, 110);
+  idleMonitor.unref?.();
+
   function publishPresence() {
     send(peers.console, { type: "peer", connected: Boolean(peers.player) });
     send(peers.player, { type: "peer", connected: Boolean(peers.console) });
@@ -84,11 +109,13 @@ export function createRelay({
     try { socket.close(code, "rejected"); } catch { socket.terminate(); }
   }
   server.on("upgrade", (req, socket, head) => {
-    let path;
-    try { path = new URL(req.url, "http://localhost").pathname; }
+    let target;
+    try { target = new URL(req.url, "http://localhost"); }
     catch { socket.destroy(); return; }
     const origin = req.headers.origin;
-    if (path !== "/v1/link" || (origin && !allowedOrigins.includes(origin))) {
+    // Do not allow secrets in the URL, even if a reverse proxy logs requests.
+    if (target.pathname !== "/v1/link" || target.search || target.hash
+        || (origin && !allowedOrigins.includes(origin))) {
       socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
       socket.destroy();
       return;
@@ -97,7 +124,11 @@ export function createRelay({
   });
 
   wss.on("connection", (ws) => {
-    const session = { role: null, previousSeq: -1, windowStarted: Date.now(), messages: 0 };
+    const session = {
+      role: null, previousSeq: -1, windowStarted: Date.now(),
+      messages: 0, lastInputAt: 0, inputExpired: false
+    };
+    ws.bxSession = session;
     const deadline = setTimeout(() => {
       if (!session.role) reject(ws, 4401);
     }, AUTH_TIMEOUT_MS);
@@ -124,6 +155,8 @@ export function createRelay({
         if (peers[frame.role]) { reject(ws, 4409); return; }
         session.role = frame.role;
         peers[frame.role] = ws;
+        // A newly attached console must begin with all buttons released.
+        if (frame.role === "console") resetConsole("console_connected");
         clearTimeout(deadline);
         send(ws, { type: "authenticated", role: session.role, mode: "control-prototype" });
         publishPresence();
@@ -137,6 +170,8 @@ export function createRelay({
         const input = validateInput(frame);
         if (!input || input.seq <= session.previousSeq) { reject(ws); return; }
         session.previousSeq = input.seq;
+        session.lastInputAt = now;
+        session.inputExpired = false;
         if (peers.console) send(peers.console, input);
       } else if (session.role === "console") {
         if (frame?.type === "status" && ["idle", "ready"].includes(frame.state)) {
@@ -153,6 +188,7 @@ export function createRelay({
       clearTimeout(deadline);
       if (session.role && peers[session.role] === ws) {
         peers[session.role] = null;
+        if (session.role === "player") resetConsole("player_disconnected");
         publishPresence();
       }
     });
@@ -169,6 +205,7 @@ export function createRelay({
       return { host, port: address.port };
     },
     async close() {
+      clearInterval(idleMonitor);
       for (const ws of wss.clients) ws.terminate();
       await new Promise(resolve => wss.close(resolve));
       if (server.listening) await new Promise(resolve => server.close(resolve));
