@@ -1,0 +1,45 @@
+name: BX-REMOTE-PLAY — Relay Tests
+
+on:
+  pull_request:
+    paths:
+      - "relay/**"
+      - "remote/relay-lab.html"
+      - "docs/REMOTE-PLAY-RESEARCH-2026-11-15.md"
+      - ".github/workflows/relay-tests.yml"
+  push:
+    paths:
+      - "relay/**"
+      - "remote/relay-lab.html"
+      - ".github/workflows/relay-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  relay-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install pinned WebSocket package
+        working-directory: relay
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Check server and simulator syntax
+        run: |
+          node --check relay/server.mjs
+          node --check relay/demo-console.mjs
+      - name: Auth, input and session integration tests
+        working-directory: relay
+        run: npm test
+      - name: Ensure browser UI does not persist credentials
+        shell: bash
+        run: |
+          grep -F 'new WebSocket(endpoint)' remote/relay-lab.html
+          if grep -E 'localStorage|sessionStorage|http://[^l]|ws://seu' remote/relay-lab.html; then
+            echo "Potentially unsafe browser credential handling" >&2
+            exit 1
+          fi
