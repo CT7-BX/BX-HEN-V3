@@ -12,9 +12,9 @@ Permitir futuramente jogar e controlar um PS4 em casa por meio de um iPhone ou M
 
 **Protótipo 0.1 — diagnóstico de controle.** A interface em [remote/](remote/) identifica e exibe entradas da Gamepad API do navegador e demonstra botões virtuais.
 
-**O componente PS4 já tem uma prova de conectividade HTTPS em código-fonte, mas não foi compilado/testado em console.**
+**O componente PS4 já compilou em OpenOrbis no GitHub Actions e gerou um PKG experimental de diagnóstico, com validação de hashes; não foi testado em console.**
 
-**Não funciona ainda como Remote Play:** não transmite vídeo/áudio, não envia comandos ao PS4, não tem PKG, agente de PS4, autenticação ou servidor relay. Nenhuma conexão remota com o console foi comprovada.
+**Não funciona ainda como Remote Play:** não transmite vídeo/áudio, não envia comandos ao PS4, não tem agente de transmissão funcional, pareamento, autenticação ou servidor relay. Nenhuma conexão remota com o console foi comprovada.
 
 A raiz do site redireciona para `remote/`; mantemos esse caminho para evitar quebrar links anteriores. O código original da página experimental anterior permanece no histórico do GitHub, sem ser a página inicial.
 
@@ -24,10 +24,13 @@ A raiz do site redireciona para `remote/`; mantemos esse caminho para evitar que
 - [remote/controller-core.js](remote/controller-core.js) — processamento local da Gamepad API
 - [remote/tests/](remote/tests/) — testes automatizados
 - [remote/README.md](remote/README.md) — requisitos, limitações e arquitetura futura
-- [ps4-agent/](ps4-agent/) — código-fonte experimental do teste HTTPS para PS4; ainda sem PKG validado
+- [ps4-agent/](ps4-agent/) — prova HTTPS para PS4 e PKG experimental gerado em CI, ainda sem validação no console
 - [.github/workflows/remote-tests.yml](.github/workflows/remote-tests.yml) — CI para controles e navegação
 
 ## Validação
+
+A pipeline [Build PS4 Probe](https://github.com/CT7-BX/BX-REMOTE-PLAY/actions/workflows/ps4-build.yml) compila `eboot.bin`, gera PKG de diagnóstico e valida os hashes do pacote. O artefato é publicado para **teste de hardware**, não como Remote Play funcional.
+
 
 ```sh
 node --test remote/tests/*.test.cjs
