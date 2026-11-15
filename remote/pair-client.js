@@ -91,8 +91,14 @@
       if (info.status !== "ok" || info.mode !== "control-prototype") {
         throw new Error("Servidor não reconhecido");
       }
+      if (info.pairingBackend === "cloudflare-durable-object"
+          && info.configured !== true) {
+        target.dataset.relayCheck = "failed";
+        target.textContent = "BX-REMOTE-LINK online, mas falta configurar a chave privada do console no Cloudflare. O vínculo está bloqueado até essa etapa.";
+        return;
+      }
       target.dataset.relayCheck = "ok";
-      target.textContent = "Relay acessível. Pareamento disponível; PS4, controles reais e transmissão de vídeo ainda não estão confirmados.";
+      target.textContent = "Servidor de vínculo acessível. O PS4 ainda precisa do PKG configurado; controles reais, vídeo e áudio não estão disponíveis.";
     } catch (error) {
       target.dataset.relayCheck = "failed";
       target.textContent = error.name === "AbortError"
