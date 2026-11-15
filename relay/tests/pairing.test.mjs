@@ -67,11 +67,20 @@ async function openSocket(url, role, token) {
     socket.once("error", reject);
   });
   const response = new Promise((resolve, reject) => {
-    socket.once("message", data => resolve(JSON.parse(data.toString())));
+    const timeout = setTimeout(() => reject(new Error("Authentication timeout")), 3500);
+    const onMessage = data => {
+      const frame = JSON.parse(data.toString());
+      if (frame.type === "authenticated") {
+        clearTimeout(timeout);
+        socket.off("message", onMessage);
+        resolve(frame);
+      }
+    };
+    socket.on("message", onMessage);
     socket.once("error", reject);
   });
   socket.send(JSON.stringify({ type: "hello", role, token }));
-  assert.ok((await response).type === "authenticated");
+  assert.equal((await response).type, "authenticated");
   return socket;
 }
 
