@@ -1,4 +1,4 @@
-name: Publicar BX-HEN Remote no GitHub Pages
+name: Publicar BX-REMOTE-PLAY no GitHub Pages
 on:
   push:
     branches: [main]
@@ -18,9 +18,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Stage static player files only
+        run: bash .github/scripts/build-pages.sh _site
+      - name: Verify deploy content
+        run: |
+          test -s _site/index.html
+          test -s _site/remote/game.js
+          test -s _site/remote/ps4-probe.txt
+          test ! -e _site/relay/server.mjs
+          test ! -e _site/ps4-agent/main.c
+          test ! -e _site/.github
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
