@@ -127,7 +127,12 @@ export function createPairingHttpHandler({ pairing, consoleToken, allowedOrigins
         }
         case "/v1/pair/status":
           output = pairing.status(token);
-          if (output.status === "approved") output.controlAvailable = consoleSocketOnline();
+          if (output.status === "approved") {
+            output.controlAvailable = consoleSocketOnline();
+            // A PS4 HTTP proof does not have a native control channel.
+            // Do not release a websocket session token needlessly.
+            if (!output.controlAvailable) delete output.playerToken;
+          }
           break;
         case "/v1/pair/revoke":
           await jsonBody(req);
