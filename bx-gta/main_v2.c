@@ -1,5 +1,5 @@
 /*
- * BX-GTA 1.1 / PS4 / GoldHEN
+ * BX-GTA 1.2 / PS4 / GoldHEN
  * Black/red theme tokens and 190-option native menu by system notifications.
  * This is NOT a GTA graphics overlay and performs NO game-state modifications.
  * Reference catalog metadata comes from the user's Synapse.rar; no proprietary
@@ -22,16 +22,17 @@
 #include "feature_catalog.h"
 #include "profile.h"
 #include "palette.h"
+#include "ui_favorites.h"
 
-#define BX_VERSION "1.1.0"
+#define BX_VERSION "1.2.0"
 #define BX_CUSA "CUSA00419"
 #define BX_DIR "/data/GoldHEN/BXGTA"
 #define BX_ERROR_LOG BX_DIR "/error.log"
 
 attr_public const char *g_pluginName="BXGTA_v2";
-attr_public const char *g_pluginDesc="BX-GTA 1.1 black-red grouped 190-option menu scaffold";
+attr_public const char *g_pluginDesc="BX-GTA 1.2 black-red grouped 190-option menu scaffold";
 attr_public const char *g_pluginAuth="BX-GTA";
-attr_public uint32_t g_pluginVersion=0x00010100;
+attr_public uint32_t g_pluginVersion=0x00010200;
 
 static bool g_running=false;
 static bool g_thread_created=false;
@@ -39,6 +40,8 @@ static OrbisPthread g_thread;
 static BxMenuV2 g_ui;
 static BxPreferences g_prefs;
 static bool g_dirty=false;
+static BxUiFavorites g_ui_favs;
+static bool g_ui_dirty=false;
 static char g_game_version[32];
 
 static void bx_log(const char *text){
@@ -56,34 +59,46 @@ static void bx_log(const char *text){
 static void bx_profile_path(char *path,size_t n){
  if(path&&n)snprintf(path,n,BX_DIR "/profile%u.ini",g_prefs.slot);
 }
+static void bx_options_path(char *path,size_t n){
+ if(path&&n)snprintf(path,n,BX_DIR "/options%u.txt",g_prefs.slot);
+}
 static void bx_save(bool notify){
- char path[128]={0};bx_profile_path(path,sizeof(path));
- if(bx_prefs_write(&g_prefs,path)==0){
-  g_dirty=false;
+ char path[128]={0},options[128]={0};
+ bx_profile_path(path,sizeof(path));
+ bx_options_path(options,sizeof(options));
+ const int settings=bx_prefs_write(&g_prefs,path);
+ const int favorites=bx_ui_write(&g_ui_favs,options);
+ if(settings==0&&favorites==0){
+  g_dirty=false;g_ui_dirty=false;
   if(notify)Notify(TEX_ICON_SYSTEM,"BX-GTA: perfil %u salvo",g_prefs.slot+1);
- } else {
-  bx_log("Falha salvando preferencias");
-  if(notify)NotifyStatic(TEX_ICON_SYSTEM,"BX-GTA: erro ao salvar perfil");
+ }else{
+  bx_log("Falha ao salvar preferencias ou favoritos");
+  if(notify)NotifyStatic(TEX_ICON_SYSTEM,"BX-GTA: falha ao salvar perfil/favoritos");
  }
 }
 static bool bx_load(bool notify){
- char path[128]={0};bx_profile_path(path,sizeof(path));
- if(bx_prefs_read(&g_prefs,path)==0){
-  g_dirty=false;
-  if(notify)Notify(TEX_ICON_SYSTEM,"BX-GTA: perfil %u carregado",g_prefs.slot+1);
-  return true;
- }
- if(notify)NotifyStatic(TEX_ICON_SYSTEM,"BX-GTA: perfil ausente/invalido");
- return false;
+ char path[128]={0},options[128]={0};
+ bx_profile_path(path,sizeof(path));
+ bx_options_path(options,sizeof(options));
+ const bool settings=bx_prefs_read(&g_prefs,path)==0;
+ BxUiFavorites fresh;bx_ui_defaults(&fresh);
+ if(bx_ui_read(&fresh,options)==0)g_ui_favs=fresh;
+ else bx_ui_defaults(&g_ui_favs);
+ g_ui_dirty=false;
+ if(settings)g_dirty=false;
+ if(notify)Notify(TEX_ICON_SYSTEM,"BX-GTA: perfil %u | %s",
+    g_prefs.slot+1,settings?"carregado":"padrao/faltando");
+ return settings;
 }
 static void bx_next_profile(void){
- if(g_dirty)bx_save(false);
+ if(g_dirty||g_ui_dirty)bx_save(false);
  unsigned next=(g_prefs.slot+1)%BX_PROFILE_COUNT;
  bx_prefs_defaults(&g_prefs);
+ bx_ui_defaults(&g_ui_favs);
+ g_ui_dirty=false;
  (void)bx_prefs_set_slot(&g_prefs,next);
- if(!bx_load(false)){
+ if(!bx_load(false))
   snprintf(g_prefs.query,sizeof(g_prefs.query),"%s","veiculo");
- }
  Notify(TEX_ICON_SYSTEM,"BX-GTA: perfil %u de 3",next+1);
 }
 static bool bx_check_target(void){
@@ -114,18 +129,19 @@ static void bx_render(void){
  }
 }
 static void bx_show_favorites(void){
- int total=0,last=-1;
- for(int i=0;i<bx_feature_count();++i)
-  if(bx_prefs_is_favorite(&g_prefs,i)){++total;last=i;}
- const BxFeature *f=bx_feature_at(last);
- Notify(TEX_ICON_SYSTEM,"BX-GTA: %d favoritos\n%s",total,
-        f?f->name:"Use L1+ESQUERDA no item");
+ const int total=bx_ui_count(&g_ui_favs);
+ int first=-1;
+ for(int id=0;id<BX_UI_OPTION_CAP;++id)
+  if(bx_ui_is_favorite(&g_ui_favs,id)){first=id;break;}
+ const BxOption *opt=bx_v2_option_by_id(first);
+ Notify(TEX_ICON_SYSTEM,"BX-GTA: %d favoritos de 190\n%s",total,
+        opt?opt->title:"L1+ESQUERDA marca a opcao atual");
 }
 static void bx_show_recent(void){
- const BxFeature *f=g_prefs.recent_count ?
-  bx_feature_at(g_prefs.recent[0]) : NULL;
+ const BxOption *opt=g_ui_favs.recent_count?
+  bx_v2_option_by_id(g_ui_favs.recent[0]):NULL;
  Notify(TEX_ICON_SYSTEM,"BX-GTA: %u recentes\n%s",
-        g_prefs.recent_count,f?f->name:"Nenhum item selecionado");
+        g_ui_favs.recent_count,opt?opt->title:"Nenhuma opcao selecionada");
 }
 static void bx_search(void){
  int ids[28]={0};
@@ -135,9 +151,10 @@ static void bx_search(void){
         g_prefs.query,n,first?first->name:"Nenhum");
 }
 static void bx_action(BxUiEvent event){
- if(event.feature_id>=0 && event.feature_id<bx_feature_count()){
-  (void)bx_prefs_add_recent(&g_prefs,event.feature_id);
-  g_dirty=true;
+ const int id=bx_v2_option_id(g_ui.section,g_ui.subgroup,g_ui.option);
+ if(event.action!=BX_ACT_NONE&&id>=0){
+  (void)bx_ui_add_recent(&g_ui_favs,id);
+  g_ui_dirty=true;
  }
  switch(event.action){
  case BX_ACT_NONE: break;
@@ -200,18 +217,19 @@ static void bx_action(BxUiEvent event){
 }
 static void bx_key(BxKey key){
  if(key==BX_KEY_FAVORITE){
-  const int feature=bx_v2_current_feature(&g_ui);
-  if(feature<0){
-   NotifyStatic(TEX_ICON_SYSTEM,"BX-GTA: selecione uma opcao para favoritar");
+  if(!g_ui.opened)return;
+  const int id=bx_v2_current_option_id(&g_ui);
+  if(id<0){
+   NotifyStatic(TEX_ICON_SYSTEM,"BX-GTA: entre em um submenu para favoritar");
    return;
   }
-  const int state=bx_prefs_toggle_favorite(&g_prefs,feature);
-  if(state<0)return;
-  g_dirty=true;
+  const int enabled=bx_ui_toggle(&g_ui_favs,id);
+  if(enabled<0)return;
+  g_ui_dirty=true;
   bx_save(false);
-  const BxFeature *f=bx_feature_at(feature);
+  const BxOption *opt=bx_v2_option_by_id(id);
   Notify(TEX_ICON_SYSTEM,"BX-GTA: %s\n%s",
-       f?f->name:"Opcao",state?"Favorito adicionado":"Favorito removido");
+       opt?opt->title:"Opcao",enabled?"Favorito adicionado":"Favorito removido");
   return;
  }
  const BxUiEvent event=bx_v2_input(&g_ui,key);
@@ -281,13 +299,14 @@ static void *bx_controller_thread(void *unused){
 }
 int32_t attr_public plugin_load(int32_t argc,const char *argv[]){
  (void)argc;(void)argv;
- NotifyStatic(TEX_ICON_SYSTEM,"BX-GTA v1.1: plugin carregado");
+ NotifyStatic(TEX_ICON_SYSTEM,"BX-GTA v1.2: plugin carregado");
  bx_v2_reset(&g_ui);
  bx_prefs_defaults(&g_prefs);
+ bx_ui_defaults(&g_ui_favs);
  snprintf(g_prefs.query,sizeof(g_prefs.query),"%s","veiculo");
  (void)sceKernelMkdir(BX_DIR,0777);
  (void)bx_load(false);
- bx_log("Plugin BX-GTA v1.1 carregado");
+ bx_log("Plugin BX-GTA v1.2 carregado");
  if(!bx_check_target())return 0;
  __atomic_store_n(&g_running,true,__ATOMIC_RELEASE);
  const int32_t rc=scePthreadCreate(&g_thread,NULL,bx_controller_thread,
@@ -299,7 +318,7 @@ int32_t attr_public plugin_load(int32_t argc,const char *argv[]){
   return 0;
  }
  g_thread_created=true;
- NotifyStatic(TEX_ICON_SYSTEM,"BX-GTA v1.1: L1 + DIREITA para abrir");
+ NotifyStatic(TEX_ICON_SYSTEM,"BX-GTA v1.2: L1 + DIREITA para abrir");
  return 0;
 }
 int32_t attr_public plugin_unload(int32_t argc,const char *argv[]){
@@ -309,7 +328,7 @@ int32_t attr_public plugin_unload(int32_t argc,const char *argv[]){
   (void)scePthreadJoin(g_thread,NULL);
   g_thread_created=false;
  }
- if(g_dirty)bx_save(false);
+ if(g_dirty||g_ui_dirty)bx_save(false);
  bx_log("Plugin descarregado");
  return 0;
 }
