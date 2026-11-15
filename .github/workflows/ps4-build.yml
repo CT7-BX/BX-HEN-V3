@@ -1,4 +1,4 @@
-name: BX-REMOTE-PLAY — Build PS4 eboot
+name: BX-REMOTE-PLAY — Build PS4 Probe
 
 on:
   pull_request:
@@ -13,7 +13,7 @@ permissions:
 jobs:
   build-ps4:
     runs-on: ubuntu-22.04
-    timeout-minutes: 18
+    timeout-minutes: 22
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -42,6 +42,51 @@ jobs:
         run: |
           test -s ps4-agent/eboot.bin
           sha256sum ps4-agent/eboot.bin | tee ps4-agent/eboot.sha256
+
+      - name: Prepare package support
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Copy sample packaging assets from pinned SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ps4-agent/sce_sys/about ps4-agent/sce_module
+          for item in \
+            'right.sprx:sce_sys/about/right.sprx' \
+            'icon0.png:sce_sys/icon0.png' \
+            'libc.prx:sce_module/libc.prx' \
+            'libSceFios2.prx:sce_module/libSceFios2.prx'; do
+            name="${item%%:*}"
+            destination="${item#*:}"
+            source="$(find "$OO_PS4_TOOLCHAIN" -type f -name "$name" -print -quit)"
+            if [ -z "$source" ]; then
+              echo "Nao foi encontrado $name na SDK oficial" >&2
+              exit 1
+            fi
+            cp "$source" "ps4-agent/$destination"
+          done
+
+      - name: Build diagnostic PKG with OpenOrbis
+        env:
+          DOTNET_ROLL_FORWARD: Major
+          DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: '1'
+        run: make -C ps4-agent pkg PS4_CC=clang PS4_LD=ld.lld
+
+      - name: Record package digest
+        run: |
+          test -s ps4-agent/IV0000-BRPT00001_00-BXREMOTEPLAY0001.pkg
+          sha256sum ps4-agent/IV0000-BRPT00001_00-BXREMOTEPLAY0001.pkg | tee ps4-agent/pkg.sha256
+
+      - name: Upload untested PKG for hardware validation
+        uses: actions/upload-artifact@v4
+        with:
+          name: bx-remote-play-ps4-probe-pkg-untested
+          path: |
+            ps4-agent/IV0000-BRPT00001_00-BXREMOTEPLAY0001.pkg
+            ps4-agent/pkg.sha256
+          retention-days: 7
 
       - name: Upload untested developer artifact
         uses: actions/upload-artifact@v4
