@@ -1,4 +1,4 @@
-# BX-REMOTE-PLAY — prova de vínculo NATIVA para PS4 (v0.10 experimental)
+# BX-REMOTE-PLAY — prova de vínculo NATIVA para PS4 (v0.11 experimental)
 
 **Estado: implementação separada e NÃO testada em um PS4 físico.** Este pacote não oferece Remote Play, streaming de vídeo/áudio, virtualização de controle, agente residente nem início automático.
 
@@ -15,6 +15,23 @@ O pacote existente `ps4-agent/` v0.21 permanece intacto como diagnóstico HTTPS.
 5. O PKG verifica solicitações por HTTPS e exige um aperto **novo** em X para aprovar ou O para negar. OPTIONS cancela.
 6. Após a aprovação, o site confirma que o vínculo HTTP foi autorizado, mas **não inicia controles nem vídeo**, pois este aplicativo ainda não estabelece um WebSocket de console.
 7. O aplicativo revoga o vínculo de teste e sai. Sem AutoRun e sem listener público no PS4.
+
+## Gerador automático de configuração privada (novo)
+
+Em um computador com Node.js 20 ou superior, é possível criar **offline**, de uma só vez, a configuração do PS4 e as variáveis do relay, usando o mesmo segredo de console e outro segredo separado para o jogador:
+
+~~~bash
+node native-pair/tools/generate_setup.mjs --origin https://relay.seudominio.com --out /tmp/bx-pair-private
+~~~
+
+O domínio é apenas um exemplo: você precisará ter **seu próprio servidor HTTPS/WSS** funcionando. O comando não publica o servidor nem instala arquivos no PS4. Ele cria uma pasta privada **fora do repositório Git** com dois arquivos:
+
+- `bx-remote-pair.cfg`: copie de forma privada para `/user/data/bx-remote-pair.cfg` no PS4 antes de iniciar o aplicativo.
+- `relay-private.env`: carregue **somente no servidor**, com `source /tmp/bx-pair-private/relay-private.env`, no mesmo terminal onde vai iniciar o relay Node.
+
+O gerador usa tokens aleatórios distintos, não imprime credenciais, aplica permissões de proprietário (0700 na pasta, 0600 nos arquivos, em sistemas Unix), recusa diretórios de saída já existentes e **recusa escrever dentro do repositório**, para evitar publicação acidental. Escolha um caminho diferente se o diretório já existir. Nunca envie esses arquivos para GitHub, links públicos ou mensagens.
+
+**Atenção:** é um auxílio local para laboratório. Não cria conta, não ativa AutoRun, não configura seu roteador e não substitui um backend público protegido.
 
 ## Configuração privada — NÃO publicar no GitHub
 
@@ -55,3 +72,10 @@ Os seguintes pontos **não estão validados em hardware**: leitura de config em 
 Documentos complementares: `docs/PAIRING-AND-REAL-PS4.md`, `docs/LOW-LATENCY-AND-NETWORK.md`.
 
 Referência OpenOrbis: https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain .
+
+## Robustez da versão 0.11
+
+- Endereços de servidor agora passam por validação mais rigorosa de domínio HTTPS e porta TCP válida.
+- O analisador das respostas JSON verifica o objeto inteiro, bloqueia chaves duplicadas, campos aninhados inesperados e respostas malformadas. Não modifica códigos ou identificadores anteriores se a resposta for inválida.
+- O site tem botão **Testar servidor** que consulta `/health` com tempo limite, sem enviar código ou token.
+- Nenhum acesso ao console físico foi comprovado nesta versão; o novo PKG é experimental e diferente do PKG de diagnóstico v0.21.
