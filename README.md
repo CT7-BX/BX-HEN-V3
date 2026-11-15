@@ -10,7 +10,7 @@ Permitir futuramente jogar e controlar um PS4 em casa por meio de um iPhone ou M
 
 ## Situação real
 
-**Protótipo 0.1 — diagnóstico de controle.** A interface em [remote/](remote/) identifica e exibe entradas da Gamepad API do navegador e demonstra botões virtuais.
+**Interface 0.3 — tela de jogo preparada.** A página em [remote/](remote/) possui controles de toque automáticos no celular, dois sticks multitoque, suporte a DualShock 4, layout imersivo/tela cheia, metas de qualidade e uma interface para o relay de laboratório. O vídeo do PS4 ainda não está conectado.
 
 **O componente PS4 já compilou em OpenOrbis no GitHub Actions e gerou um PKG experimental de diagnóstico, com validação de hashes; não foi testado em console.**
 
@@ -26,9 +26,15 @@ A raiz do site redireciona para `remote/`; mantemos esse caminho para evitar que
 - [remote/README.md](remote/README.md) — requisitos, limitações e arquitetura futura
 - [ps4-agent/](ps4-agent/) — prova HTTPS para PS4 e PKG experimental gerado em CI, ainda sem validação no console
 - [relay/](relay/) — servidor Node autenticado de controle para console simulado (sem streaming)
-- [remote/relay-lab.html](remote/relay-lab.html) — interface de teste do navegador com DualShock 4 e sessão WSS
+- [remote/relay-lab.html](remote/relay-lab.html) — laboratório de controle separado
+- [remote/game-core.js](remote/game-core.js) — estado de controles, seleção automático/toque/físico e metas de qualidade
+- [remote/game.js](remote/game.js) — interação da tela, multitoque, tela cheia e enlace ao relay simulado
+- [ps4-agent/AUTORUN-DESIGN.md](ps4-agent/AUTORUN-DESIGN.md) — plano de payload residente após GoldHEN, **não instalável ainda**
+- [docs/LOW-LATENCY-AND-NETWORK.md](docs/LOW-LATENCY-AND-NETWORK.md) — estratégia LAN, CGNAT e atraso
 - [Pesquisa de alternativas](docs/REMOTE-PLAY-RESEARCH-2026-11-15.md) — opções, limites e arquitetura recomendada
 - [.github/workflows/remote-tests.yml](.github/workflows/remote-tests.yml) — CI para controles e navegação
+
+**Importante:** o PKG atual continua sendo somente um diagnóstico HTTPS. O modelo de AutoRun não é um ELF residente e não foi aplicado ao console.
 
 ## Validação
 
