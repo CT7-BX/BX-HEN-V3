@@ -10,6 +10,13 @@
   if (!game || !$("pairClaim") || !$("pairEndpoint") || !$("pairCode")) return;
 
   let requestId = 0;
+  let activeClaimController = null;
+
+  function cancelActiveClaim() {
+    requestId++;
+    if (activeClaimController) activeClaimController.abort();
+    activeClaimController = null;
+  }
   const report = message => {
     $("pairStatus").textContent = message;
   };
@@ -24,22 +31,32 @@
   }
 
   async function jsonRequest(base, path, { data, token, signal } = {}) {
-    const response = await fetch(base + path, {
-      method: data === undefined ? "GET" : "POST",
-      mode: "cors",
-      credentials: "omit",
-      cache: "no-store",
-      referrerPolicy: "no-referrer",
-      signal,
-      headers: {
-        ...(data === undefined ? {} : { "content-type": "application/json" }),
-        ...(token ? { authorization: "Bearer " + token } : {})
-      },
-      body: data === undefined ? undefined : JSON.stringify(data)
-    });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || "HTTP " + response.status);
-    return result;
+    const controller = new AbortController();
+    const forwardAbort = () => controller.abort();
+    if (signal?.aborted) controller.abort();
+    signal?.addEventListener("abort", forwardAbort, { once: true });
+    const timer = setTimeout(() => controller.abort(), 6500);
+    try {
+      const response = await fetch(base + path, {
+        method: data === undefined ? "GET" : "POST",
+        mode: "cors",
+        credentials: "omit",
+        cache: "no-store",
+        referrerPolicy: "no-referrer",
+        signal: controller.signal,
+        headers: {
+          ...(data === undefined ? {} : { "content-type": "application/json" }),
+          ...(token ? { authorization: "Bearer " + token } : {})
+        },
+        body: data === undefined ? undefined : JSON.stringify(data)
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "HTTP " + response.status);
+      return result;
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", forwardAbort);
+    }
   }
 
   $("pairEndpoint").addEventListener("input", () => {
@@ -99,14 +116,19 @@
       return;
     }
     const base = apiBase(endpoint);
-    const current = ++requestId;
+    cancelActiveClaim();
+    const current = requestId;
+    const controller = new AbortController();
+    activeClaimController = controller;
     $("pairClaim").disabled = true;
     $("pairCode").value = "";
     report("Solicitando vínculo de laboratório...");
 
     let claimantToken;
     try {
-      const claim = await jsonRequest(base, "/v1/pair/claim", { data: { code } });
+      const claim = await jsonRequest(base, "/v1/pair/claim", {
+        data: { code }, signal: controller.signal
+      });
       claimantToken = claim.claimToken;
       report("Aguardando aprovação pelo DualShock 4 no PS4 de teste ou pelo simulador...");
     } catch (error) {
@@ -120,7 +142,9 @@
     const stopAt = Date.now() + 2 * 60 * 1000;
     while (current === requestId && Date.now() < stopAt) {
       try {
-        const state = await jsonRequest(base, "/v1/pair/status", { token: claimantToken });
+        const state = await jsonRequest(base, "/v1/pair/status", {
+          token: claimantToken, signal: controller.signal
+        });
         if (current !== requestId) return;
         if (state.status === "approved") {
           $("pairClaim").disabled = false;
@@ -164,10 +188,10 @@
   });
 
   $("pairCancel").addEventListener("click", () => {
-    ++requestId;
+    cancelActiveClaim();
     $("pairClaim").disabled = false;
     $("pairCode").value = "";
     report("Solicitação cancelada neste navegador.");
   });
-  window.addEventListener("pagehide", () => { ++requestId; });
+  window.addEventListener("pagehide", cancelActiveClaim);
 })();
