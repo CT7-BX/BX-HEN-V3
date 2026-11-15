@@ -1,0 +1,105 @@
+name: BX-REMOTE-PLAY — PS4 Native Pairing Proof (Experimental)
+
+on:
+  pull_request:
+    paths:
+      - "native-pair/**"
+      - "relay/**"
+      - "remote/pair-client.js"
+      - ".github/workflows/native-pair-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-pair:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Portable protocol and private config unit tests
+        run: |
+          set -e
+          cc -std=c11 -Wall -Wextra -Werror -pedantic \
+            native-pair/pair_protocol.c native-pair/tests/protocol_test.c -o /tmp/bx-pair-protocol
+          /tmp/bx-pair-protocol
+          cc -std=c11 -Wall -Wextra -Werror -pedantic \
+            native-pair/pair_protocol.c native-pair/pair_config.c native-pair/tests/config_test.c -o /tmp/bx-pair-config
+          /tmp/bx-pair-config
+          python3 -m unittest discover -s ps4-agent/tests -p 'test_*.py' -v
+
+      - name: Install compiler and linker
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends clang lld ca-certificates
+
+      - name: Download pinned OpenOrbis
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_URL="https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.4/toolchain-llvm-18.tar.gz"
+          curl --fail --location --retry 3 --connect-timeout 20 -o /tmp/openorbis.tar.gz "$SDK_URL"
+          echo "3c7cd5bb593ca74fa1c13fd59f3938dc0fc07985167f7275063019e63abe4526  /tmp/openorbis.tar.gz" | sha256sum -c -
+          mkdir -p /tmp/openorbis
+          tar -xzf /tmp/openorbis.tar.gz -C /tmp/openorbis
+          test -f /tmp/openorbis/OpenOrbis/PS4Toolchain/link.x
+          echo "OO_PS4_TOOLCHAIN=/tmp/openorbis/OpenOrbis/PS4Toolchain" >> "$GITHUB_ENV"
+
+      - name: Compile experimental pairing eboot
+        run: make -C native-pair eboot PS4_CC=clang PS4_LD=ld.lld
+
+      - name: Prepare OpenOrbis package tools
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Stage SDK support files and deterministic RGB icon
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p native-pair/sce_sys/about native-pair/sce_module
+          for item in \
+            'right.sprx:sce_sys/about/right.sprx' \
+            'libc.prx:sce_module/libc.prx' \
+            'libSceFios2.prx:sce_module/libSceFios2.prx'; do
+            IFS=: read -r name destination <<< "$item"
+            source="$(find "$OO_PS4_TOOLCHAIN" -type f -name "$name" -print -quit)"
+            test -n "$source" || exit 1
+            cp "$source" "native-pair/$destination"
+          done
+          python3 ps4-agent/tools/make_icon.py native-pair/sce_sys/icon0.png
+
+      - name: Verify pairing PKG metadata
+        env:
+          DOTNET_ROLL_FORWARD: Major
+          DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: '1'
+        run: |
+          make -C native-pair sce_sys/param.sfo
+          python3 native-pair/tools/verify_native_pkg.py \
+            native-pair/sce_sys/param.sfo native-pair/sce_sys/icon0.png
+
+      - name: Build and validate experimental pairing PKG
+        env:
+          DOTNET_ROLL_FORWARD: Major
+          DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: '1'
+        run: |
+          make -C native-pair pkg PS4_CC=clang PS4_LD=ld.lld
+          "$OO_PS4_TOOLCHAIN/bin/linux/PkgTool.Core" pkg_validate \
+            native-pair/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg
+
+      - name: Record digest
+        run: |
+          test -s native-pair/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg
+          sha256sum native-pair/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg \
+            | tee native-pair/pkg.sha256
+
+      - name: Upload experimental PKG — not tested on hardware
+        uses: actions/upload-artifact@v4
+        with:
+          name: bx-remote-play-native-pairing-untested
+          path: |
+            native-pair/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg
+            native-pair/pkg.sha256
+          retention-days: 7
