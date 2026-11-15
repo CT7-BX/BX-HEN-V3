@@ -8,10 +8,11 @@ PLATFORM := $(if $(filter Darwin,$(HOST_OS)),macos,linux)
 PS4_CC ?= clang
 PS4_LD ?= ld.lld
 PS4_ID := BRPT00001
+VERSION := 0.20
 CONTENT_ID := IV0000-BRPT00001_00-BXREMOTEPLAY0001
 OUT := build
 OBJECTS := $(OUT)/main.o $(OUT)/probe_contract.o
-LIBS := -lc -lkernel -lSceNet -lSceSsl -lSceHttp -lSceSysmodule
+LIBS := -lc -lkernel -lSceNet -lSceSsl -lSceHttp -lSceSysmodule -lSceSysUtil
 
 CFLAGS := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables \
     -std=c11 -Wall -Wextra -c -isysroot $(SDK) -isystem $(SDK)/include
@@ -50,15 +51,15 @@ sce_sys/param.sfo: | check-sdk
 	@mkdir -p sce_sys
 	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_new $@
 	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ APP_TYPE --type Integer --maxsize 4 --value 1
-	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ APP_VER --type Utf8 --maxsize 8 --value '0.10'
+	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ APP_VER --type Utf8 --maxsize 8 --value '$(VERSION)'
 	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ ATTRIBUTE --type Integer --maxsize 4 --value 0
 	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ CATEGORY --type Utf8 --maxsize 4 --value 'gd'
 	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ CONTENT_ID --type Utf8 --maxsize 48 --value '$(CONTENT_ID)'
 	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ DOWNLOAD_DATA_SIZE --type Integer --maxsize 4 --value 0
 	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ SYSTEM_VER --type Integer --maxsize 4 --value 0
-	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ TITLE --type Utf8 --maxsize 128 --value 'BX-REMOTE-PLAY PS4 Probe'
+	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ TITLE --type Utf8 --maxsize 128 --value 'BX Remote Play - Network Test'
 	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ TITLE_ID --type Utf8 --maxsize 12 --value '$(PS4_ID)'
-	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ VERSION --type Utf8 --maxsize 8 --value '0.10'
+	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ VERSION --type Utf8 --maxsize 8 --value '$(VERSION)'
 
 pkg: eboot.bin sce_sys/param.sfo check-assets
 	"$(SDK)/bin/$(PLATFORM)/create-gp4" -out pkg.gp4 \
