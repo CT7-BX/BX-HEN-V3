@@ -1,5 +1,16 @@
 # Histórico de atualizações — BX-REMOTE-PLAY
 
+## 2026-11-15 — Interface 0.3 e projeto do payload AutoRun
+
+- Tela de jogo redesenhada com prioridade para imagem, botões virtuais sobrepostos e controles físicos.
+- Modo automático para exibir controles no celular sem gamepad; suporte a multitoque, analógicos, gatilhos, L3/R3, PS e Options.
+- Tela cheia com fallback imersivo CSS no iPhone e suporte a aplicativo pela Tela de Início.
+- Metas de qualidade e modo de rede local/remota, ainda sem mídia real.
+- Entrada autenticada para relay **simulado**, RTT apenas até o relay.
+- Modelo em C de ciclo de vida do futuro payload: início idempotente, reconexão progressiva e parada. **Sem ELF residente nem AutoRun ativado**.
+- Testes automatizados para controles virtuais, entrada do relay, interface e ciclo de vida.
+- Pesquisa específica de latência e limitações do Safari, sem afirmar compatibilidade física.
+
 ## 2026-11-15 — Ajuste do controle físico
 
 - Preservado o valor analógico de L2 e R2 no protocolo do relay e no laboratório do navegador.
