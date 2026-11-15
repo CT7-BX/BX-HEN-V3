@@ -28,6 +28,8 @@ ws.on("message", payload => {
     ws.send(JSON.stringify({ type: "status", state: "ready" }));
   } else if (data.type === "peer") {
     console.log("Navegador de teste presente:", data.connected);
+  } else if (data.type === "reset") {
+    console.log("Controles soltos pelo relay:", data.reason);
   } else if (data.type === "input") {
     console.log("Pacote virtual recebido, seq:", data.seq);
     ws.send(JSON.stringify({ type: "ack", seq: data.seq }));
