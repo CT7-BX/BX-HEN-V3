@@ -35,6 +35,9 @@ jobs:
           test -f /tmp/openorbis/OpenOrbis/PS4Toolchain/link.x
           echo "OO_PS4_TOOLCHAIN=/tmp/openorbis/OpenOrbis/PS4Toolchain" >> "$GITHUB_ENV"
 
+      - name: Check deterministic PS4 icon
+        run: python3 -m unittest discover -s ps4-agent/tests -p 'test_*.py' -v
+
       - name: Build eboot with OpenOrbis
         run: make -C ps4-agent eboot PS4_CC=clang PS4_LD=ld.lld
 
@@ -48,14 +51,13 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Copy sample packaging assets from pinned SDK
+      - name: Copy required OpenOrbis support assets and generate BX icon
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p ps4-agent/sce_sys/about ps4-agent/sce_module
           for item in \
             'right.sprx:sce_sys/about/right.sprx' \
-            'icon0.png:sce_sys/icon0.png' \
             'libc.prx:sce_module/libc.prx' \
             'libSceFios2.prx:sce_module/libSceFios2.prx'; do
             name="${item%%:*}"
@@ -67,6 +69,8 @@ jobs:
             fi
             cp "$source" "ps4-agent/$destination"
           done
+          python3 ps4-agent/tools/make_icon.py ps4-agent/sce_sys/icon0.png
+          test -s ps4-agent/sce_sys/icon0.png
 
       - name: Build diagnostic PKG with OpenOrbis
         env:
