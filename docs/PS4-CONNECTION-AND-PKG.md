@@ -14,9 +14,10 @@ Atualização: 15/11/2026. Este documento descreve a **implementação-alvo** e 
 ### Mesma rede Wi-Fi/LAN
 
 1. Ativar as opções de Remote Play no PS4 que estiverem disponíveis; confirmar conectividade de rede.
-2. Usar o IP privado do PS4 para diagnosticar **somente TCP 9295**, com `relay/tools/ps4-lan-probe.mjs`, executado em um computador temporariamente na LAN. Um resultado acessível só verifica abertura TCP, **não** a identidade do console, registro, vídeo ou comandos.
-3. Confirmar pareamento de Remote Play em um cliente compatível, localmente, antes de integrar à interface BX-REMOTE-PLAY. O menu do PS4 normalmente usa *Configurações > Configurações de conexão do Uso remoto > Adicionar dispositivo*; códigos de pareamento e identificadores de conta **nunca** devem ir para o GitHub ou logs públicos.
-4. Integrar o componente de vídeo/áudio do protocolo nativo ao navegador e verificar latência de ponta a ponta.
+2. Fazer uma consulta DDP de **apenas um IP privado** em UDP 987 com `npm run discover:ps4 -- IP_DO_CONSOLE`. O resultado é somente a presença/status da descoberta, não pareamento, e não publica host-id.
+3. Usar o IP privado do PS4 para diagnosticar **somente TCP 9295**, com `relay/tools/ps4-lan-probe.mjs`, executado em um computador temporariamente na LAN. Um resultado acessível só verifica abertura TCP, **não** a identidade do console, registro, vídeo ou comandos.
+4. Confirmar pareamento de Remote Play em um cliente compatível, localmente, antes de integrar à interface BX-REMOTE-PLAY. O menu do PS4 normalmente usa *Configurações > Configurações de conexão do Uso remoto > Adicionar dispositivo*; códigos de pareamento e identificadores de conta **nunca** devem ir para o GitHub ou logs públicos.
+5. Integrar o componente de vídeo/áudio do protocolo nativo ao navegador e verificar latência de ponta a ponta.
 
 ### Outra rede / 5G / CGNAT
 
@@ -79,3 +80,7 @@ O PKG atualmente disponível é um **diagnóstico HTTPS de execução única**; 
 - [Chiaki-NG-Web: WASM e proxy Node](https://github.com/CSystem77/Chiaki-NG-Web)
 - [Control4Free: instalação, PKG e AutoRun](https://github.com/MoHadiShibli/Control4Free/blob/main/docs/installation.md)
 - [OpenOrbis: exemplo de HTTP e empacotamento](https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/blob/master/samples/net_http/README.md)
+
+## Publicação do site
+
+A partir da segunda verificação, o workflow de GitHub Pages usa uma lista explícita de arquivos públicos. Somente a página inicial de redirecionamento, o cliente em `remote/`, o ícone, o manifesto e o marcador público do teste HTTPS entram no site. O código Node do relay, scripts de Build, testes e fonte do agente PS4 permanecem no repositório GitHub, **mas não são publicados como páginas do site**. Isso reduz a área estática publicada; **não torna um repositório público privado**.
