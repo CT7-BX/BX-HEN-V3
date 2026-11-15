@@ -1,5 +1,13 @@
 # Histórico de atualizações — BX-REMOTE-PLAY
 
+## 2026-11-15 — Vínculo com consentimento, laboratório v0.5
+
+- Relay Node com código aleatório de oito dígitos, expiração curta, limitação de tentativas e confirmação explícita no console simulado.
+- Formulário de vínculo na interface e autenticação automática com token temporário após aprovação.
+- Rotas HTTP para iniciar, solicitar, aprovar, consultar, negar e revogar; tokens somente em memória.
+- Console de teste por terminal, com aprovação SIM, e testes unitários e de integração.
+- **Sem PS4 físico vinculado, sem agente residente e sem vídeo/áudio.** O PKG v0.21 continua sendo diagnóstico HTTPS.
+
 ## 2026-11-15 — Terceira revisão do PKG v0.21
 
 - Confirmada a integração anterior v0.20 ao repositório principal.
