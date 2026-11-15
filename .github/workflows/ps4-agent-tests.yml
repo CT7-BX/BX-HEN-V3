@@ -1,0 +1,36 @@
+name: BX-REMOTE-PLAY — PS4 Agent Contract
+
+on:
+  pull_request:
+    paths:
+      - "ps4-agent/**"
+      - "remote/ps4-probe.txt"
+      - ".github/workflows/ps4-agent-tests.yml"
+  push:
+    paths:
+      - "ps4-agent/**"
+      - "remote/ps4-probe.txt"
+      - ".github/workflows/ps4-agent-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  contract-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile portable probe contract
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -pedantic \
+            ps4-agent/probe_contract.c ps4-agent/tests/probe_contract_test.c \
+            -o /tmp/bx-ps4-probe-test
+      - name: Validate public HTTPS probe response
+        run: /tmp/bx-ps4-probe-test remote/ps4-probe.txt
+      - name: Ensure probe never submits private data or opens inbound ports
+        run: |
+          grep -F 'ORBIS_METHOD_GET' ps4-agent/main.c
+          if grep -E 'sceNetListen|sceNetBind|ORBIS_METHOD_POST|sceHttpsDisableOption' ps4-agent/main.c; then
+            echo 'Unexpected inbound network or disabled HTTPS verification' >&2
+            exit 1
+          fi

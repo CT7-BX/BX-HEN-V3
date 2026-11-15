@@ -1,4 +1,4 @@
-# BX-HEN Remote — protótipo 0.1
+# BX-REMOTE-PLAY — protótipo 0.1
 
 ## O que foi desenvolvido
 
@@ -20,7 +20,7 @@ python3 -m http.server 8080
 # Acesse http://localhost:8080/remote/
 ```
 
-No GitHub Pages, o caminho esperado após mesclar a branch e publicar é `/BX-HEN-V3/remote/`. A branch de desenvolvimento por si só não significa que a página esteja publicada.
+No GitHub Pages, o caminho esperado após mesclar a branch e publicar é `/BX-REMOTE-PLAY/remote/`. A branch de desenvolvimento por si só não significa que a página esteja publicada.
 
 ## Testes
 
@@ -79,3 +79,7 @@ remote/
 ```
 
 O caminho `remote/` é independente dos arquivos de desbloqueio e não altera o fluxo atual de publicação.
+
+## Aplicativo experimental PS4
+
+O código-fonte do teste HTTPS de saída fica em [ps4-agent/](../ps4-agent/). O endpoint público de diagnóstico desta página é `ps4-probe.txt`; nenhuma informação do console é transmitida. Um teste positivo valida apenas a consulta HTTPS, **não** streaming, controles ou pareamento.

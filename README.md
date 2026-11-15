@@ -1,8 +1,8 @@
-# BX-HEN Remote Play
+# BX-REMOTE-PLAY
 
-Projeto de **acesso remoto ao PS4**, desenvolvido por **CT7-BX**. Este repositório é dedicado ao **BX-HEN Remote**; não é o host de desbloqueio do console.
+Projeto de **acesso remoto ao PS4**, desenvolvido por **CT7-BX**. Este repositório é dedicado ao **BX-REMOTE-PLAY**; não é o host de desbloqueio do console.
 
-🌐 **[Abrir BX-HEN Remote](https://ct7-bx.github.io/BX-HEN-V3/)**
+🌐 **[Abrir BX-REMOTE-PLAY](https://ct7-bx.github.io/BX-REMOTE-PLAY/)**
 
 ## Objetivo
 
@@ -11,6 +11,8 @@ Permitir futuramente jogar e controlar um PS4 em casa por meio de um iPhone ou M
 ## Situação real
 
 **Protótipo 0.1 — diagnóstico de controle.** A interface em [remote/](remote/) identifica e exibe entradas da Gamepad API do navegador e demonstra botões virtuais.
+
+**O componente PS4 já tem uma prova de conectividade HTTPS em código-fonte, mas não foi compilado/testado em console.**
 
 **Não funciona ainda como Remote Play:** não transmite vídeo/áudio, não envia comandos ao PS4, não tem PKG, agente de PS4, autenticação ou servidor relay. Nenhuma conexão remota com o console foi comprovada.
 
@@ -22,6 +24,7 @@ A raiz do site redireciona para `remote/`; mantemos esse caminho para evitar que
 - [remote/controller-core.js](remote/controller-core.js) — processamento local da Gamepad API
 - [remote/tests/](remote/tests/) — testes automatizados
 - [remote/README.md](remote/README.md) — requisitos, limitações e arquitetura futura
+- [ps4-agent/](ps4-agent/) — código-fonte experimental do teste HTTPS para PS4; ainda sem PKG validado
 - [.github/workflows/remote-tests.yml](.github/workflows/remote-tests.yml) — CI para controles e navegação
 
 ## Validação
