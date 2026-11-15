@@ -42,6 +42,42 @@
     return result;
   }
 
+  $("pairCheck").addEventListener("click", async () => {
+    const endpoint = game.validRelayEndpoint($("pairEndpoint").value.trim());
+    const target = $("pairServerStatus");
+    if (!endpoint) {
+      target.textContent = "Endereço inválido. Use WSS (WS só em localhost).";
+      return;
+    }
+    const button = $("pairCheck");
+    button.disabled = true;
+    target.textContent = "Verificando acesso ao relay...";
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5500);
+    try {
+      const response = await fetch(apiBase(endpoint) + "/health", {
+        signal: controller.signal,
+        cache: "no-store",
+        credentials: "omit",
+        mode: "cors",
+        referrerPolicy: "no-referrer"
+      });
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      const info = await response.json();
+      if (info.status !== "ok" || info.mode !== "control-prototype") {
+        throw new Error("Servidor não reconhecido");
+      }
+      target.textContent = "Relay acessível. Pareamento disponível; PS4, controles reais e transmissão de vídeo ainda não estão confirmados.";
+    } catch (error) {
+      target.textContent = error.name === "AbortError"
+        ? "Tempo esgotado. Confira a rede e o servidor HTTPS/WSS."
+        : "Não foi possível verificar o relay. Confira endereço, HTTPS/WSS e origem autorizada.";
+    } finally {
+      clearTimeout(timeout);
+      button.disabled = false;
+    }
+  });
+
   $("pairClaim").addEventListener("click", async () => {
     const endpoint = game.validRelayEndpoint($("pairEndpoint").value.trim());
     const code = $("pairCode").value.trim();
@@ -50,7 +86,7 @@
       return;
     }
     if (!/^\d{8}$/.test(code)) {
-      report("Digite os oito números exibidos no console simulado.");
+      report("Digite os oito números exibidos no aplicativo PS4 de teste ou no simulador.");
       return;
     }
     const base = apiBase(endpoint);
@@ -63,7 +99,7 @@
     try {
       const claim = await jsonRequest(base, "/v1/pair/claim", { data: { code } });
       claimantToken = claim.claimToken;
-      report("Aguardando aprovação explícita no console simulado...");
+      report("Aguardando aprovação pelo DualShock 4 no PS4 de teste ou pelo simulador...");
     } catch (error) {
       if (current === requestId) {
         report("Vínculo recusado ou indisponível: " + error.message);
@@ -98,7 +134,7 @@
           return;
         }
         if (state.status === "denied") {
-          report("O console simulado recusou a vinculação.");
+          report("A solicitação foi recusada pelo console.");
           $("pairClaim").disabled = false;
           claimantToken = null;
           return;
@@ -112,7 +148,7 @@
       await new Promise(resolve => setTimeout(resolve, 1250));
     }
     if (current === requestId) {
-      report("Código expirado. Gere outro no console simulado.");
+      report("Código expirado. Abra novamente o aplicativo de teste para gerar outro.");
       $("pairClaim").disabled = false;
     }
     claimantToken = null;
