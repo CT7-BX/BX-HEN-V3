@@ -140,7 +140,8 @@ small{color:#aca1ab}code{font-size:.88em}
     lastPacket = Date.now();
     socket.send(JSON.stringify({
       type: "input", seq: ++seq, buttons,
-      axes: Array.from({length:4}, (_, i) => snap.axes[i] ?? 0)
+      axes: Array.from({length:4}, (_, i) => snap.axes[i] ?? 0),
+      triggers: [snap.buttons[6]?.value ?? 0, snap.buttons[7]?.value ?? 0]
     }));
   }
   setInterval(readController, 50);
