@@ -46,3 +46,31 @@ A implantação deve manter o código no GitHub, mas o token privado é gerado f
 **A publicação do site GitHub Pages não executa nem implanta este Worker.** O backend necessita de implantação própria e configuração privada do PKG. Em nenhum caso publicar tokens, logs com segredos ou arquivo `.cfg` em commits/issue.
 
 Documentação adicional: [Primeiros testes](../docs/FIRST-HARDWARE-TESTS.md), [Prova de vínculo nativa](../native-pair/README.md).
+
+## Implantação desta instância — 15/11/2026
+
+Uma instância separada do projeto BX-HEN foi publicada pelo conector Cloudflare:
+
+- Worker: `bx-remote-link`
+- Endpoint HTTPS planejado: `https://bx-remote-link.4rt949zpj8.workers.dev`
+- URL a informar na interface: `wss://bx-remote-link.4rt949zpj8.workers.dev/v1/link` (o navegador usa esse endereço para localizar a API HTTPS; **não existe WebSocket /v1/link nesse Worker**)
+- Armazenamento: binding `PAIRING_ROOM` para Durable Object SQLite `BXPairingRoom`.
+- A instalação do Worker e o subdomínio foram confirmados pela API do Cloudflare. **A URL pública não pôde ser testada externamente com sucesso nesta sessão**, por isso não afirmar que respondeu ao navegador.
+- **A configuração secreta do console ainda precisa ser realizada.** O endpoint de saúde permite descobrir isso com `configured: false`.
+
+### Passo manual necessário para habilitar vínculo de verdade
+
+A configuração da chave secreta através da conexão Cloudflare foi bloqueada. Por segurança, nenhuma chave foi embutida no Worker ou enviada ao GitHub. A pessoa responsável pela conta precisa concluir **uma vez**:
+
+1. Em um computador com Node.js, na raiz do repositório, crie os arquivos privados (o nome do diretório deve ser novo):
+
+   ~~~sh
+   node native-pair/tools/generate_setup.mjs --origin https://bx-remote-link.4rt949zpj8.workers.dev --out /tmp/bx-remote-segredos
+   ~~~
+
+2. Abra seu painel Cloudflare, entre em **Workers & Pages → bx-remote-link → Settings → Variables and Secrets**, adicione uma variável do tipo **Secret** com o nome exato `BX_RELAY_CONSOLE_TOKEN` e copie o valor `console_token` que está **no arquivo privado local** `/tmp/bx-remote-segredos/bx-remote-pair.cfg`. Nunca envie esse valor no chat nem em um commit.
+3. Copie **privadamente** esse mesmo arquivo `bx-remote-pair.cfg` para o caminho `/user/data/bx-remote-pair.cfg` no PS4 de teste, mantendo o token fora do GitHub e de mensagens públicas.
+4. Confirme que **Testar servidor** no site informa o backend configurado. A partir daí, instale/abra manualmente o **Pair Test v0.12** no PS4 para verificar um código real e a aprovação X/O. Esse pacote ainda não foi testado fisicamente.
+5. Após o primeiro teste, revogue/rotacione a chave pelo painel se houver suspeita de exposição. O arquivo `relay-private.env` gerado no computador serve apenas ao **antigo relay Node**; não precisa ser enviado ao Cloudflare nem ao PS4.
+
+**Não há login PSN, persistência de console vinculado, transmissão do jogo ou suporte multiusuário nesta versão.** O segredo é específico desta instância de prova, e o vínculo HTTP é revogado quando o aplicativo de teste PS4 encerra.
