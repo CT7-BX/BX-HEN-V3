@@ -74,6 +74,14 @@ jobs:
           DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: '1'
         run: make -C ps4-agent pkg PS4_CC=clang PS4_LD=ld.lld
 
+      - name: Validate PKG hashes
+        env:
+          DOTNET_ROLL_FORWARD: Major
+          DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: '1'
+        run: |
+          "$OO_PS4_TOOLCHAIN/bin/linux/PkgTool.Core" pkg_validate \
+            ps4-agent/IV0000-BRPT00001_00-BXREMOTEPLAY0001.pkg
+
       - name: Record package digest
         run: |
           test -s ps4-agent/IV0000-BRPT00001_00-BXREMOTEPLAY0001.pkg
