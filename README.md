@@ -14,7 +14,7 @@ Permitir futuramente jogar e controlar um PS4 em casa por meio de um iPhone ou M
 
 **O componente PS4 já compilou em OpenOrbis no GitHub Actions e gerou um PKG experimental de diagnóstico, com validação de hashes; não foi testado em console.**
 
-**Não funciona ainda como Remote Play:** não transmite vídeo/áudio, não envia comandos ao PS4, não tem agente de transmissão funcional, pareamento, autenticação ou servidor relay. Nenhuma conexão remota com o console foi comprovada.
+**Não funciona ainda como Remote Play:** não transmite vídeo/áudio nem envia comandos ao PS4 real. Existe agora um relay **experimental** com autenticação para ligar o navegador a um **console simulado**; ainda falta um agente PS4 persistente, transporte de mídia e integração do protocolo Remote Play. Nenhuma sessão com console físico foi comprovada.
 
 A raiz do site redireciona para `remote/`; mantemos esse caminho para evitar quebrar links anteriores. O código original da página experimental anterior permanece no histórico do GitHub, sem ser a página inicial.
 
@@ -25,6 +25,9 @@ A raiz do site redireciona para `remote/`; mantemos esse caminho para evitar que
 - [remote/tests/](remote/tests/) — testes automatizados
 - [remote/README.md](remote/README.md) — requisitos, limitações e arquitetura futura
 - [ps4-agent/](ps4-agent/) — prova HTTPS para PS4 e PKG experimental gerado em CI, ainda sem validação no console
+- [relay/](relay/) — servidor Node autenticado de controle para console simulado (sem streaming)
+- [remote/relay-lab.html](remote/relay-lab.html) — interface de teste do navegador com DualShock 4 e sessão WSS
+- [Pesquisa de alternativas](docs/REMOTE-PLAY-RESEARCH-2026-11-15.md) — opções, limites e arquitetura recomendada
 - [.github/workflows/remote-tests.yml](.github/workflows/remote-tests.yml) — CI para controles e navegação
 
 ## Validação
