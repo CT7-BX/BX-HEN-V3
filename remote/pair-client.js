@@ -42,15 +42,22 @@
     return result;
   }
 
+  $("pairEndpoint").addEventListener("input", () => {
+    $("pairServerStatus").dataset.relayCheck = "not_tested";
+    $("pairServerStatus").textContent = "Endereço alterado. Teste novamente o servidor.";
+  });
+
   $("pairCheck").addEventListener("click", async () => {
     const endpoint = game.validRelayEndpoint($("pairEndpoint").value.trim());
     const target = $("pairServerStatus");
     if (!endpoint) {
+      target.dataset.relayCheck = "invalid";
       target.textContent = "Endereço inválido. Use WSS (WS só em localhost).";
       return;
     }
     const button = $("pairCheck");
     button.disabled = true;
+    target.dataset.relayCheck = "not_tested";
     target.textContent = "Verificando acesso ao relay...";
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5500);
@@ -67,8 +74,10 @@
       if (info.status !== "ok" || info.mode !== "control-prototype") {
         throw new Error("Servidor não reconhecido");
       }
+      target.dataset.relayCheck = "ok";
       target.textContent = "Relay acessível. Pareamento disponível; PS4, controles reais e transmissão de vídeo ainda não estão confirmados.";
     } catch (error) {
+      target.dataset.relayCheck = "failed";
       target.textContent = error.name === "AbortError"
         ? "Tempo esgotado. Confira a rede e o servidor HTTPS/WSS."
         : "Não foi possível verificar o relay. Confira endereço, HTTPS/WSS e origem autorizada.";
