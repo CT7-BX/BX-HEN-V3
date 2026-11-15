@@ -102,11 +102,11 @@ test("authenticated control frames reach only simulated console and ack returns"
 
   const expected = nextFrame(consoleWs, "input");
   playerWs.send(JSON.stringify({
-    type: "input", seq: 1, buttons: [0, 4, 6], axes: [0, 0.8, -0.2, 0]
+    type: "input", seq: 1, buttons: [0, 4, 6], axes: [0, 0.8, -0.2, 0], triggers: [0.7, 0.2]
   }));
   const received = await expected;
   assert.deepEqual(received, {
-    type: "input", seq: 1, buttons: [0, 4, 6], axes: [0, 0.8, -0.2, 0]
+    type: "input", seq: 1, buttons: [0, 4, 6], axes: [0, 0.8, -0.2, 0], triggers: [0.7, 0.2]
   });
   const ack = nextFrame(playerWs, "ack");
   consoleWs.send(JSON.stringify({ type: "ack", seq: 1 }));
@@ -118,9 +118,24 @@ test("authenticated control frames reach only simulated console and ack returns"
 
   const close = closed(playerWs);
   playerWs.send(JSON.stringify({
-    type: "input", seq: 1, buttons: [0], axes: [0, 0, 0, 0]
+    type: "input", seq: 1, buttons: [0], axes: [0, 0, 0, 0], triggers: [0, 0]
   }));
   await close;
+});
+
+test("reject out-of-range analog triggers", async (t) => {
+  const relay = createRelay({
+    consoleToken: CONSOLE, playerToken: PLAYER, allowedOrigins: [ORIGIN], port: 0
+  });
+  const { port } = await relay.listen();
+  t.after(() => relay.close());
+  const player = await authenticated("ws://127.0.0.1:" + port + "/v1/link", "player", PLAYER);
+  t.after(() => player.terminate());
+  const waitClosed = closed(player);
+  player.send(JSON.stringify({
+    type: "input", seq: 1, buttons: [], axes: [0, 0, 0, 0], triggers: [1.3, 0]
+  }));
+  await waitClosed;
 });
 
 test("reject out-of-range input values rather than passing raw packets", async (t) => {
@@ -134,7 +149,7 @@ test("reject out-of-range input values rather than passing raw packets", async (
   t.after(() => player.terminate());
   const close = closed(player);
   player.send(JSON.stringify({
-    type: "input", seq: 3, buttons: [99], axes: [0, 0, 0, 0]
+    type: "input", seq: 3, buttons: [99], axes: [0, 0, 0, 0], triggers: [0, 0]
   }));
   await close;
 });

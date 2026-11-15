@@ -134,13 +134,15 @@ small{color:#aca1ab}code{font-size:.88em}
     $("controller").textContent = "Detectado: " + snap.id +
       "\nBotões: " + (buttons.length ? buttons.join(", ") : "nenhum") +
       "\nAnalógicos: " + snap.axes.map(a => a.toFixed(2)).join(" / ") +
+      "\nGatilhos L2/R2: " + [snap.buttons[6]?.value ?? 0, snap.buttons[7]?.value ?? 0].map(value => value.toFixed(2)).join(" / ") +
       "\nÚltima confirmação do relay: " + (lastAck === null ? "nenhuma" : lastAck);
     if (!connected || !peer || !socket || socket.readyState !== WebSocket.OPEN
         || document.hidden || Date.now() - lastPacket < 50) return;
     lastPacket = Date.now();
     socket.send(JSON.stringify({
       type: "input", seq: ++seq, buttons,
-      axes: Array.from({length:4}, (_, i) => snap.axes[i] ?? 0)
+      axes: Array.from({length:4}, (_, i) => snap.axes[i] ?? 0),
+      triggers: [snap.buttons[6]?.value ?? 0, snap.buttons[7]?.value ?? 0]
     }));
   }
   setInterval(readController, 50);

@@ -26,14 +26,18 @@ export function safeTokenMatch(candidate, actual) {
 function validateInput(frame) {
   if (frame?.type !== "input" || !Number.isSafeInteger(frame.seq) || frame.seq < 0
       || !Array.isArray(frame.buttons) || frame.buttons.length > 18
-      || !Array.isArray(frame.axes) || frame.axes.length !== 4) return null;
+      || !Array.isArray(frame.axes) || frame.axes.length !== 4
+      || !Array.isArray(frame.triggers) || frame.triggers.length !== 2) return null;
   const buttons = frame.buttons;
   const axes = frame.axes;
+  const triggers = frame.triggers;
   if (!buttons.every(value => Number.isInteger(value) && value >= 0 && value <= 17)) return null;
   if (new Set(buttons).size !== buttons.length) return null;
   if (!axes.every(value => typeof value === "number" && Number.isFinite(value)
       && value >= -1 && value <= 1)) return null;
-  return { type: "input", seq: frame.seq, buttons: [...buttons], axes: [...axes] };
+  if (!triggers.every(value => typeof value === "number" && Number.isFinite(value)
+      && value >= 0 && value <= 1)) return null;
+  return { type: "input", seq: frame.seq, buttons: [...buttons], axes: [...axes], triggers: [...triggers] };
 }
 
 function send(ws, frame) {

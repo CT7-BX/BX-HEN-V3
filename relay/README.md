@@ -5,7 +5,7 @@
 ## O que já funciona no protótipo
 
 - Um servidor Node.js com duas conexões WebSocket, papéis `console` e `player`, cada um com token próprio.
-- Pacotes de botões e analógicos do DualShock 4 limitados e validados, enviados do navegador ao console simulado.
+- Pacotes de botões, quatro eixos dos analógicos e pressão dos gatilhos L2/R2 (0 a 1) limitados e validados, enviados do navegador ao console simulado.
 - Resposta `ack` do simulador ao navegador para identificar perda de conexão.
 - Autenticação por credencial fornecida **somente por variável de ambiente**, comparação em tempo constante, uma conexão por papel, rejeição de mensagens inválidas e proteção básica contra replay/volume.
 - Restrição de `Origin`, limite de 4096 bytes por mensagem, compressão WebSocket desativada.
