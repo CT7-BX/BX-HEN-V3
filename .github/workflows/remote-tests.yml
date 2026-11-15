@@ -1,4 +1,4 @@
-name: BX-HEN Remote — Interface and Controller Tests
+name: BX-REMOTE-PLAY — Interface and Controller Tests
 
 on:
   pull_request:
@@ -25,5 +25,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "24"
-      - name: Test controller and homepage
+      - name: Validate game screen scripts and PWA
+        run: |
+          node --check remote/game-core.js
+          node --check remote/game.js
+          node -e "JSON.parse(require('node:fs').readFileSync('remote/manifest.webmanifest', 'utf8'))"
+          test -s remote/icon.svg
+      - name: Test controller, touch and homepage
         run: node --test remote/tests/*.test.cjs
