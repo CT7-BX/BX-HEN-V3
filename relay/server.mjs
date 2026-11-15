@@ -91,9 +91,26 @@ export function createRelay({
       return;
     }
     if (req.method === "GET" && req.url === "/health") {
-      res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store",
-        "X-Content-Type-Options": "nosniff" });
-      res.end(JSON.stringify({ status: "ok", mode: "control-prototype" }));
+      const origin = req.headers.origin;
+      // Public health endpoint reveals only static capabilities, not accounts,
+      // online console status, bearer tokens or network addresses.
+      const headers = {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+        "Vary": "Origin"
+      };
+      if (origin && allowedOrigins.includes(origin)) {
+        headers["Access-Control-Allow-Origin"] = origin;
+      }
+      res.writeHead(200, headers);
+      res.end(JSON.stringify({
+        status: "ok",
+        mode: "control-prototype",
+        pairing: true,
+        ps4Control: false,
+        video: false
+      }));
       return;
     }
     res.writeHead(404, { "Content-Type": "text/plain", "Cache-Control": "no-store" });
