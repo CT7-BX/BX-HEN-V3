@@ -11,6 +11,8 @@
 import http from "node:http";
 import { createHash, timingSafeEqual } from "node:crypto";
 import { WebSocket, WebSocketServer } from "ws";
+import { createPairingStore } from "./pairing.mjs";
+import { createPairingHttpHandler } from "./pair-http.mjs";
 
 const MAX_JSON_BYTES = 4096;
 const INPUT_HZ_LIMIT = 100;
@@ -72,7 +74,21 @@ export function createRelay({
   }
 
   const peers = { console: null, player: null };
+  const pairing = createPairingStore();
+  const pairingHttp = createPairingHttpHandler({
+    pairing, consoleToken, allowedOrigins,
+    consoleOnline: () => Boolean(peers.console)
+  });
   const server = http.createServer((req, res) => {
+    if (req.url?.startsWith("/v1/pair/")) {
+      void pairingHttp(req, res).catch(() => {
+        if (!res.headersSent) {
+          res.writeHead(500, { "Cache-Control": "no-store", "Content-Type": "application/json" });
+          res.end('{"error":"INTERNAL_ERROR"}');
+        }
+      });
+      return;
+    }
     if (req.method === "GET" && req.url === "/health") {
       res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store",
         "X-Content-Type-Options": "nosniff" });
@@ -93,6 +109,10 @@ export function createRelay({
   const idleMonitor = setInterval(() => {
     const player = peers.player;
     const session = player?.bxSession;
+    if (session?.paired && !pairing.authorizedPlayer(session.pairToken)) {
+      player.terminate();
+      return;
+    }
     if (!session || !session.lastInputAt || session.inputExpired) return;
     if (Date.now() - session.lastInputAt >= INPUT_STALE_MS) {
       session.inputExpired = true;
@@ -126,7 +146,8 @@ export function createRelay({
   wss.on("connection", (ws) => {
     const session = {
       role: null, previousSeq: -1, windowStarted: Date.now(),
-      messages: 0, lastInputAt: 0, inputExpired: false
+      messages: 0, lastInputAt: 0, inputExpired: false,
+      paired: false, pairToken: null
     };
     ws.bxSession = session;
     const deadline = setTimeout(() => {
@@ -151,9 +172,15 @@ export function createRelay({
         if (frame?.type !== "hello" || !["console", "player"].includes(frame.role)
             || typeof frame.token !== "string") { reject(ws, 4401); return; }
         const expected = frame.role === "console" ? consoleToken : playerToken;
-        if (!safeTokenMatch(frame.token, expected)) { reject(ws, 4401); return; }
+        const staticMatch = safeTokenMatch(frame.token, expected);
+        const pairedMatch = frame.role === "player" && pairing.authorizedPlayer(frame.token);
+        if (!staticMatch && !pairedMatch) { reject(ws, 4401); return; }
         if (peers[frame.role]) { reject(ws, 4409); return; }
         session.role = frame.role;
+        if (pairedMatch && !staticMatch) {
+          session.paired = true;
+          session.pairToken = frame.token;
+        }
         peers[frame.role] = ws;
         // A newly attached console must begin with all buttons released.
         if (frame.role === "console") resetConsole("console_connected");
@@ -188,7 +215,13 @@ export function createRelay({
       clearTimeout(deadline);
       if (session.role && peers[session.role] === ws) {
         peers[session.role] = null;
-        if (session.role === "player") resetConsole("player_disconnected");
+        if (session.role === "player") {
+          resetConsole("player_disconnected");
+        } else {
+          pairing.revoke();
+          // An approved browser session must not survive console disconnect.
+          if (peers.player?.bxSession?.paired) peers.player.terminate();
+        }
         publishPresence();
       }
     });
