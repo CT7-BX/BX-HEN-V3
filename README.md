@@ -91,3 +91,7 @@ Há um gerador local que cria um par de configurações privadas para PS4 e back
 ### Primeiros testes físicos
 
 Use o [roteiro de testes no PS4 e no iPhone/Mac](docs/FIRST-HARDWARE-TESTS.md) para testar primeiro o PKG de diagnóstico HTTPS e depois o PKG de pareamento experimental. A interface tem checklist e relatório local sem credenciais; nenhum vídeo do console foi transmitido ou validado ainda.
+
+## Servidor BX-REMOTE-LINK experimental (Cloudflare)
+
+Um Worker **separado** chamado `bx-remote-link` foi implantado no Cloudflare, com armazenamento durável para código de pareamento HTTP. O site agora sugere seu endereço automaticamente; o Worker não oferece controle remoto nem mídia. **Ainda não há credencial privada de console instalada no Worker**, portanto o pareamento permanece bloqueado até que o titular da conta configure o Secret `BX_RELAY_CONSOLE_TOKEN` e use o mesmo segredo no PKG PS4. Veja [cloudflare/README.md](cloudflare/README.md) para o passo manual; a URL pública ainda necessita de teste direto. O BX-HEN não foi alterado.
