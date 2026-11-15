@@ -33,6 +33,13 @@ jobs:
             ps4-agent/resident/lifecycle.c ps4-agent/tests/lifecycle_test.c \
             -o /tmp/bx-ps4-resident-test
           /tmp/bx-ps4-resident-test
+      - name: Test bounded retries and failure explanations
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -pedantic \
+            ps4-agent/probe_diagnostics.c ps4-agent/tests/probe_diagnostics_test.c \
+            -o /tmp/bx-ps4-diagnostics-test
+          /tmp/bx-ps4-diagnostics-test
+
       - name: Ensure probe never submits private data or opens inbound ports
         run: |
           grep -F 'ORBIS_METHOD_GET' ps4-agent/main.c
