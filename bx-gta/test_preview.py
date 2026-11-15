@@ -65,8 +65,8 @@ def main():
     groups = [g for s in sections for g in s["groups"]]
     options = [item for g in groups for item in g["items"]]
     assert len(sections) == 10, "Expected 10 top-level sections"
-    assert len(groups) == 33, "Expected 33 groups"
-    assert len(options) == 190, "Expected 190 options"
+    assert len(groups) == 34, "Expected 34 preview groups"
+    assert len(options) == 196, "Expected 196 preview options"
     assert all(o["type"] in {"action", "catalog", "planned"} for o in options)
     assert sum(o["type"] == "planned" for o in options) > 120
     assert "black-red" == embedded["theme"]
