@@ -121,6 +121,10 @@
       .stage.cinema{height:100dvh}
     }
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+    .first-tests-steps{display:grid;gap:9px;margin:10px 0}
+    .first-tests-steps label{display:flex;align-items:flex-start;gap:9px;color:#e6dae3;font-size:.79rem;line-height:1.4}
+    .first-tests-steps input{width:18px;height:18px;min-width:18px;accent-color:var(--accent);margin:0}
+    #firstTestsReport{display:block;width:100%;min-height:184px;resize:vertical;padding:11px 12px;border:1px solid #625363;border-radius:9px;background:#100f16;color:#eee;font:.71rem/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}
   </style>
   <link rel="stylesheet" href="./touch-layout.css">
 </head>
@@ -248,6 +252,26 @@
             <li><span class="indicator" id="relayIndicator"></span><span id="relayLabel">Relay de teste não conectado</span></li>
             <li><span class="indicator" id="mediaIndicator"></span><span id="mediaLabel">Vídeo PS4 não integrado</span></li>
           </ul>
+          <details class="relay-config" id="firstTestsSection">
+            <summary>Primeiros testes — checklist e diagnóstico</summary>
+            <p class="field-note">Preparação para testes no PS4 físico. A instalação/execução do PKG e o vídeo ainda não foram validados. Os itens abaixo são marcados por você e não significam validação automática.</p>
+            <div class="first-tests-steps">
+              <label><input type="checkbox" data-test-step> PS4 com GoldHEN ativo e Pair Test v0.12 instalado</label>
+              <label><input type="checkbox" data-test-step> Servidor HTTPS/WSS protegido configurado, com tokens privados</label>
+              <label><input type="checkbox" data-test-step> Arquivo privado de configuração copiado para o PS4</label>
+              <label><input type="checkbox" data-test-step> Código de oito dígitos exibido pelo Pair Test no PS4</label>
+              <label><input type="checkbox" data-test-step> Solicitação aceita no PS4 com X, ou erro registrado para investigação</label>
+            </div>
+            <div class="toolbar-left" style="margin-top:11px">
+              <button class="action primary" type="button" id="firstTestsRun">Verificar navegador</button>
+              <button class="action plain" type="button" id="firstTestsCopy">Copiar diagnóstico</button>
+            </div>
+            <p class="field-note" id="firstTestsStatus" role="status" aria-live="polite">Nenhum teste de navegador executado.</p>
+            <label class="field" for="firstTestsReport">Relatório sem segredos (somente leitura)</label>
+            <textarea id="firstTestsReport" readonly spellcheck="false" aria-label="Relatório de preparação para primeiros testes"></textarea>
+            <p class="field-note">Não compartilhe seu arquivo bx-remote-pair.cfg, chaves do relay, códigos de pareamento, IDs de conta ou endereços internos. O relatório acima não coleta esses dados.</p>
+            <a href="https://github.com/CT7-BX/BX-REMOTE-PLAY/blob/main/docs/FIRST-HARDWARE-TESTS.md" target="_blank" rel="noopener noreferrer">Guia completo de teste do PKG</a>
+          </details>
           <details class="relay-config" id="pairSection">
             <summary>Vincular PS4 — conexão experimental</summary>
             <p class="field-note">Pode testar um PS4 com o PKG Pair Test (ainda sem validação física), ou um console simulado. A aprovação do vínculo não habilita vídeo, áudio ou controle real.</p>
@@ -287,5 +311,6 @@
   <script src="./game-core.js"></script>
   <script src="./game.js"></script>
   <script src="./pair-client.js"></script>
+  <script src="./first-tests.js"></script>
 </body>
 </html>
