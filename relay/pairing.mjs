@@ -34,7 +34,19 @@ function fail(reason) {
 
 export function createPairingStore({ now = Date.now } = {}) {
   let active = null;
+  let lastHttpConsoleHeartbeat = null;
+  const HTTP_CONSOLE_LEASE_MS = 12000;
   const attemptsByIp = new Map();
+
+  function consoleHeartbeat() {
+    lastHttpConsoleHeartbeat = now();
+    return { state: "online", leaseSeconds: HTTP_CONSOLE_LEASE_MS / 1000 };
+  }
+
+  function httpConsoleOnline() {
+    return lastHttpConsoleHeartbeat !== null
+      && now() - lastHttpConsoleHeartbeat < HTTP_CONSOLE_LEASE_MS;
+  }
 
   function expire() {
     if (!active) return;
@@ -164,5 +176,5 @@ export function createPairingStore({ now = Date.now } = {}) {
     return { status: "revoked" };
   }
 
-  return { begin, claim, pending, decide, status, authorizedPlayer, revoke };
+  return { begin, claim, pending, decide, status, authorizedPlayer, revoke, consoleHeartbeat, httpConsoleOnline };
 }

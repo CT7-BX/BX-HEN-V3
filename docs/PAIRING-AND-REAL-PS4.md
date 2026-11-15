@@ -67,3 +67,9 @@ Os endpoints protegidos usam Authorization: Bearer. A aplicação só aceita ori
 Referências: https://github.com/CSystem77/Chiaki-NG-Web , https://github.com/MoHadiShibli/Control4Free e https://github.com/GoldHEN/GoldHEN .
 
 Este laboratório ainda requer computador para simular console e executar backend. O objetivo final segue sendo PS4 ligado em casa, sem computador adicional.
+
+## Próxima etapa implementada: prova HTTP no PS4 (experimental)
+
+A pasta [native-pair/](../native-pair/) contém um aplicativo próprio que poderá ser executado manualmente no PS4. Usa HTTPS com configuração privada no console, envia presença por tempo limitado, mostra código e pede decisão pelos botões X/O. É um **vínculo inicial**, não uma sessão de jogo ou um serviço residente. Enquanto não houver WebSocket de console e gateway de mídia, o navegador mostra a aprovação HTTP sem liberar controles. O PKG diagnóstico v0.21 continua intacto.
+
+Há um workflow dedicado para compilar o novo aplicativo; não confundir sucesso de compilação com funcionamento no PS4 físico. Consulte [native-pair/README.md](../native-pair/README.md).
