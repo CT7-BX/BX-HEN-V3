@@ -10,9 +10,11 @@ Permitir futuramente jogar e controlar um PS4 em casa por meio de um iPhone ou M
 
 ## Situação real
 
-**Interface 0.4 — controles refinados e diagnóstico LAN.** A página em [remote/](remote/) possui controles de toque automáticos no celular, dois sticks multitoque, suporte a DualShock 4, layout imersivo/tela cheia, metas de qualidade e uma interface para o relay de laboratório. O vídeo do PS4 ainda não está conectado.
+**Interface 0.5 — controles refinados, diagnóstico LAN e vínculo de laboratório.** A página em [remote/](remote/) possui controles de toque automáticos no celular, dois sticks multitoque, suporte a DualShock 4, layout imersivo/tela cheia, metas de qualidade e uma interface para o relay de laboratório. O vídeo do PS4 ainda não está conectado.
 
 **O PKG PS4 de diagnóstico foi aprimorado na v0.21**, com notificação de resultado, ícone próprio, tratamento de erros de rede temporários e testes adicionais de metadados e integridade. Continua sem validação em console físico e não transmite jogos.
+
+**Vínculo em desenvolvimento:** a interface e o relay têm agora solicitação de código de oito dígitos, aprovação por console **simulado** e credencial temporária. Esse fluxo NÃO vincula o PS4 físico, nem substitui o registro do protocolo Remote Play. [Documentação do teste de vínculo](docs/PAIRING-AND-REAL-PS4.md).
 
 **Não funciona ainda como Remote Play:** não transmite vídeo/áudio nem envia comandos ao PS4 real. Existe agora um relay **experimental** com autenticação para ligar o navegador a um **console simulado**; ainda falta um agente PS4 persistente, transporte de mídia e integração do protocolo Remote Play. Nenhuma sessão com console físico foi comprovada.
 
@@ -25,7 +27,8 @@ A raiz do site redireciona para `remote/`; mantemos esse caminho para evitar que
 - [remote/tests/](remote/tests/) — testes automatizados
 - [remote/README.md](remote/README.md) — requisitos, limitações e arquitetura futura
 - [ps4-agent/](ps4-agent/) — prova HTTPS para PS4 e PKG experimental gerado em CI, ainda sem validação no console
-- [relay/](relay/) — servidor Node autenticado de controle para console simulado (sem streaming)
+- [relay/](relay/) — servidor Node autenticado de controle e pareamento com console simulado (sem streaming)
+- [docs/PAIRING-AND-REAL-PS4.md](docs/PAIRING-AND-REAL-PS4.md) — código temporário, aprovação e próximos passos com o PS4 físico
 - [remote/relay-lab.html](remote/relay-lab.html) — laboratório de controle separado
 - [remote/game-core.js](remote/game-core.js) — estado de controles, seleção automático/toque/físico e metas de qualidade
 - [remote/game.js](remote/game.js) — interação da tela, multitoque, tela cheia e enlace ao relay simulado

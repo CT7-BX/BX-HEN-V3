@@ -367,14 +367,13 @@
     }
   }
 
-  $("relayConnect").addEventListener("click", () => {
-    const endpoint = game.validRelayEndpoint($("relayEndpoint").value.trim());
-    const token = $("relayToken").value;
+  function connectRelay(endpoint, token) {
+    endpoint = game.validRelayEndpoint(endpoint);
     if (!endpoint) {
       log("Endereço inválido: use wss://.../v1/link (ws:// somente em localhost).");
       return;
     }
-    if (token.length < 32) {
+    if (typeof token !== "string" || token.length < 32) {
       log("O token do jogador precisa ter pelo menos 32 caracteres.");
       return;
     }
@@ -406,6 +405,17 @@
     client.onclose = () => {
       if (ws === client) closeRelay("Sessão de laboratório encerrada.");
     };
+  }
+  $("relayConnect").addEventListener("click", () => {
+    const endpoint = $("relayEndpoint").value.trim();
+    const token = $("relayToken").value;
+    $("relayToken").value = "";
+    connectRelay(endpoint, token);
+  });
+  window.addEventListener("bxremote:paired", event => {
+    const endpoint = event.detail?.endpoint;
+    const token = event.detail?.playerToken;
+    connectRelay(endpoint, token);
   });
   $("relayDisconnect").addEventListener("click", () => closeRelay("Desconectado manualmente."));
 

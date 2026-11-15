@@ -1,4 +1,4 @@
-# BX-REMOTE-PLAY — relay de laboratório v0.2
+# BX-REMOTE-PLAY — relay de laboratório v0.3
 
 **Estado:** demonstrador verificável do caminho navegador → servidor → console **simulado** → resposta. Não é Remote Play e não existe vídeo, áudio ou conexão nativa com o PS4.
 
@@ -92,3 +92,11 @@ npm run probe:ps4 -- 192.168.1.20
 ```
 
 Substitua pelo endereço privado correto do seu PS4. A descoberta pode indicar ligado/repouso, tipo e nome informado pelo console; por privacidade não apresenta o identificador de hardware `host-id`. **Ausência de resposta não significa necessariamente que não seja um PS4** (firewall, versões DDP ou configuração de descoberta podem interferir). Resposta DDP ou TCP 9295 **não equivale a pareamento nem transmissão de vídeo**. Os testes de integração desta ferramenta utilizam um dispositivo UDP simulado.
+
+## Vínculo por código com aprovação do console simulado
+
+Já existe um fluxo de pareamento com código de 8 números, expiração em 120 segundos, aprovação manual e token do navegador válido por 15 minutos. Depois da aprovação, o navegador abre o WebSocket automaticamente. Isso **não** implementa ainda a vinculação do PKG PS4 nem vídeo/áudio.
+
+Execute npm run demo:pair após iniciar npm start para gerar o código de teste. Os endpoints e o exemplo completo estão em [docs/PAIRING-AND-REAL-PS4.md](../docs/PAIRING-AND-REAL-PS4.md).
+
+O servidor continua sendo uma prova de laboratório: sem infraestrutura de produção, armazenamento de dispositivos, antiabuso distribuído ou relay de mídia. Não expor via HTTP público ou usar credenciais permanentes em código.

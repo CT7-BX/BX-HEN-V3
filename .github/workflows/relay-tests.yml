@@ -32,6 +32,9 @@ jobs:
         run: |
           node --check relay/server.mjs
           node --check relay/demo-console.mjs
+          node --check relay/demo-pair-console.mjs
+          node --check relay/pairing.mjs
+          node --check relay/pair-http.mjs
       - name: Auth, input and session integration tests
         working-directory: relay
         run: npm test

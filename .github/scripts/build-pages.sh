@@ -25,6 +25,7 @@ assets=(
   controller-core.js
   game-core.js
   game.js
+  pair-client.js
   touch-layout.css
   relay-lab.html
   ps4-probe.txt
