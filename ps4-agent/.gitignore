@@ -1,0 +1,7 @@
+# Build outputs and external toolchain sample assets
+build/
+eboot.bin
+pkg.gp4
+*.pkg
+sce_sys/
+sce_module/
