@@ -24,6 +24,9 @@
   };
   const updateStats = metrics => {
     if (!metrics) {
+      stats.dataset.video = "no";
+      stats.dataset.audio = "no";
+      stats.dataset.bytes = "no";
       stats.textContent = "Sem dados reais recebidos. Nenhuma fonte de vídeo ou áudio foi confirmada.";
       return;
     }
