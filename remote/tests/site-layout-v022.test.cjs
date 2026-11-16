@@ -29,7 +29,7 @@ test("quick actions point to existing sections, with no fake PS4 media promises"
     assert.match(html, new RegExp('id="' + id + '"'));
     assert.match(html, new RegExp('href="#' + id + '"'));
   }
-  assert.match(html, /O streaming direto dos jogos ainda está em desenvolvimento/);
+  assert.match(html, /streaming direto dos jogos ainda está em desenvolvimento/i);
   assert.match(html, /id="streamVideo"/);
   assert.match(html, /id="touchOverlay"/);
   assert.match(html, /id="bridgeProbeRequest"/);
