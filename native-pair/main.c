@@ -1,5 +1,5 @@
 /*
- * BX-REMOTE-PLAY PS4 Pairing Proof v0.23
+ * BX-REMOTE-PLAY PS4 Pairing Proof v0.24
  *
  * NEW, SEPARATE PKG. Not the existing HTTPS diagnostic.
  * Foreground-only console-side HTTP pairing test, with local DualShock consent.
@@ -46,7 +46,7 @@
 #define CONFIG_AUTO_RECHECK_TICKS 50 /* re-read .cfg every five seconds */
 #define UPDATE_MANIFEST_URL "https://ct7-bx.github.io/BX-REMOTE-PLAY/remote/update.txt"
 #define CURRENT_UPDATE_MAJOR 0u
-#define CURRENT_UPDATE_MINOR 23u
+#define CURRENT_UPDATE_MINOR 24u
 
 typedef struct HttpContext {
     int initialized_net;
@@ -80,7 +80,7 @@ static void report(const char *stage, int code, int status) {
         f=fopen(location,"w");
         if (!f) return;
     }
-    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.23\n");
+    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.24\n");
     fprintf(f, "stage=%s\n", stage ? stage : "unknown");
     fprintf(f, "result_code=%d\nhttp_status=%d\n", code, status);
     fprintf(f, "recovery=%s\n", bx_diag_hint(stage, status));
@@ -143,7 +143,7 @@ static int open_http(HttpContext *ctx) {
     if (ctx->ssl < 0) return 0;
     ctx->http = sceHttpInit(ctx->pool, ctx->ssl, HTTP_MEMORY_BYTES);
     if (ctx->http < 0) return 0;
-    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.23",
+    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.24",
         ORBIS_HTTP_VERSION_1_1, 1);
     return ctx->tmpl >= 0;
 }
@@ -367,13 +367,13 @@ static void offer_resident_setup(int pad, uint32_t *last_buttons) {
     if(marker) {
         size_t read=fread(version,1,sizeof(version)-1,marker);
         fclose(marker);
-        if(read==5 && memcmp(version,"0.23\n",5)==0
+        if(read==5 && memcmp(version,"0.24\n",5)==0
           && stat("/data/payloads/bx-remote-service.elf",&installed)==0) {
             /* Already installed the current resident, skip repeat prompt. */
             return;
         }
     }
-    notice("BX-REMOTE: TRIANGULO ATUALIZA servico ELF 0.23; X segue.");
+    notice("BX-REMOTE: TRIANGULO ATUALIZA servico ELF 0.24; X segue.");
     for (tick=0; tick<140; ++tick) {
         OrbisPadData state;
         uint32_t fresh;
