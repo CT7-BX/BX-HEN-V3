@@ -69,7 +69,7 @@ test("gateway landing page and main site link are real assets without PSN token 
   assert.match(gateway,/android-readiness\.js\?v=0\.26/);
   assert.match(gateway,/ainda não implementada/);
   assert.doesNotMatch(browser,/localStorage|sessionStorage|Authorization|console_token|navigator\.geolocation/);
-  assert.doesNotMatch(manifest,/<uses-permission\s/);
+  assert.match(manifest,/<uses-permission android:name="android.permission.INTERNET"/);
   assert.match(android,/MediaCodecList/);
   assert.match(android,/isLowRamDevice/);
   assert.match(android,/MediaProjectionManager/);
