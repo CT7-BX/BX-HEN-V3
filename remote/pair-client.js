@@ -86,7 +86,9 @@
     report("Servidor alterado. Solicitação anterior cancelada.");
   });
 
-  $("pairCheck").addEventListener("click", async () => {
+  // The page's independent health probe takes priority if available.
+  // Keep this legacy handler as a fallback for isolated browser tests.
+  if (!window.BXRemoteHealthStandalone) $("pairCheck").addEventListener("click", async () => {
     const server = pairingTarget();
     const target = $("pairServerStatus");
     stopHealthCheck();
@@ -245,7 +247,7 @@
   // Check the public backend once when the user opens the pairing section.
   // No console secret, PIN or account data is sent by this GET request.
   let openedOnce = false;
-  $("pairSection")?.addEventListener("toggle", () => {
+  if (!window.BXRemoteHealthStandalone) $("pairSection")?.addEventListener("toggle", () => {
     if (!openedOnce && $("pairSection").open) {
       openedOnce = true;
       $("pairCheck").click();
