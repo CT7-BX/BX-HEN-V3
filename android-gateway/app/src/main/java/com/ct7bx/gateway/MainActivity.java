@@ -6,9 +6,12 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.os.BatteryManager;
+import android.os.PowerManager;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
 import android.media.projection.MediaProjectionManager;
@@ -41,6 +44,9 @@ public final class MainActivity extends Activity {
     private LinearLayout layout;
     private TextView diagnostics;
     private String report = "";
+    private Button copyButton;
+    private TextView copyStatus;
+    private static final String STATE_REPORT = "bx_diagnostic_report";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,8 +73,9 @@ public final class MainActivity extends Activity {
         Button inspect = button("Analisar aparelho", true);
         inspect.setOnClickListener(v -> inspectDevice());
 
-        Button copy = button("Copiar relatório local", false);
-        copy.setOnClickListener(v -> {
+        copyButton = button("Copiar relatório local", false);
+        copyButton.setEnabled(false);
+        copyButton.setOnClickListener(v -> {
             if (report.isEmpty()) {
                 diagnostics.setText("Execute a análise antes de copiar.");
                 return;
@@ -76,7 +83,7 @@ public final class MainActivity extends Activity {
             ClipboardManager cb = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
             if (cb != null) {
                 cb.setPrimaryClip(ClipData.newPlainText("BX Gateway compatibility", report));
-                label("Relatório copiado. Você controla se deseja compartilhá-lo.", 13, MUTED, Typeface.NORMAL, 6);
+                copyStatus.setText("Relatório copiado. Você controla se deseja compartilhá-lo.");
             }
         });
         Button web = button("Abrir central BX no navegador", false);
@@ -90,16 +97,32 @@ public final class MainActivity extends Activity {
         });
 
         diagnostics = label("Nenhum teste executado. Não há comunicação com PS4 nesta versão.",
-            14, WHITE, Typeface.NORMAL, 20);
+            14, WHITE, Typeface.NORMAL, 12);
         diagnostics.setTextIsSelectable(true);
+        copyStatus = label("", 13, MUTED, Typeface.NORMAL, 12);
+        if (savedInstanceState != null) {
+            String restored = savedInstanceState.getString(STATE_REPORT, "");
+            if (!restored.isEmpty()) {
+                report = restored;
+                diagnostics.setText(report);
+                copyButton.setEnabled(true);
+            }
+        }
         label("Privacidade: o APK não solicita permissão de internet, câmera, " +
             "microfone, mídia ou armazenamento. Não coleta contas ou PINs, " +
             "e não inicia serviço em segundo plano.", 12, MUTED, Typeface.NORMAL, 22);
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putString(STATE_REPORT, report);
+        super.onSaveInstanceState(outState);
+    }
+
     private void inspectDevice() {
+        copyStatus.setText("");
         StringBuilder result = new StringBuilder(600);
-        result.append("BX Android Gateway — diagnóstico v0.1.0\n");
+        result.append("BX Android Gateway — diagnóstico v0.2.0\n");
         result.append("Sistema: Android ").append(Build.VERSION.RELEASE).append("\n");
         result.append("API: ").append(Build.VERSION.SDK_INT).append("\n");
         result.append("Modelo (relatório local): ").append(Build.MANUFACTURER).append(" ")
@@ -121,6 +144,13 @@ public final class MainActivity extends Activity {
         } else result.append("RAM física: indisponível\n");
         result.append("Aparelho de baixa RAM (Android): ")
             .append(lowRam ? "sim" : "não informado como baixo").append("\n");
+        if (manager != null && memory.availMem > 0) {
+            result.append("RAM disponível no momento: ").append(
+                String.format(Locale.US, "%.2f", ((double) memory.availMem) /
+                    (1024.0 * 1024.0 * 1024.0))).append(" GiB\n");
+            result.append("Pressão de memória no momento: ")
+                .append(memory.lowMemory ? "alta" : "não sinalizada").append("\n");
+        }
 
         int decoders = 0;
         int encoders = 0;
@@ -166,6 +196,48 @@ public final class MainActivity extends Activity {
                 "API Android 10+ (depende da política do app)" :
                 "indisponível antes do Android 10").append("\n");
 
+        // Sticky battery broadcast is read locally: no permission and no
+        // background polling. It is only a snapshot, NOT a 24h safety monitor.
+        try {
+            Intent battery = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+            if (battery != null) {
+                int level = battery.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+                int scale = battery.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+                if (level >= 0 && scale > 0)
+                    result.append("Bateria no momento: ")
+                        .append(Math.round((100f * level) / scale)).append("%\n");
+                int batteryStatus = battery.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+                result.append("Carregamento: ")
+                    .append(batteryStatus == BatteryManager.BATTERY_STATUS_CHARGING ||
+                            batteryStatus == BatteryManager.BATTERY_STATUS_FULL ?
+                            "conectado/concluído" : "não confirmado").append("\n");
+                int temp = battery.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
+                if (temp > 0) {
+                    result.append("Temperatura informada da bateria: ")
+                        .append(String.format(Locale.US, "%.1f", temp / 10.0f))
+                        .append(" °C (somente leitura atual)\n");
+                    if (temp >= 420)
+                        result.append("Atenção: bateria quente. Não usar como gateway contínuo nessas condições.\n");
+                }
+            } else result.append("Bateria: informação não disponível\n");
+        } catch (RuntimeException error) {
+            result.append("Bateria: não foi possível consultar neste Android\n");
+        }
+        if (Build.VERSION.SDK_INT >= 29) {
+            try {
+                PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+                if (pm != null) {
+                    int state = pm.getCurrentThermalStatus();
+                    result.append("Estado térmico Android: ").append(state)
+                        .append(" (0=normal; 3+=sob pressão, varia conforme fabricante)\n");
+                    if (state >= PowerManager.THERMAL_STATUS_SEVERE)
+                        result.append("Atenção: pressão térmica elevada. Interrompa testes exigentes.\n");
+                }
+            } catch (RuntimeException error) {
+                result.append("Estado térmico: não disponível neste aparelho\n");
+            }
+        } else result.append("Estado térmico do sistema: API não disponível antes do Android 10\n");
+
         String profile;
         if (lowRam || (ramBytes > 0 && ramBytes < 1600L * 1024L * 1024L))
             profile = "Muito limitado: começar com testes visuais leves; 480p pode falhar.";
@@ -173,11 +245,13 @@ public final class MainActivity extends Activity {
             profile = "Modesto: iniciar futuros testes em 480p; sem garantia de 30 FPS.";
         else profile = "Recursos não garantidos: codecs e desempenho exigem teste físico.";
         result.append("Orientação: ").append(profile).append("\n");
+        result.append("Nota: bateria, memória e estado térmico são leituras pontuais, não monitoramento contínuo.\n");
         result.append("Streaming PS4 integrado ao BX: NÃO IMPLEMENTADO\n");
         result.append("Dados enviados ao BX: NENHUM\n");
 
         report = result.toString();
         diagnostics.setText(report);
+        copyButton.setEnabled(true);
     }
 
     private TextView label(String value, int sp, int color, int style, int bottom) {

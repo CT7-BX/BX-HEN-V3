@@ -126,6 +126,41 @@
     copy.disabled = false;
     status.textContent = "Avaliação local concluída. Nenhuma informação do aparelho foi enviada ao BX.";
   });
+  const shareLink = $("androidShareLink");
+  const shareStatus = $("androidShareStatus");
+  const manualLink = $("androidManualLink");
+  if (shareLink && shareStatus && manualLink) {
+    shareLink.addEventListener("click", async () => {
+      // A fixed public page URL: never append pairing codes or private tokens.
+      const url = new URL("./gateway.html", window.location.href).href;
+      manualLink.hidden = true;
+      if (typeof navigator.share === "function") {
+        try {
+          await navigator.share({title:"BX Android Gateway", url});
+          shareStatus.textContent = "Menu de compartilhamento concluído.";
+          return;
+        } catch (error) {
+          if (error?.name === "AbortError") {
+            shareStatus.textContent = "Compartilhamento cancelado.";
+            return;
+          }
+        }
+      }
+      try {
+        if (typeof navigator.clipboard?.writeText !== "function")
+          throw new Error("clipboard_unavailable");
+        await navigator.clipboard.writeText(url);
+        shareStatus.textContent = "Link copiado. Envie ao Android antigo quando puder.";
+      } catch {
+        manualLink.value = url;
+        manualLink.hidden = false;
+        manualLink.focus();
+        manualLink.select();
+        shareStatus.textContent =
+          "Copie o endereço selecionado e abra no Android antigo.";
+      }
+    });
+  }
   copy.addEventListener("click", async () => {
     if (!last) return;
     try {

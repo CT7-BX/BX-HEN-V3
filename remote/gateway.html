@@ -7,7 +7,7 @@
 <meta name="description" content="BX Android Gateway: avalie seu celular antigo antes dos testes de Remote Play.">
 <title>BX-REMOTE-PLAY | Android Gateway</title>
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="./site-v2.css?v=0.24">
+<link rel="stylesheet" href="./site-v2.css?v=0.25">
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#090a0f;color:#f6f0f4}
@@ -31,6 +31,9 @@ button:focus-visible,a:focus-visible{outline:3px solid #ffb7c4;outline-offset:3p
 .buttons{display:flex;flex-wrap:wrap;gap:10px;margin:15px 0}
 #androidStatus{font-size:.82rem;line-height:1.6;color:#ecc8d4}
 #androidOutput{display:grid;gap:8px}
+#androidManualLink{width:100%;max-width:100%;min-height:45px;padding:10px 12px;border-radius:10px;background:#101118;border:1px solid #785166;color:#fff;font:inherit;overflow-wrap:anywhere}
+#androidShareStatus{color:#d6bccb;font-size:.8rem;line-height:1.5}
+[hidden]{display:none!important}
 .android-result-row{background:#14151b;border:1px solid #4b3c49;border-left:3px solid #f44764;border-radius:10px;padding:11px}
 .android-result-row strong{display:block;color:#fff;font-size:.78rem;margin-bottom:4px}
 .android-result-row span{color:#c9bac7;font-size:.79rem;line-height:1.5}
@@ -64,15 +67,21 @@ small{color:#b5a8b6;line-height:1.5}
   <p id="androidStatus" role="status" aria-live="polite">Nenhuma avaliação iniciada.</p>
   <div id="androidOutput" role="group" aria-label="Resultados locais de compatibilidade"></div>
   <p class="hint">Os resultados não são transmitidos ao BX nem salvos automaticamente. Você escolhe se deseja copiá-los.</p>
+  <div class="buttons">
+    <button id="androidShareLink" type="button">Compartilhar link com o Android</button>
+  </div>
+  <p id="androidShareStatus" role="status" aria-live="polite">Abra esta página no celular antigo para executar a análise.</p>
+  <input id="androidManualLink" type="text" aria-label="Endereço da central Android para copiar" readonly hidden>
+
 </section>
 <section class="card" aria-labelledby="nativeTitle">
   <h2 id="nativeTitle">BX Android Gateway — aplicativo nativo</h2>
-  <p>Um APK de diagnóstico está sendo preparado para celulares a partir do Android 7. Ele poderá mostrar RAM física, versão do Android e codecs H.264 diretamente no aparelho. <strong>Esse APK ainda não retransmite jogos.</strong></p>
+  <p>O APK experimental v0.2 já pode ser compilado para celulares a partir do Android 7. Ele verifica RAM física e livre, versão do Android, codecs H.264 e leituras pontuais de bateria e temperatura diretamente no aparelho. <strong>Esse APK ainda não retransmite jogos.</strong></p>
   <div class="buttons">
-    <a class="action-link" href="https://github.com/CT7-BX/BX-REMOTE-PLAY/actions/workflows/android-gateway-build.yml" rel="noopener noreferrer" target="_blank">Consultar APK experimental no GitHub</a>
+    <a class="action-link" href="https://github.com/CT7-BX/BX-REMOTE-PLAY/actions/workflows/android-gateway-build.yml" rel="noopener noreferrer" target="_blank">Consultar APK v0.2 no GitHub Actions</a>
     <a class="action-link" href="https://developer.android.com/media/platform/av-capture" rel="noopener noreferrer" target="_blank">Entender permissões do Android</a>
   </div>
-  <p class="warning">Não deixe um Android antigo transmitindo ou carregando sem supervisão por longos períodos. A versão futura deverá parar automaticamente se houver superaquecimento ou problemas de energia.</p>
+  <p class="warning">O aplicativo mede bateria, memória e temperatura apenas quando você tocar em Analisar. <strong>Isso não monitora segurança 24h</strong> nem garante que o aparelho antigo consiga transmitir jogos. Evite deixá-lo superaquecendo ou carregando sem supervisão.</p>
 </section>
 <section class="card">
   <h2>Como será a integração com o PS4</h2>
@@ -85,6 +94,6 @@ small{color:#b5a8b6;line-height:1.5}
   <p class="hint">O modo BX Native, somente PS4 + iPhone, continua como objetivo paralelo. Nenhum dos dois modos já transmite vídeo do PS4 no nosso site.</p>
 </section>
 </main>
-<script src="./android-readiness.js?v=0.24"></script>
+<script src="./android-readiness.js?v=0.25"></script>
 </body>
 </html>
