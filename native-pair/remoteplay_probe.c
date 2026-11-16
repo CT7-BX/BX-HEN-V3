@@ -12,6 +12,7 @@
  */
 #include "remoteplay_probe.h"
 #include <stdint.h>
+#include <stddef.h>
 #include <orbis/Net.h>
 
 #define BX_RP_TCP_PORT 9295u
