@@ -280,3 +280,101 @@
 @media (prefers-reduced-motion:reduce) {
   .virtual-pad button { transition: none; }
 }
+
+/* Mobile remote-play layout: original translucent controller surfaces. */
+.virtual-pad {
+  --control-ink: rgba(239,243,250,.94);
+  --control-border: rgba(232,238,255,.38);
+  --control-fill: rgba(23,29,43,var(--touch-alpha));
+}
+.virtual-pad button {
+  background: var(--control-fill);
+  border-color: var(--control-border);
+  color: var(--control-ink);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.13),0 3px 12px rgba(0,0,0,.26);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.virtual-pad button.held {
+  background: rgba(97,134,195,.8);
+  border-color: rgba(235,247,255,.9);
+  box-shadow: 0 0 0 3px rgba(155,196,255,.15);
+}
+.virtual-pad .face button {
+  background: rgba(19,26,39,calc(var(--touch-alpha) * .76));
+  border-color: rgba(241,245,255,.47);
+  font-size: 1.45rem;
+  font-weight: 400;
+}
+.virtual-pad .face button:nth-child(n) { color: #f0f3ff; }
+.virtual-pad .dpad button {
+  border-radius: 9px;
+  background: rgba(20,27,40,calc(var(--touch-alpha) * .82));
+  border-color: rgba(231,240,255,.34);
+  font-size: 1.25rem;
+}
+.virtual-pad .dpad::before {
+  background: rgba(20,27,40,.24);
+  border-color: rgba(230,240,255,.15);
+}
+.virtual-pad .stick {
+  background: radial-gradient(circle at 50% 45%,rgba(54,65,85,.55),rgba(14,19,30,var(--touch-alpha)));
+  border-color: rgba(230,240,255,.46);
+  box-shadow: inset 0 0 24px rgba(0,0,0,.45),0 3px 14px rgba(0,0,0,.22);
+}
+.virtual-pad .stick::before { border-style: solid; border-color: rgba(233,242,255,.15); }
+.virtual-pad .stick .knob {
+  background: radial-gradient(circle at 40% 32%,rgba(142,158,184,.76),rgba(42,53,74,.88));
+  border-color: rgba(238,246,255,.58);
+}
+.virtual-pad .stick-label { opacity: .45; font-size: .58rem; }
+.virtual-pad .central-pad button {
+  min-width: 44px;
+  min-height: 30px;
+  background: rgba(18,24,37,.5);
+  border-color: rgba(230,240,255,.25);
+  font-size: .62rem;
+  letter-spacing: .02em;
+}
+.virtual-pad .central-pad button[data-button="16"] {
+  color: #eef3ff;
+  border-color: rgba(230,240,255,.55);
+}
+.virtual-pad .shoulder-pair button {
+  border-radius: 11px;
+  min-width: 59px;
+  min-height: 36px;
+  font-size: .72rem;
+  letter-spacing: .03em;
+}
+.virtual-pad .shoulders { gap: 20px; }
+.virtual-pad .shoulder-pair { gap: 6px; }
+.virtual-pad .left-group,.virtual-pad .right-group {
+  bottom: max(56px,calc(env(safe-area-inset-bottom) + 46px));
+}
+@media (orientation:landscape) and (max-height:560px) {
+  .virtual-pad .shoulders {
+    top: max(43px,env(safe-area-inset-top));
+  }
+  .virtual-pad .left-group,.virtual-pad .right-group {
+    bottom: max(37px,env(safe-area-inset-bottom));
+    gap: clamp(6px,1.3vw,15px);
+  }
+  .virtual-pad .central-pad {
+    bottom: max(5px,env(safe-area-inset-bottom));
+  }
+  .virtual-pad .dpad,.virtual-pad .face {
+    grid-template-columns: repeat(3,clamp(31px,5vw,42px));
+    grid-template-rows: repeat(3,clamp(31px,5vw,42px));
+  }
+  .virtual-pad .stick {
+    width: clamp(68px,10vw,92px);
+    height: clamp(68px,10vw,92px);
+  }
+}
+@media (orientation:portrait) and (max-width:740px) {
+  .virtual-pad .left-group,.virtual-pad .right-group {
+    bottom: max(66px,env(safe-area-inset-bottom));
+  }
+  .virtual-pad .shoulders { top: max(48px,env(safe-area-inset-top)); }
+}
