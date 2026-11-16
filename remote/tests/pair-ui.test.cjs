@@ -17,6 +17,8 @@ test("main screen has honest pairing entry point with consent messaging", () => 
   assert.match(html, /PS4 com o PKG Pair Test/);
   assert.match(html, /id="pairCheck"/);
   assert.match(html, /id="pairServerStatus"/);
+  assert.match(html, /value="https:\/\/bx-remote-link\.4rt949zpj8\.workers\.dev"/);
+  assert.match(html, /Servidor HTTPS de vincula/);
   assert.match(html, /src="\.\/pair-client\.js"/);
 });
 
@@ -40,7 +42,10 @@ test("mobile pairing calls have bounded timeouts and cancel outstanding requests
   assert.match(pairing, /function cancelActiveClaim\(\)/);
   assert.match(pairing, /setTimeout\(\(\) => controller\.abort\(\), 6500\)/);
   assert.match(pairing, /signal: controller\.signal/);
-  assert.match(pairing, /window\.addEventListener\("pagehide", cancelActiveClaim\)/);
+  assert.match(pairing, /window\.addEventListener\("pagehide", \(\) =>/);
+  assert.match(pairing, /function stopHealthCheck\(\)/);
+  assert.match(pairing, /game\.validPairingServer/);
+  assert.match(pairing, /function errorMessage\(error\)/);
 });
 
 test("approved pairing connects to existing relay without manual secret entry", () => {
