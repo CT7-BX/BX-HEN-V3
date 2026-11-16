@@ -6,7 +6,8 @@ int bx_ota_install_with_consent(const char *verified_pkg_path) {
     char title_id[32] = {0};
     int is_app = 0, result, initialized = 0;
     if (!verified_pkg_path || strncmp(verified_pkg_path,
-        "/data/pkg/BX-REMOTE-PLAY-Pair-Test-v", 35) != 0) return -100;
+        "/data/pkg/BX-REMOTE-PLAY-Pair-Test-v",
+        strlen("/data/pkg/BX-REMOTE-PLAY-Pair-Test-v")) != 0) return -100;
     result = sceAppInstUtilInitialize();
     if (result != 0) return result;
     initialized = 1;
