@@ -138,12 +138,66 @@ test("real WebRTC stats distinguish decoded video and received audio without pro
   receiver.stop();
 });
 
+test("WHEP connection timeout closes peer instead of hanging forever", async () => {
+  const peer = new FakePeer(), attached = [];
+  const receiver = createReceiver({
+    endpoint: base, requestTimeoutMs: 30,
+    createPeer: () => peer, createStream: () => new FakeStream(),
+    onStream: stream => attached.push(stream),
+    fetcher: () => new Promise(() => {})
+  });
+  await assert.rejects(receiver.start(), /gateway_timeout/);
+  assert.equal(peer.closed, true);
+  assert.equal(attached.at(-1), null);
+});
+
+test("WHEP handshake without decoded video warns clearly rather than claiming gameplay", async () => {
+  const peer = new FakePeer(), statuses = [];
+  peer.getStats = async () => new Map([
+    ["video", { type: "inbound-rtp", kind: "video", bytesReceived: 0, framesDecoded: 0 }]
+  ]);
+  const receiver = createReceiver({
+    endpoint: base, noVideoTimeoutMs: 30,
+    createPeer: () => peer, createStream: () => new FakeStream(),
+    fetcher: async (url, opts) => opts.method === "POST" ? goodResponse() : {status:200},
+    onStatus: text => statuses.push(text)
+  });
+  await receiver.start();
+  await new Promise(resolve => setTimeout(resolve, 60));
+  assert.ok(statuses.some(x => x.includes("nenhum quadro de vídeo foi decodificado")));
+  assert.ok(statuses.every(x => !x.includes("jogo iniciado")));
+  receiver.stop();
+  assert.equal(peer.closed, true);
+});
+
+test("received video frames prevent the missing-video warning", async () => {
+  const peer = new FakePeer(), statuses = [];
+  peer.getStats = async () => new Map([
+    ["video", { type: "inbound-rtp", kind: "video", bytesReceived: 1200, framesDecoded: 5 }]
+  ]);
+  const receiver = createReceiver({
+    endpoint: base, noVideoTimeoutMs: 30,
+    createPeer: () => peer, createStream: () => new FakeStream(),
+    fetcher: async (url, opts) => opts.method === "POST" ? goodResponse() : {status:200},
+    onStatus: text => statuses.push(text)
+  });
+  await receiver.start();
+  await new Promise(resolve => setTimeout(resolve, 60));
+  assert.equal(statuses.some(x => x.includes("nenhum quadro de vídeo foi decodificado")), false);
+  receiver.stop();
+});
+
 test("main screen exposes WHEP controls separately from HTTP pairing and WSS simulator", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   assert.match(html, /id="mediaSection"/);
   assert.match(html, /id="mediaEndpoint"/);
   assert.match(html, /id="mediaToken"[^>]+type="password"|id="mediaToken"/);
   assert.match(html, /id="mediaDisconnect"/);
+  assert.match(html, /id="mediaConnectionMode"/);
+  assert.match(html, /id="mediaGatewayFields" hidden/);
+  assert.match(html, /id="mediaNoGateway"/);
+  assert.match(html, /<video[^>]+autoplay muted playsinline/);
+  assert.match(html, /Sem fonte de mídia conectada/);
   assert.match(html, /id="realAvTest"/);
   assert.match(html, /id="mediaHealth"/);
   assert.match(html, /não é o código de oito dígitos/);
