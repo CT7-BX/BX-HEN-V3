@@ -1,0 +1,125 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const { validEndpoint, resourceUrl, createReceiver } = require("../media-whep.js");
+
+const base = "https://media.example.test/live/ps4/whep";
+class FakeStream {
+  tracks = [];
+  getTracks() { return this.tracks; }
+  addTrack(track) { this.tracks.push(track); }
+}
+class FakePeer {
+  transceivers = [];
+  iceGatheringState = "complete";
+  connectionState = "new";
+  closed = false;
+  addTransceiver(kind, options) { this.transceivers.push([kind, options.direction]); }
+  async createOffer() { return { type: "offer", sdp: "v=0\r\nmock=offer\r\n" }; }
+  async setLocalDescription(offer) { this.localDescription = offer; }
+  async setRemoteDescription(answer) {
+    this.remoteDescription = answer;
+    this.ontrack({ track: { id: "real-track-1" } });
+  }
+  close() { this.closed = true; }
+}
+
+function goodResponse(location = "/sessions/abc") {
+  return {
+    status: 201,
+    headers: { get(name) {
+      if (name === "location") return location;
+      if (name === "content-type") return "application/sdp";
+      return null;
+    } },
+    text: async () => "v=0\r\nmock=answer\r\n"
+  };
+}
+
+test("only user-supplied HTTPS WHEP endpoints or localhost HTTP are accepted", () => {
+  assert.equal(validEndpoint(base), base);
+  assert.equal(validEndpoint("http://localhost:8889/live/whep"), "http://localhost:8889/live/whep");
+  for (const input of ["https://media.example.test/", "http://media.example.test/live/whep",
+    "wss://media.example.test/live/whep", "https://user:pass@media.example.test/whep",
+    "https://media.example.test/whep?token=private", "https://media.example.test/whep#x"]) {
+    assert.equal(validEndpoint(input), null, input);
+  }
+  assert.equal(resourceUrl("/sessions/abc", base), "https://media.example.test/sessions/abc");
+  assert.equal(resourceUrl("https://bad.example.test/private", base), null);
+  assert.equal(resourceUrl("javascript:alert(1)", base), null);
+});
+
+test("WHEP negotiates recvonly audio+video, attaches real tracks, and revokes same-origin session", async () => {
+  const calls = [], attached = [], statuses = [], peer = new FakePeer();
+  const receiver = createReceiver({
+    endpoint: base, token: "separate-media-token",
+    fetcher: async (url, options) => {
+      calls.push({ url, options });
+      return options.method === "POST" ? goodResponse() : { status: 200 };
+    },
+    createPeer: () => peer,
+    createStream: () => new FakeStream(),
+    onStream: stream => attached.push(stream),
+    onStatus: status => statuses.push(status)
+  });
+  assert.equal(await receiver.start(), true);
+  assert.deepEqual(peer.transceivers, [["video", "recvonly"], ["audio", "recvonly"]]);
+  assert.equal(peer.remoteDescription.type, "answer");
+  assert.equal(calls[0].url, base);
+  assert.equal(calls[0].options.method, "POST");
+  assert.equal(calls[0].options.headers.Authorization, "Bearer separate-media-token");
+  assert.equal(calls[0].options.credentials, "omit");
+  assert.equal(calls[0].options.redirect, "error");
+  assert.equal(attached[0].getTracks()[0].id, "real-track-1");
+  assert.ok(statuses.some(s => s.includes("WebRTC")));
+  receiver.stop();
+  assert.equal(peer.closed, true);
+  assert.equal(attached.at(-1), null);
+  assert.equal(calls.at(-1).options.method, "DELETE");
+  assert.equal(calls.at(-1).url, "https://media.example.test/sessions/abc");
+  assert.equal(calls.at(-1).options.headers.Authorization, "Bearer separate-media-token");
+});
+
+test("does not follow cross-origin WHEP session links or leak bearer credentials", async () => {
+  const calls = [];
+  const peer = new FakePeer();
+  const receiver = createReceiver({
+    endpoint: base, token: "private-media-token",
+    createPeer: () => peer, createStream: () => new FakeStream(),
+    fetcher: async (url, options) => {
+      calls.push({ url, options });
+      return goodResponse("https://other.example.test/steal-token");
+    }
+  });
+  await assert.rejects(receiver.start(), /invalid_session_url/);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, base);
+  assert.equal(peer.closed, true);
+});
+
+test("rejects fake media HTTP responses instead of reporting a PS4 video stream", async () => {
+  const streams = [], peer = new FakePeer();
+  const receiver = createReceiver({
+    endpoint: base,
+    createPeer: () => peer, createStream: () => new FakeStream(),
+    onStream: stream => streams.push(stream),
+    fetcher: async () => ({ status: 200, headers: { get: () => null } })
+  });
+  await assert.rejects(receiver.start(), /whep_http_200/);
+  assert.equal(peer.closed, true);
+  assert.deepEqual(streams, [null]);
+});
+
+test("main screen exposes WHEP controls separately from HTTP pairing and WSS simulator", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  assert.match(html, /id="mediaSection"/);
+  assert.match(html, /id="mediaEndpoint"/);
+  assert.match(html, /id="mediaToken"[^>]+type="password"|id="mediaToken"/);
+  assert.match(html, /id="mediaDisconnect"/);
+  assert.match(html, /src="\.\/media-whep\.js"/);
+  assert.match(html, /src="\.\/media-controls\.js"/);
+  assert.match(html, /o Worker BX-REMOTE-LINK não é um servidor WHEP/);
+  assert.match(html, /id="pairSection"/);
+  assert.match(html, /id="relaySection"/);
+});

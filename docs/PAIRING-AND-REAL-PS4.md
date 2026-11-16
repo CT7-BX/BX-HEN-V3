@@ -2,7 +2,7 @@
 
 ## Estado real
 
-Implementado e testável: navegador → relay Node → **console simulado**. Este módulo ainda não conecta ao PS4 físico e não transmite vídeo ou áudio. O PKG v0.21 segue apenas como diagnóstico HTTPS.
+Implementado e testável: navegador → relay Node → **console simulado**, além de pareamento HTTPS no PKG experimental. O site agora aceita áudio e vídeo por **receptor WHEP/WebRTC** quando um gateway externo compatível já fornece mídia, mas o relay Node do BX não tem fonte PS4, não transmite vídeo nem controle real de jogos. O PKG v0.21 segue apenas como diagnóstico HTTPS.
 
 ## Como funciona
 
@@ -61,7 +61,7 @@ Os endpoints protegidos usam Authorization: Bearer. A aplicação só aceita ori
 1. Validar a instalação e o diagnóstico HTTPS do PKG v0.21 no console físico.
 2. Desenvolver e testar um agente PS4 residente com tela de aprovação, TLS, pareamento revogável e conexão de saída; ainda não há ELF residente funcional.
 3. Criar PKG gerenciador que inicie/pare o agente e só habilite AutoRun depois de validação física.
-4. Integrar registro nativo Remote Play e streaming de mídia via gateway Chiaki-NG-Web, com respeito à licença AGPL-3.0. O código BX de vínculo não substitui o código oficial de registro do Remote Play.
+4. Integrar registro nativo Remote Play e streaming de mídia via gateway Chiaki-NG-Web, com respeito à licença AGPL-3.0. O frontend tem entrada WHEP de recepção, mas não há gateway Chiaki→WHEP publicado. Veja [REAL-MEDIA-GATEWAY.md](REAL-MEDIA-GATEWAY.md). O código BX de vínculo não substitui o código oficial de registro do Remote Play.
 5. Validar conexão local e depois internet externa/CGNAT com gateway protegido, controle de banda, privacidade e medição real da latência.
 
 Referências: https://github.com/CSystem77/Chiaki-NG-Web , https://github.com/MoHadiShibli/Control4Free e https://github.com/GoldHEN/GoldHEN .

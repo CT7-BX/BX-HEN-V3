@@ -1,0 +1,161 @@
+/* BX-REMOTE-PLAY WHEP receiver: standards-based real WebRTC media, no demo frames.
+ * The separate media gateway must already provide WHEP and a PS4 media source.
+ * No account IDs, pairing PINs, or private console tokens are used here.
+ */
+(function (root, factory) {
+  "use strict";
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (root) root.BXWhepMedia = api;
+})(typeof globalThis === "object" ? globalThis : this, function () {
+  "use strict";
+
+  function validEndpoint(raw) {
+    if (typeof raw !== "string" || raw.length > 512 || !raw.trim()) return null;
+    let url;
+    try { url = new URL(raw.trim()); } catch { return null; }
+    const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+    if (!(url.protocol === "https:" || (local && url.protocol === "http:"))) return null;
+    if (url.username || url.password || url.search || url.hash || url.pathname === "/") return null;
+    if (!url.hostname || /\s/.test(raw)) return null;
+    return url.href;
+  }
+
+  function resourceUrl(location, endpoint) {
+    if (!location) return null;
+    try {
+      const origin = new URL(endpoint);
+      const url = new URL(location, endpoint);
+      if (url.origin !== origin.origin || url.username || url.password || url.hash) return null;
+      return url.href;
+    } catch { return null; }
+  }
+
+  function waitForIce(peer, signal, timeoutMs) {
+    if (peer.iceGatheringState === "complete") return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      let done = false;
+      const stop = (error) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        peer.removeEventListener("icegatheringstatechange", changed);
+        signal.removeEventListener("abort", aborted);
+        if (error) reject(error);
+        else resolve();
+      };
+      const changed = () => {
+        if (peer.iceGatheringState === "complete") stop();
+      };
+      const aborted = () => stop(new Error("cancelled"));
+      const timer = setTimeout(() => stop(new Error("ice_timeout")), timeoutMs);
+      peer.addEventListener("icegatheringstatechange", changed);
+      signal.addEventListener("abort", aborted, { once: true });
+      if (signal.aborted) aborted();
+      else changed();
+    });
+  }
+
+  function createReceiver(options) {
+    const url = validEndpoint(options && options.endpoint);
+    if (!url) throw new Error("invalid_endpoint");
+    const fetcher = options.fetcher || ((...args) => fetch(...args));
+    const createPeer = options.createPeer || (() => new RTCPeerConnection({ iceServers: [] }));
+    const createStream = options.createStream || (() => new MediaStream());
+    const onStream = options.onStream || (() => {});
+    const onStatus = options.onStatus || (() => {});
+    const token = options.token || "";
+    if (typeof token !== "string" || token.length > 2048 || /[\r\n]/.test(token)) {
+      throw new Error("invalid_token");
+    }
+    const auth = token ? { Authorization: "Bearer " + token } : {};
+    const headers = Object.assign({ "Content-Type": "application/sdp", Accept: "application/sdp" }, auth);
+    const controller = new AbortController();
+    let active = true;
+    let peer = null;
+    let session = null;
+    const media = createStream();
+    let started = false;
+
+    function stop() {
+      if (!active) return;
+      active = false;
+      controller.abort();
+      if (peer) {
+        peer.ontrack = null;
+        peer.onconnectionstatechange = null;
+        try { peer.close(); } catch {}
+        peer = null;
+      }
+      onStream(null);
+      if (session) {
+        const terminate = session;
+        session = null;
+        /* WHEP session deletion is best effort; never send a token elsewhere. */
+        fetcher(terminate, {
+          method: "DELETE", mode: "cors", credentials: "omit", redirect: "error",
+          headers: auth, cache: "no-store", referrerPolicy: "no-referrer"
+        }).catch(() => {});
+      }
+    }
+
+    async function start() {
+      if (started || !active) throw new Error("already_started");
+      started = true;
+      try {
+        onStatus("Preparando vídeo e áudio via WebRTC...");
+        peer = createPeer();
+        peer.addTransceiver("video", { direction: "recvonly" });
+        peer.addTransceiver("audio", { direction: "recvonly" });
+        const current = peer;
+        current.ontrack = (event) => {
+          if (!active || current !== peer || !event.track) return;
+          if (!media.getTracks().some(track => track.id === event.track.id)) {
+            media.addTrack(event.track);
+          }
+          onStream(media);
+          onStatus("Trilha de mídia recebida; aguardando reprodução.");
+        };
+        current.onconnectionstatechange = () => {
+          if (!active || current !== peer) return;
+          if (current.connectionState === "connected") onStatus("WebRTC conectado; conferindo reprodução.");
+          else if (["failed", "disconnected"].includes(current.connectionState)) {
+            onStatus("A conexão WebRTC caiu. Confira o gateway de mídia.");
+          }
+        };
+        const offer = await current.createOffer();
+        if (!active) throw new Error("cancelled");
+        await current.setLocalDescription(offer);
+        await waitForIce(current, controller.signal, 12000);
+        if (!active) throw new Error("cancelled");
+
+        const response = await fetcher(url, {
+          method: "POST", mode: "cors", credentials: "omit", redirect: "error",
+          headers, body: current.localDescription.sdp, signal: controller.signal,
+          cache: "no-store", referrerPolicy: "no-referrer"
+        });
+        if (!active) throw new Error("cancelled");
+        if (response.status !== 201) throw new Error("whep_http_" + response.status);
+        const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+        if (!contentType.includes("application/sdp")) throw new Error("invalid_sdp_type");
+        const resource = resourceUrl(response.headers.get("location"), url);
+        if (!resource) throw new Error("invalid_session_url");
+        session = resource;
+        const answer = await response.text();
+        if (!/^v=0\r?\n/.test(answer) || answer.length > 200000) throw new Error("invalid_sdp");
+        if (!active) throw new Error("cancelled");
+        await current.setRemoteDescription({ type: "answer", sdp: answer });
+        if (!active) throw new Error("cancelled");
+        onStatus("Sessão WebRTC criada. Aguardando vídeo e áudio do gateway.");
+        return true;
+      } catch (error) {
+        stop();
+        throw error;
+      }
+    }
+
+    return Object.freeze({ start, stop });
+  }
+
+  return Object.freeze({ validEndpoint, resourceUrl, createReceiver });
+});

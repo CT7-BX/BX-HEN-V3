@@ -81,6 +81,12 @@
     #pairServerStatus[data-relay-check="failed"],#pairServerStatus[data-relay-check="invalid"]{border-color:#c36b77;color:#ffd8de}
     #pairCheck:disabled{opacity:.78;cursor:progress}
 
+    .media-config{margin:18px 0 3px;padding:14px;border:1px solid #674656;border-radius:12px;background:#17171e}
+    .media-config h3{margin:0 0 9px;color:#f7dde6}
+    .media-config .field-note{overflow-wrap:anywhere}
+    #mediaBridgeStatus{padding:9px 10px;background:#101219;border-radius:9px;border:1px solid #464451}
+    #mediaBridgeStatus[data-state="connected"]{border-color:#498769;color:#b5f1cd}
+    #mediaBridgeStatus[data-state="error"]{border-color:#bd6373;color:#ffdae2}
     .callout{border:1px solid #6b4650;background:#291c24;color:#e4c3cd;padding:11px;border-radius:10px;font-size:.81rem;line-height:1.5;margin:14px 0}
     .relay-config{margin-top:17px;border:1px solid #55404a;border-radius:11px;padding:10px}.relay-config summary{cursor:pointer;font-weight:750;color:#ffc0cd}
     .progress-list{margin:0;padding:0;list-style:none;display:grid;gap:9px}
@@ -139,12 +145,12 @@
   <div class="shell">
     <header class="topbar">
       <div class="wordmark">BX-<strong>REMOTE</strong>-PLAY</div>
-      <div class="beta">Interface 0.5 · Experimental</div>
+      <div class="beta">Interface 0.11 · Experimental</div>
     </header>
     <main>
       <div class="intro">
         <h1>Seu PS4. Sua tela.</h1>
-        <p>Controle físico em primeiro lugar; botões virtuais automáticos no celular. A imagem do PS4 ainda depende do gateway de mídia, que não foi integrado.</p>
+        <p>Controle físico em primeiro lugar; botões virtuais automáticos no celular. A imagem do PS4 exige um gateway de mídia real. O receptor WebRTC está disponível, mas a fonte do PS4 ainda precisa ser conectada.</p>
       </div>
       <div class="workspace">
         <div class="display-box">
@@ -252,6 +258,24 @@
           </select>
           <p class="field-note" id="routeNote">A escolha orienta os próximos testes; ainda não muda o caminho de vídeo.</p>
           <div class="callout">O servidor atual apenas testa controles com um <strong>console simulado</strong>. Para imagem e áudio do PS4 precisamos integrar o Remote Play nativo ao gateway.</div>
+          <section class="media-config" aria-labelledby="mediaHeading" id="mediaSection">
+            <h3 id="mediaHeading">Vídeo e áudio reais — gateway (beta)</h3>
+            <p class="field-note">O BX agora aceita uma sessão <strong>WebRTC/WHEP real</strong>. É necessário um gateway WHEP HTTPS que já receba a mídia do PS4. O vínculo HTTPS do PKG não transmite mídia, e o Worker BX-REMOTE-LINK não é um servidor WHEP.</p>
+            <label class="field" for="mediaEndpoint">Endereço HTTPS do seu gateway WHEP</label>
+            <input id="mediaEndpoint" type="url" inputmode="url" autocomplete="off" spellcheck="false"
+              placeholder="https://seu-gateway.example/live/whep" aria-describedby="mediaBridgeStatus">
+            <label class="field" for="mediaToken">Token do gateway (opcional; não é o código do PS4)</label>
+            <input id="mediaToken" type="password" autocomplete="off" spellcheck="false"
+              placeholder="Credencial de mídia, se exigida">
+            <div class="toolbar-left" style="margin-top:11px">
+              <button class="action primary" id="mediaConnect" type="button">Conectar vídeo</button>
+              <button class="action plain" id="mediaDisconnect" type="button" disabled>Desconectar</button>
+              <button class="action plain" id="mediaResume" type="button" disabled>Ativar áudio</button>
+            </div>
+            <p class="field-note" id="mediaBridgeStatus" role="status" aria-live="polite" data-state="idle">Nenhuma fonte de mídia conectada. O gateway precisa estar configurado antes de usar Conectar vídeo.</p>
+            <p class="field-note">Sem gateway próprio? <a href="https://chiaki.csphere.fr/" target="_blank" rel="noopener noreferrer">Abrir Chiaki-NG-Web</a> (cliente externo de terceiros, em outra aba). Ele utiliza seu próprio proxy de Remote Play e não fornece automaticamente uma URL WHEP para o BX.</p>
+            <p class="field-note"><a href="https://github.com/CT7-BX/BX-REMOTE-PLAY/blob/main/docs/REAL-MEDIA-GATEWAY.md" target="_blank" rel="noopener noreferrer">Entenda como conectar o vídeo real e o que falta</a>.</p>
+          </section>
           <h3>Diagnóstico</h3>
           <ul class="progress-list">
             <li><span class="indicator" id="gamepadIndicator"></span><span id="gamepadLabel">Controle físico não identificado</span></li>
@@ -261,9 +285,9 @@
           </ul>
           <details class="relay-config" id="firstTestsSection">
             <summary>Primeiros testes — checklist e diagnóstico</summary>
-            <p class="field-note">Preparação para testes no PS4 físico. A instalação/execução do PKG e o vídeo ainda não foram validados. Os itens abaixo são marcados por você e não significam validação automática.</p>
+            <p class="field-note">Preparação para testes no PS4 físico. O vídeo real depende de gateway; o PKG precisa de novos testes físicos. Os itens abaixo são marcados por você e não significam validação automática.</p>
             <div class="first-tests-steps">
-              <label><input type="checkbox" data-test-step> PS4 com GoldHEN ativo e Pair Test v0.15 instalado</label>
+              <label><input type="checkbox" data-test-step> PS4 com GoldHEN ativo e Pair Test v0.17 instalado</label>
               <label><input type="checkbox" data-test-step> Servidor HTTPS/WSS protegido configurado, com tokens privados</label>
               <label><input type="checkbox" data-test-step> Arquivo privado de configuração copiado para o PS4</label>
               <label><input type="checkbox" data-test-step> Código de oito dígitos exibido pelo Pair Test no PS4</label>
@@ -281,9 +305,9 @@
           </details>
           <details class="relay-config" id="pairSection">
             <summary>Vincular PS4 — conexão experimental</summary>
-            <p class="field-note">Pode testar o pareamento HTTP com o Pair Test v0.15 no PS4 ou com um console simulado; o app já foi aberto em hardware, mas o vínculo completo ainda não foi validado. A aprovação do vínculo não habilita vídeo, áudio ou controle real.</p>
+            <p class="field-note">Pode testar o pareamento HTTP com o Pair Test v0.17 no PS4 ou com um console simulado; o app já foi aberto em hardware, mas o vínculo completo ainda não foi validado. A aprovação do vínculo não habilita vídeo, áudio ou controle real.</p>
             <ol class="pair-steps" aria-label="Passos de vinculação">
-              <li>Abra o <strong>Pair Test v0.15</strong> no PS4, com a configuração privada pronta.</li>
+              <li>Abra o <strong>Pair Test v0.17</strong> no PS4, com a configuração privada pronta.</li>
               <li>Digite aqui os oito números mostrados na TV.</li>
               <li>Confirme no PS4 com <strong>X</strong>, ou recuse com <strong>O</strong>.</li>
             </ol>
@@ -295,7 +319,7 @@
             <p class="field-note"><a href="https://bx-remote-link.4rt949zpj8.workers.dev/health" target="_blank" rel="noopener noreferrer" id="pairHealthDirect">Abrir diagnóstico HTTPS direto (sem chave)</a></p>
             <p class="field-note" id="pairServerStatus" role="status" aria-live="polite">O BX-REMOTE-LINK é um serviço HTTPS experimental. Clique em Testar servidor; para vincular o PS4, é preciso configurar a mesma chave privada no Worker e no console.</p>
             <p class="field-note"><a href="https://github.com/CT7-BX/BX-REMOTE-PLAY/blob/main/cloudflare/README.md" target="_blank" rel="noopener noreferrer">Como configurar o vínculo de teste</a> · O serviço ainda não transmite vídeo ou controles.</p>
-            <p class="field-note"><a href="https://github.com/CT7-BX/BX-REMOTE-PLAY/releases" target="_blank" rel="noopener noreferrer">Versões e PKGs do PS4</a> · A v0.15 verifica novas versões automaticamente ao iniciar com HTTPS configurado, mas a instalação ainda é manual.</p>
+            <p class="field-note"><a href="https://github.com/CT7-BX/BX-REMOTE-PLAY/releases" target="_blank" rel="noopener noreferrer">Versões e PKGs do PS4</a> · A v0.17 verifica e baixa novas versões e oferece instalação com confirmação no console (experimental).</p>
             <label class="field" for="pairCode">Código de 8 números exibido pelo aplicativo PS4 ou simulador</label>
             <input id="pairCode" type="text" inputmode="numeric" pattern="[0-9 -]{8,16}" maxlength="16" autocomplete="one-time-code" enterkeyhint="done" placeholder="1234 5678" aria-describedby="pairCodeHelp">
             <p id="pairCodeHelp" class="field-note">Os oito números aparecem na TV e expiram após cerca de dois minutos. Pode colar com espaço ou hífen; o código não é salvo no navegador.</p>
@@ -389,7 +413,7 @@
         if (info.pairingBackend === "cloudflare-durable-object" && info.configured !== true) {
           message("failed", "Servidor HTTPS responde, mas falta a chave privada no Cloudflare.");
         } else {
-          message("ok", "Servidor BX-REMOTE-LINK responde por HTTPS e informa chave configurada. Isso NÃO confirma que o PS4 está conectado. Abra o PKG v0.13 e verifique o código na TV.");
+          message("ok", "Servidor BX-REMOTE-LINK responde por HTTPS e informa chave configurada. Isso NÃO confirma que o PS4 está conectado. Abra o PKG v0.17 e verifique o código na TV.");
         }
       } catch (error) {
         if (request !== current) return;
@@ -433,6 +457,8 @@
   <script src="./controller-core.js"></script>
   <script src="./game-core.js?v=0.10"></script>
   <script src="./game.js"></script>
+  <script src="./media-whep.js"></script>
+  <script src="./media-controls.js"></script>
   <script src="./pair-client.js?v=0.10"></script>
   <script src="./first-tests.js"></script>
 </body>
