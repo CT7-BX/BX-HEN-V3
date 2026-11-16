@@ -100,12 +100,47 @@
     });
   }
   function createBroadcast({ signaling = client(), onStatus = () => {},
-    onCode = () => {}, getScreen, peerFactory, setDelay = ms => new Promise(resolve => setTimeout(resolve,ms)) } = {}) {
+    onCode = () => {}, onInput = () => {}, onInputStatus = () => {},
+    inputProtocol = typeof globalThis === "object" ? globalThis.BXInputTransport : null,
+    getScreen, peerFactory, setDelay = ms => new Promise(resolve => setTimeout(resolve,ms)) } = {}) {
     const createPeer = peerFactory || (() => new RTCPeerConnection({ iceServers: STUN }));
     const capture = getScreen || (() => navigator.mediaDevices.getDisplayMedia({
       video: { frameRate: 30 }, audio: true
     }));
     let controller = null, stream = null, peer = null, code = null, active = false;
+    let inputChannel = null, inputReceiver = null;
+    function setupControls() {
+      if (!inputProtocol || typeof peer.createDataChannel !== "function") return;
+      // Create before the SDP offer so the data m-line is negotiated.
+      const channel = peer.createDataChannel(inputProtocol.LABEL, {
+        ordered: false, maxRetransmits: 0
+      });
+      inputChannel = channel;
+      inputReceiver = inputProtocol.createReceiver({ onInput,
+        onStatus:reason => {
+          if (active) onInputStatus(reason);
+        }
+      });
+      channel.onopen = () => {
+        if (active && channel === inputChannel)
+          onInputStatus("channel_open");
+      };
+      channel.onclose = () => {
+        if (channel !== inputChannel) return;
+        inputReceiver?.stop();
+        if (active) onInputStatus("channel_closed");
+      };
+      channel.onmessage = event => {
+        if (!active || channel !== inputChannel || !inputReceiver ||
+            typeof event.data !== "string") return;
+        if (inputReceiver.receive(event.data) && channel.readyState === "open") {
+          try {
+            if (channel.bufferedAmount < 32768)
+              channel.send(inputProtocol.encodeAck(inputReceiver.lastSequence()));
+          } catch {}
+        }
+      };
+    }
     async function start() {
       if (active) throw new Error("already_active");
       active = true;
@@ -117,6 +152,7 @@
         if (!stream || !stream.getVideoTracks?.().length) throw new Error("no_video_track");
         peer = createPeer();
         for (const track of stream.getTracks()) peer.addTrack(track, stream);
+        setupControls();
         for (const track of stream.getVideoTracks()) {
           track.addEventListener?.("ended", () => stop());
         }
@@ -166,6 +202,17 @@
       if (!active && !stream && !peer) return;
       active = false;
       if (controller) controller.abort();
+      if (inputReceiver) {
+        inputReceiver.stop();
+        inputReceiver = null;
+      }
+      if (inputChannel) {
+        inputChannel.onopen = null;
+        inputChannel.onclose = null;
+        inputChannel.onmessage = null;
+        try { inputChannel.close(); } catch {}
+        inputChannel = null;
+      }
       if (peer) {
         peer.onconnectionstatechange = null;
         try { peer.close(); } catch {}
@@ -185,10 +232,23 @@
     return Object.freeze({ start, stop });
   }
   function createViewer({ signaling = client(), onStatus = () => {},
-    onStream = () => {}, peerFactory, streamFactory } = {}) {
+    onStream = () => {}, onInputStatus = () => {}, onInputAck = () => {},
+    inputProtocol = typeof globalThis === "object" ? globalThis.BXInputTransport : null,
+    peerFactory, streamFactory } = {}) {
     const createPeer = peerFactory || (() => new RTCPeerConnection({ iceServers: STUN }));
     const createStream = streamFactory || (() => new MediaStream());
     let active = false, peer = null, controller = null, code = null;
+    let inputChannel = null, lastInputSeq = 0;
+    function sendInput(state) {
+      if (!active || !inputProtocol || !inputChannel ||
+          inputChannel.readyState !== "open" ||
+          inputChannel.bufferedAmount > 32768) return false;
+      try {
+        const frame = inputProtocol.encode(state, ++lastInputSeq);
+        inputChannel.send(frame);
+        return true;
+      } catch { return false; }
+    }
     async function start(rawCode) {
       if (active) throw new Error("already_active");
       code = validCode(rawCode);
@@ -202,6 +262,32 @@
         if (!active) throw new Error("cancelled");
         const current = createPeer();
         peer = current;
+        if (inputProtocol) {
+          current.ondatachannel = event => {
+            if (!active || peer !== current) return;
+            const channel = event.channel;
+            if (!channel || channel.label !== inputProtocol.LABEL) {
+              try { channel?.close(); } catch {}
+              return;
+            }
+            inputChannel = channel;
+            channel.onopen = () => {
+              if (active && inputChannel === channel)
+                onInputStatus("channel_open");
+            };
+            channel.onmessage = e => {
+              if (!active || inputChannel !== channel) return;
+              const seq = inputProtocol.decodeAck(e.data);
+              if (seq !== null && seq <= lastInputSeq) onInputAck(seq);
+            };
+            channel.onclose = () => {
+              if (inputChannel !== channel) return;
+              if (active) onInputStatus("channel_closed");
+              inputChannel = null;
+            };
+            if (channel.readyState === "open") onInputStatus("channel_open");
+          };
+        }
         const stream = createStream();
         peer.ontrack = event => {
           if (!active || current !== peer || !event.track) return;
@@ -237,20 +323,32 @@
     }
     function stop() {
       if (!active) return;
+      // Release controls while the data channel is still live.
+      if (inputProtocol && inputChannel) sendInput(inputProtocol.neutral());
       active = false;
       if (controller) controller.abort();
+      if (inputChannel) {
+        inputChannel.onopen = null;
+        inputChannel.onmessage = null;
+        inputChannel.onclose = null;
+        try { inputChannel.close(); } catch {}
+        inputChannel = null;
+      }
       if (peer) {
         peer.ontrack = null;
+        peer.ondatachannel = null;
         peer.onconnectionstatechange = null;
         try { peer.close(); } catch {}
         peer = null;
       }
+      onInputStatus("channel_closed");
       onStream(null);
       // Viewer does not revoke the signaling room while sender is awaiting
       // the answer; sender remains in control of its capture session.
       code = null;
     }
-    return Object.freeze({ start, stop });
+    return Object.freeze({ start, stop, sendInput,
+      inputConnected: () => Boolean(inputChannel && inputChannel.readyState === "open") });
   }
   return Object.freeze({ SIGNALING_ORIGIN, validCode, validSdp, client, waitForIce,
     createBroadcast, createViewer });

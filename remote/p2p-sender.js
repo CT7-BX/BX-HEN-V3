@@ -5,10 +5,17 @@
   const $ = id => document.getElementById(id);
   const start = $("startShare"), stop = $("stopShare"), copy = $("copyCode");
   const code = $("roomCode"), status = $("shareStatus");
+  const inputStatus = $("senderControlStatus"), inputInfo = $("senderControlInput");
   if (!api || !start || !stop || !copy || !code || !status) return;
   let current = null;
-  let serial = 0;
+  let serial = 0, inputFrames = 0, lastInputUpdate = 0;
   function update(message) { status.textContent = message; }
+  function resetInput() {
+    inputFrames = 0;
+    lastInputUpdate = 0;
+    if (inputStatus) inputStatus.textContent = "Canal de comandos não conectado.";
+    if (inputInfo) inputInfo.textContent = "Nenhum comando recebido.";
+  }
   function finish(message = "Compartilhamento encerrado.") {
     serial++;
     if (current) {
@@ -19,6 +26,7 @@
     stop.disabled = true;
     copy.disabled = true;
     code.value = "";
+    resetInput();
     update(message);
   }
   start.addEventListener("click", async () => {
@@ -34,7 +42,29 @@
         code.value = value || "";
         copy.disabled = !value;
       },
-      onStatus: message => { if (id === serial) update(message); }
+      onStatus: message => { if (id === serial) update(message); },
+      onInputStatus: state => {
+        if (id !== serial || !inputStatus) return;
+        inputStatus.textContent = state === "channel_open"
+          ? "Canal de botões WebRTC conectado. Aguardando teste iniciado no iPhone."
+          : state === "input_timeout"
+            ? "Comandos interrompidos; todos os botões foram liberados automaticamente."
+            : "Canal de botões desligado ou ainda não conectado.";
+      },
+      onInput: (frame, meta) => {
+        if (id !== serial || !inputInfo) return;
+        if (meta.reason === "received") inputFrames++;
+        const now = performance.now();
+        if (meta.reason === "received" && now - lastInputUpdate < 120) return;
+        lastInputUpdate = now;
+        const axes = frame.axes.map(v => v.toFixed(2)).join(", ");
+        inputInfo.textContent = "Quadros recebidos: " + inputFrames +
+          " | Botões: " + (frame.buttons.join(", ") || "nenhum") +
+          " | Analógicos: [" + axes + "]" +
+          (meta.reason === "received"
+            ? " | Recebido pelo navegador Mac, NÃO pelo PS4."
+            : " | Comandos zerados por segurança.");
+      }
     });
     current = sharing;
     start.disabled = true;

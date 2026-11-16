@@ -152,7 +152,7 @@
     .pair-steps li::marker{color:#f36c88;font-weight:800}
   </style>
   <link rel="stylesheet" href="./touch-layout.css">
-  <link rel="stylesheet" href="./site-v2.css?v=0.26">
+  <link rel="stylesheet" href="./site-v2.css?v=0.27">
   <link rel="stylesheet" href="./command-center.css?v=0.26">
 </head>
 <body>
@@ -397,6 +397,14 @@
               <button class="action plain" id="p2pAudio" type="button" disabled>Ativar áudio</button>
             </div>
             <p class="field-note" id="p2pStatus" role="status" aria-live="polite">Nenhuma sessão P2P conectada. Primeiro compartilhe a janela do Chiaki no Mac.</p>
+            <div class="bx-input-test" aria-label="Teste independente de controles WebRTC">
+              <span class="bx-flag warning">CANAL DE CONTROLES · TESTE ENTRE NAVEGADORES</span>
+              <p class="field-note">O iPhone pode enviar os botões virtuais ou do controle físico ao navegador do Mac pelo mesmo WebRTC. <strong>Esta etapa apenas verifica a chegada dos comandos e sua confirmação; ainda não controla o Chiaki nem o PS4.</strong></p>
+              <div class="toolbar-left">
+                <button class="action primary" id="p2pInputEnable" type="button" disabled>Iniciar teste de controles</button>
+              </div>
+              <p id="p2pInputStatus" role="status" aria-live="polite">Conecte uma sessão P2P para habilitar o canal de comandos.</p>
+            </div>
             <p class="field-note">O código é temporário, não é um PIN PSN e não deve ser publicado. O servidor somente negocia a conexão, sem gravar a tela. Para o primeiro teste use a mesma rede Wi-Fi. Sem servidor TURN, outras redes ou CGNAT podem impedir a conexão. O áudio da janela depende do navegador do Mac.</p>
             <p class="field-note"><strong>Importante:</strong> os controles virtuais do BX não controlam o Chiaki nesta etapa; somente a imagem e o áudio capturados podem chegar aqui.</p>
           </section>
@@ -636,14 +644,15 @@
   <script src="./controller-core.js"></script>
   <script src="./game-core.js?v=0.10"></script>
   <script src="./media-source-core.js?v=0.23"></script>
-  <script src="./game.js?v=0.23"></script>
+  <script src="./game.js?v=0.27"></script>
   <script src="./media-whep.js?v=0.20"></script>
   <script src="./media-controls.js?v=0.23"></script>
   <script src="./pair-client.js?v=0.25"></script>
   <script src="./first-tests.js"></script>
   <script src="./pkg-updates.js?v=0.21"></script>
-  <script src="./bridge-p2p.js?v=0.22"></script>
-  <script src="./p2p-viewer.js?v=0.23"></script>
+  <script src="./input-transport.js?v=0.27"></script>
+  <script src="./bridge-p2p.js?v=0.27"></script>
+  <script src="./p2p-viewer.js?v=0.27"></script>
   <script src="./site-ui.js?v=0.22"></script>
   <script src="./diagnostics.js?v=0.25"></script>
   <script src="./command-center.js?v=0.26"></script>

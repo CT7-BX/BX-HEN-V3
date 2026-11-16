@@ -114,7 +114,7 @@ test("site binds source manager before game.js and preserves real player control
   const whep = fs.readFileSync(path.join(ROOT,"media-controls.js"),"utf8");
   const p2p = fs.readFileSync(path.join(ROOT,"p2p-viewer.js"),"utf8");
   const pages = fs.readFileSync(path.resolve(ROOT,"../.github/scripts/build-pages.sh"),"utf8");
-  assert.ok(html.indexOf("media-source-core.js") < html.indexOf("game.js?v=0.23"));
+  assert.ok(html.indexOf("media-source-core.js") < html.indexOf("game.js?v=0.27"));
   for (const id of ["runDiagnostics","copyDiagnostics","diagnosticsStatus","diagnosticsOutput",
     "streamVideo","touchOverlay","p2pJoin","mediaConnect","bridgeProbeRequest"])
     assert.match(html,new RegExp('id="'+id+'"'));
