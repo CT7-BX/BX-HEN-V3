@@ -56,7 +56,7 @@ test("approved temporary pairing exposes native PS4 readiness but does not adver
   assert.match(pairing, /diag\.loopbackTcp9295 === false/);
   assert.match(pairing, /diag\.checkedSecondsAgo > 90/);
   assert.match(pairing, /nenhum jogo|não existe transmissão de vídeo\/áudio/);
-  assert.match(html, /Diagnóstico independente PS4/);
+  assert.match(html, /Comunicação independente PS4/);
   assert.match(html, /src="\.\/pair-client\.js\?v=0\.24"/);
 });
 
