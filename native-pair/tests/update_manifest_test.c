@@ -36,6 +36,15 @@ int main(void) {
     assert(!bx_update_parse(
         "title_id=BRPM00001\nversion=0.15\nsha256=108a6b92fc0aeffdb23e17d79e259a9f7b354b666cfab5c7116b1a22d27d8092\n", &m));
 
+    /* Reject cross-version release URLs even when the host and suffix are valid. */
+    assert(!bx_update_parse(
+        "title_id=BRPM00001\nversion=0.15\nsha256=108a6b92fc0aeffdb23e17d79e259a9f7b354b666cfab5c7116b1a22d27d8092\n"
+        "pkg_url=https://github.com/CT7-BX/BX-REMOTE-PLAY/releases/download/pair-test-v0.16/BX-REMOTE-PLAY-Pair-Test-v0.16.pkg\n", &m));
+
+    assert(!bx_update_parse(
+        "title_id=BRPM00001\nversion=0.15\nsha256=108a6b92fc0aeffdb23e17d79e259a9f7b354b666cfab5c7116b1a22d27d8092\n"
+        "pkg_url=https://github.com/CT7-BX/BX-REMOTE-PLAY/releases/download/pair-test-v0.15/BX-REMOTE-PLAY-Pair-Test-v0.16.pkg\n", &m));
+
     printf("Update manifest parser and numeric comparison verified.\n");
     return 0;
 }
