@@ -1,5 +1,5 @@
 /*
- * BX-REMOTE-PLAY PS4 Pairing Proof v0.16
+ * BX-REMOTE-PLAY PS4 Pairing Proof v0.17
  *
  * NEW, SEPARATE PKG. Not the existing v0.21 HTTPS diagnostic.
  * Foreground-only console-side HTTP pairing test, with local DualShock consent.
@@ -25,6 +25,8 @@
 #include "pair_config.h"
 #include "pair_protocol.h"
 #include "update_manifest.h"
+#include "ota_download.h"
+#include "ota_install.h"
 
 #define REPORT_PATH "/data/bx-remote-pairing-report.txt"
 #define CONFIG_PATH "/user/data/bx-remote-pair.cfg"
@@ -40,7 +42,7 @@
 #define CONFIG_AUTO_RECHECK_TICKS 50 /* re-read .cfg every five seconds */
 #define UPDATE_MANIFEST_URL "https://ct7-bx.github.io/BX-REMOTE-PLAY/remote/update.txt"
 #define CURRENT_UPDATE_MAJOR 0u
-#define CURRENT_UPDATE_MINOR 16u
+#define CURRENT_UPDATE_MINOR 17u
 
 typedef struct HttpContext {
     int initialized_net;
@@ -55,10 +57,23 @@ static void notice(const char *message) {
 }
 
 static void report(const char *stage, int code, int status) {
-    FILE *f = fopen(REPORT_PATH, "w");
-    if (!f) f = fopen("/user/data/bx-remote-pairing-report.txt", "w");
+    /* Keep the entire finite cleanup / OTA timeline instead of overwriting
+     * every previous checkpoint. Cap the diagnostic file to 64 KiB. */
+    const char *location = REPORT_PATH;
+    FILE *f = fopen(location, "a+");
+    long size = 0;
+    if (!f) {
+        location = "/user/data/bx-remote-pairing-report.txt";
+        f = fopen(location, "a+");
+    }
     if (!f) return;
-    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.16\n");
+    if (fseek(f,0,SEEK_END)==0) size=ftell(f);
+    if (size>65536) {
+        fclose(f);
+        f=fopen(location,"w");
+        if (!f) return;
+    }
+    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.17\n");
     fprintf(f, "stage=%s\n", stage ? stage : "unknown");
     fprintf(f, "result_code=%d\nhttp_status=%d\n", code, status);
     fprintf(f, "streaming=NOT_IMPLEMENTED\n");
@@ -119,7 +134,7 @@ static int open_http(HttpContext *ctx) {
     if (ctx->ssl < 0) return 0;
     ctx->http = sceHttpInit(ctx->pool, ctx->ssl, HTTP_MEMORY_BYTES);
     if (ctx->http < 0) return 0;
-    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.16",
+    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.17",
         ORBIS_HTTP_VERSION_1_1, 1);
     return ctx->tmpl >= 0;
 }
@@ -194,13 +209,15 @@ done:
  * console's PRIVATE Authorization token, which must never reach GitHub Pages.
  * The manifest can trigger a notice only. NO download, install, or self-modify.
  */
-static void check_public_update(const HttpContext *ctx) {
+static int check_public_update(const HttpContext *ctx, BXUpdateManifest *available) {
     int connection = -1, request = -1, status = 0;
     char body[950];
     char message[150];
     BXUpdateManifest update = {0};
+    int newer = 0;
     size_t total = 0;
     int n;
+    memset(available, 0, sizeof(*available));
     connection = sceHttpCreateConnectionWithURL(ctx->tmpl, UPDATE_MANIFEST_URL, false);
     if (connection < 0) goto cleanup;
     request = sceHttpCreateRequestWithURL(connection, ORBIS_METHOD_GET,
@@ -225,12 +242,15 @@ static void check_public_update(const HttpContext *ctx) {
             "BX-REMOTE: Nova versao v%s no GitHub Releases. Atualize o PKG.",
             update.version);
         notice(message);
+        *available = update;
+        newer = 1;
     }
 cleanup:
     if (request >= 0) sceHttpDeleteRequest(request);
     if (connection >= 0) sceHttpDeleteConnection(connection);
     memset(&update, 0, sizeof(update));
     memset(body, 0, sizeof(body));
+    return newer;
 }
 
 static int read_config(BXPairConfig *config) {
@@ -281,6 +301,51 @@ static int poll_decision(int handle, uint32_t *last_buttons) {
     return 0;
 }
 
+static void offer_update(const HttpContext *http, const BXUpdateManifest *update,
+                         int pad, uint32_t *last_buttons) {
+    char pkg_path[BX_OTA_PATH_MAX];
+    char message[170];
+    int status=0, result, i;
+    /* New releases are downloaded automatically; installation requires
+     * an explicit NEW DualShock X press, not a held key at startup.
+     * No installation is attempted for missing/invalid manifests.
+     */
+    notice("BX-REMOTE: Baixando atualizacao oficial HTTPS...");
+    report("ota_download_begin", 0, 0);
+    result=bx_ota_fetch_verified(http->tmpl,update,pkg_path,&status);
+    if(result != 1) {
+        report("ota_download_failed",result,status);
+        notice("BX-REMOTE: Atualizacao falhou; versao atual preservada.");
+        return;
+    }
+    report("ota_sha256_verified",0,status);
+    snprintf(message,sizeof(message),"BX-REMOTE: v%s verificada. Aperte X instalar, O ignorar.",update->version);
+    notice(message);
+    for(i=0;i<6;++i) { (void)poll_decision(pad,last_buttons);usleep(100000); }
+    for(i=0;i<300;++i) {
+        int decision=poll_decision(pad,last_buttons);
+        if(decision<0) {report("ota_install_declined",0,status);return;}
+        if(decision==1) {
+            /* OpenOrbis installer privileges vary by firmware and host.
+             * Never elevate privileges or bypass failed authorization.
+             * A failed install leaves the verified package on /data/pkg.
+             */
+            report("ota_install_begin",0,0);
+            result=bx_ota_install_with_consent(pkg_path);
+            if(result==0) {
+                report("ota_install_submitted",0,0);
+                notice("BX-REMOTE: Instalacao solicitada. Feche o app pelo menu PS.");
+                idle_until_ps4_close();
+            }
+            report("ota_install_failed",result,0);
+            notice("BX-REMOTE: Instalacao nao autorizada. Use Package Installer.");
+            return;
+        }
+        usleep(100000);
+    }
+    report("ota_install_timeout",0,0);
+}
+
 static void show_code(const char *code) {
     char message[180];
     snprintf(message, sizeof(message),
@@ -290,6 +355,8 @@ static void show_code(const char *code) {
 
 int main(void) {
     BXPairConfig config = {{0}, {0}};
+    BXUpdateManifest available_update = {0};
+    int has_update = 0;
     HttpContext http;
     char response[MAX_RESPONSE_BYTES];
     char code[9] = {0};
@@ -362,13 +429,15 @@ int main(void) {
         idle_until_ps4_close(); /* Do not return through OpenOrbis libc _exit. */
     }
     /* Best effort only: if GitHub Pages is offline, pairing still starts. */
-    check_public_update(&http);
+    has_update = check_public_update(&http, &available_update);
     if (pad < 0) pad = pad_open(&user_initialized);
     if (pad < 0) {
         notice("BX-REMOTE: Controle nao encontrado; vinculo cancelado.");
         final = "no_local_controller";
         goto finish;
     }
+    if (has_update) offer_update(&http, &available_update, pad, &last_buttons);
+    memset(&available_update, 0, sizeof(available_update));
 
     /* Only authenticated HTTPS originating from this PS4 homebrew can initiate. */
     stage = "heartbeat";
