@@ -7,11 +7,11 @@ PS4_LD ?= ld.lld
 
 PS4_ID := BRPM00001
 CONTENT_ID := IV0000-BRPM00001_00-BXREMOTEPAIR0001
-VERSION := 0.18
+VERSION := 0.19
 OUT := build
 RESIDENT_OBJECTS := $(OUT)/resident_service.o $(OUT)/lifecycle.o $(OUT)/pair_config.o $(OUT)/pair_protocol.o
-OBJECTS := $(OUT)/main.o $(OUT)/pair_protocol.o $(OUT)/pair_config.o $(OUT)/update_manifest.o $(OUT)/sha256.o $(OUT)/ota_download.o $(OUT)/ota_install.o $(OUT)/resident_install.o
-LIBS := -lc -lkernel -lSceNet -lSceSsl -lSceHttp -lSceSysmodule -lSceSysUtil -lScePad -lSceUserService -lSceAppInstUtil
+OBJECTS := $(OUT)/main.o $(OUT)/pair_protocol.o $(OUT)/pair_config.o $(OUT)/update_manifest.o $(OUT)/sha256.o $(OUT)/ota_download.o $(OUT)/ota_install.o $(OUT)/resident_install.o $(OUT)/native_ui.o
+LIBS := -lc -lkernel -lSceNet -lSceSsl -lSceHttp -lSceSysmodule -lSceSysUtil -lScePad -lSceUserService -lSceAppInstUtil -lSceVideoOut
 
 CFLAGS := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables \
     -std=c11 -Wall -Wextra -c -isysroot $(SDK) -isystem $(SDK)/include
@@ -27,7 +27,7 @@ check-sdk:
 	  (echo "Configure OO_PS4_TOOLCHAIN com o OpenOrbis instalado." >&2; exit 1)
 	@command -v $(PS4_CC) >/dev/null && command -v $(PS4_LD) >/dev/null
 
-$(OUT)/%.o: %.c pair_protocol.h pair_config.h update_manifest.h sha256.h ota_download.h ota_install.h resident_install.h | check-sdk
+$(OUT)/%.o: %.c pair_protocol.h pair_config.h update_manifest.h sha256.h ota_download.h ota_install.h resident_install.h native_ui.h | check-sdk
 	@mkdir -p $(OUT)
 	$(PS4_CC) $(CFLAGS) -o $@ $<
 
@@ -64,7 +64,7 @@ sce_sys/param.sfo: | check-sdk
 	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ CONTENT_ID --type Utf8 --maxsize 48 --value '$(CONTENT_ID)'
 	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ DOWNLOAD_DATA_SIZE --type Integer --maxsize 4 --value 0
 	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ SYSTEM_VER --type Integer --maxsize 4 --value 0
-	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ TITLE --type Utf8 --maxsize 128 --value 'BX Remote Play - Pair Test'
+	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ TITLE --type Utf8 --maxsize 128 --value 'BX Remote Play - Dashboard'
 	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ TITLE_ID --type Utf8 --maxsize 12 --value '$(PS4_ID)'
 	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ VERSION --type Utf8 --maxsize 8 --value '$(VERSION)'
 
