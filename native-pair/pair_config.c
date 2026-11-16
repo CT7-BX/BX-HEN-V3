@@ -44,7 +44,7 @@ int bx_pair_parse_config(const char *text, BXPairConfig *config) {
             /* Fail closed on unrecognized keys instead of silently ignoring. */
             return 0;
         }
-        cursor = end ? end + 1 : cursor + length;
+        cursor = end ? end + 1 : cursor + strlen(cursor);
     }
     if (!bases || !secrets || !bx_pair_valid_origin(base) || !bx_pair_valid_token(secret)) return 0;
     memcpy(config->relay_origin, base, sizeof(base));
