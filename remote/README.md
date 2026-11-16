@@ -1,5 +1,13 @@
 # BX-REMOTE-PLAY — interface, pareamento PS4 e mídia WHEP experimental
 
+## Interface web v0.23 — confiabilidade e autodiagnóstico
+
+A página v0.23 mantém o tema preto/vermelho e passa a ter **Verificação rápida do BX**. O botão **Verificar sistema** testa somente informações públicas: contexto HTTPS, APIs WebRTC, codec H.264 conforme a capacidade declarada pelo navegador, endpoint público `/health` do BX-REMOTE-LINK e manifesto `remote/update.txt`. O resultado aparece em linhas com estados e pode ser copiado como relatório seguro, **sem acessar PIN, token, IP local ou credenciais do console**. O status público do Worker **não prova que o PS4 está ligado** nem que uma sessão de jogo está funcionando.
+
+Foi corrigido um defeito de ciclo de vida: o player recebia mídia por WHEP e pelo teste P2P de Mac no mesmo elemento `video`, mas a desconexão tardia de uma fonte podia apagar a imagem de outra. A nova camada `media-source-core.js` atribui a posse da tela à fonte `whep` ou `p2p`, avisa a fonte substituída para encerrar e ignora liberações atrasadas. O player preserva a ativação do áudio quando uma trilha adicional chega à **mesma** sessão, mas inicia mudo ao trocar de fonte para compatibilidade com Safari/iOS. Os testes cobrem posse, substituição, liberação, privacidade do diagnóstico e arquivos do GitHub Pages.
+
+**O PKG continua na v0.22.** Essa correção é apenas web e não requer reinstalação. O BX ainda não integra um cliente nativo Remote Play no navegador; o teste P2P com Mac e o gateway WHEP continuam fontes independentes, e nenhum deles significa que o PS4 esteja transmitindo diretamente ao BX.
+
 ## Interface v0.22 — visual unificado preto e vermelho
 
 O layout principal e o transmissor temporário [bridge.html](bridge.html) agora compartilham `site-v2.css`. A página principal traz navegação direta para Player, Vincular e Atualizações, atalhos para jogar sem Mac (cliente externo), conectar PS4 ou consultar PKG, estado da mídia honesto e configuração avançada recolhida por padrão. O script `site-ui.js` abre as seções de destino sem alterar pareamento, mídia, controle virtual ou credenciais. Ambos os arquivos foram incluídos na lista explícita do build GitHub Pages e possuem testes de regressão, iPhone/desktop e navegação por teclado. Nenhum vídeo foi criado artificialmente.

@@ -33,6 +33,8 @@ jobs:
           test -s _site/remote/p2p-viewer.js
           test -s _site/remote/media-whep.js
           test -s _site/remote/media-controls.js
+          test -s _site/remote/media-source-core.js
+          test -s _site/remote/diagnostics.js
           test -s _site/remote/update.txt
           test -s _site/remote/ps4-probe.txt
           test ! -e _site/relay/server.mjs

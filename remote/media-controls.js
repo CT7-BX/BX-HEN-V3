@@ -59,7 +59,7 @@
   };
   const clearStream = () => {
     if (window.BXRemotePlayer && typeof window.BXRemotePlayer.attachMediaStream === "function") {
-      window.BXRemotePlayer.attachMediaStream(null);
+      window.BXRemotePlayer.attachMediaStream(null, "whep");
     }
   };
   const stop = (message = "Mídia desconectada.") => {
@@ -103,7 +103,7 @@
         token,
         onStream: stream => {
           if (request !== generation) return;
-          window.BXRemotePlayer.attachMediaStream(stream);
+          window.BXRemotePlayer.attachMediaStream(stream, "whep");
           const audioAvailable = Boolean(stream && typeof stream.getAudioTracks === "function" &&
             stream.getAudioTracks().some(track => track.readyState !== "ended"));
           resume.disabled = !audioAvailable;
@@ -174,6 +174,11 @@
   });
   syncMode();
 
+  window.addEventListener("bxremote:media-preempt", event => {
+    if (event.detail?.previous === "whep") {
+      stop("Gateway WHEP desconectado: outra fonte assumiu o player.");
+    }
+  });
   disconnect.addEventListener("click", () => stop());
   resume.addEventListener("click", () => {
     const stream = video.srcObject;

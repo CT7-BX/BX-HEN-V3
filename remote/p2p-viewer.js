@@ -18,8 +18,8 @@
       report("Player BX não carregou; atualize a página.");
       return;
     }
-    video.muted = true;
-    window.BXRemotePlayer.attachMediaStream(stream);
+    if (stream && video.srcObject !== stream) video.muted = true;
+    window.BXRemotePlayer.attachMediaStream(stream, "p2p");
     audioReady = Boolean(stream && stream.getAudioTracks().some(t => t.readyState !== "ended"));
     audio.disabled = !audioReady;
   };
@@ -70,6 +70,11 @@
         bad_offer: "Recebida uma oferta WebRTC inválida. Gere outra transmissão."
       };
       stop(reasons[error.message] || "Erro no teste P2P. Confira a conexão e gere outro código.");
+    }
+  });
+  window.addEventListener("bxremote:media-preempt", event => {
+    if (event.detail?.previous === "p2p") {
+      stop("Recepção P2P encerrada: outro fluxo assumiu o player.");
     }
   });
   leave.addEventListener("click", () => stop());

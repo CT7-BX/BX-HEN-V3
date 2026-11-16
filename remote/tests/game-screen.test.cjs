@@ -17,7 +17,7 @@ test("main screen provides physical and virtual control entry points", () => {
   }
   assert.match(html, /src="\.\/game-core\.js(?:\?v=[\d.]+)?"/);
   assert.match(html, /src="\.\/controller-core\.js"/);
-  assert.match(html, /src="\.\/game\.js"/);
+  assert.match(html, /src="\.\/game\.js(?:\?v=[\d.]+)?"/);
 });
 
 test("player has video seam and both native and CSS fullscreen controls", () => {
