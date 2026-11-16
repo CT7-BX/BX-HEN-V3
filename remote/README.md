@@ -1,5 +1,13 @@
 # BX-REMOTE-PLAY — interface, pareamento PS4 e mídia WHEP experimental
 
+## Android Gateway v0.24 — compatibilidade de aparelhos antigos
+
+O BX passa a ter uma [central Android](gateway.html), integrada por um quarto atalho no player principal. A página verifica localmente (sem enviar dados) versão Android detectável, RAM estimada pelo navegador, CPU declarada, APIs WebRTC e suporte à captura de tela do navegador. Os resultados são apenas estimativas e vêm acompanhados de alertas sobre Android antigo, restrições de áudio e ausência de captura web no Chrome Android.
+
+O diretório [android-gateway](../android-gateway/README.md) contém um **APK nativo experimental de diagnóstico**, com Android 7+ (API 24) como requisito de compilação. Ele mede informações reais do sistema e codecs H.264 sem pedir permissões nem realizar chamadas de rede; o usuário decide se copia o relatório. A workflow do Android gera o APK de teste quando o código passa pela compilação. Esse app **não é um cliente Remote Play e ainda não retransmite jogos**.
+
+A integração de transporte PS4 → Android → iPhone continua pendente, inclusive registro de sessão, vídeo, áudio e retorno de comandos. O modo BX Native PS4 → iPhone continua uma frente de desenvolvimento separada. Ao contrário de testes via Mac, o Chrome Android normalmente não fornece `getDisplayMedia()`; para fazer captura de tela futuramente será preciso um aplicativo com permissão `MediaProjection`, e áudio de outros aplicativos depende de Android 10+ e da política do aplicativo fonte.
+
 ## Interface web v0.23 — confiabilidade e autodiagnóstico
 
 A página v0.23 mantém o tema preto/vermelho e passa a ter **Verificação rápida do BX**. O botão **Verificar sistema** testa somente informações públicas: contexto HTTPS, APIs WebRTC, codec H.264 conforme a capacidade declarada pelo navegador, endpoint público `/health` do BX-REMOTE-LINK e manifesto `remote/update.txt`. O resultado aparece em linhas com estados e pode ser copiado como relatório seguro, **sem acessar PIN, token, IP local ou credenciais do console**. O status público do Worker **não prova que o PS4 está ligado** nem que uma sessão de jogo está funcionando.
