@@ -15,7 +15,7 @@ test("same branded theme is applied to player and Mac source page", () => {
   assert.match(html, /href="\.\/site-v2\.css\?v=0\.22"/);
   assert.match(bridge, /href="\.\/site-v2\.css\?v=0\.22"/);
   assert.match(bridge, /<body class="bridge-page">/);
-  assert.match(html, /Interface 0\.22/);
+  assert.match(html, /Interface 0\.23/);
   assert.match(bridge, /Imagem real/);
   assert.match(theme, /\.bx-quicknav/);
   assert.match(theme, /body\.bridge-page \.bridge-metrics/);
