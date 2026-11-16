@@ -42,6 +42,8 @@ public final class MainActivity extends Activity {
     private static final int MUTED = Color.rgb(189, 181, 194);
 
     private LinearLayout layout;
+    private LinearLayout rootLayout;
+    private TextView readinessBanner;
     private TextView diagnostics;
     private String report = "";
     private Button copyButton;
@@ -57,60 +59,107 @@ public final class MainActivity extends Activity {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(BACKGROUND);
-        layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(dp(18), dp(26), dp(18), dp(34));
-        scroll.addView(layout);
+        rootLayout = new LinearLayout(this);
+        rootLayout.setOrientation(LinearLayout.VERTICAL);
+        rootLayout.setPadding(dp(16), dp(22), dp(16), dp(35));
+        layout = rootLayout;
+        scroll.addView(rootLayout);
         setContentView(scroll);
 
-        label("BX-REMOTE-PLAY", 14, RED, Typeface.BOLD, 6);
-        label("ANDROID GATEWAY", 26, WHITE, Typeface.BOLD, 9);
-        label("Compatibilidade do aparelho", 18, WHITE, Typeface.NORMAL, 10);
+        label("BX LAB  /  MOBILE SYSTEMS", 12, RED, Typeface.BOLD, 8);
+        label("ANDROID GATEWAY", 27, WHITE, Typeface.BOLD, 7);
+        label("Central de compatibilidade", 16, MUTED, Typeface.NORMAL, 14);
 
-        label("Primeira etapa: descobrir se este Android pode servir como ponte. " +
-            "O aplicativo ainda NÃO recebe Remote Play, nem transmite imagem, áudio ou comandos.", 14, MUTED, Typeface.NORMAL, 20);
+        startCard("01  ·  DIAGNÓSTICO LOCAL");
+        label("Avalie este Android antes dos testes de Remote Play.",
+              15, WHITE, Typeface.BOLD, 8);
+        label("Bateria, memória, temperatura e codecs são medidos somente quando você solicita. " +
+            "Nenhum resultado comprova transmissão PS4 → iPhone.", 13, MUTED, Typeface.NORMAL, 11);
+        readinessBanner = label("NÃO ANALISADO  ·  toque em Analisar aparelho",
+              12, Color.rgb(255, 199, 211), Typeface.BOLD, 15);
+        readinessBanner.setBackground(roundRect(Color.rgb(72, 34, 51), Color.rgb(139, 72, 92), 10));
+        readinessBanner.setPadding(dp(12), dp(11), dp(12), dp(11));
 
         Button inspect = button("Analisar aparelho", true);
         inspect.setOnClickListener(v -> inspectDevice());
-
         copyButton = button("Copiar relatório local", false);
         copyButton.setEnabled(false);
         copyButton.setOnClickListener(v -> {
             if (report.isEmpty()) {
-                diagnostics.setText("Execute a análise antes de copiar.");
+                copyStatus.setText("Execute a análise antes de copiar.");
                 return;
             }
             ClipboardManager cb = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
             if (cb != null) {
                 cb.setPrimaryClip(ClipData.newPlainText("BX Gateway compatibility", report));
-                copyStatus.setText("Relatório copiado. Você controla se deseja compartilhá-lo.");
+                copyStatus.setText("Relatório copiado. Você decide se deseja compartilhá-lo.");
             }
         });
+        diagnostics = label("Os resultados técnicos aparecerão aqui.",
+            13, WHITE, Typeface.NORMAL, 12);
+        diagnostics.setTextIsSelectable(true);
+        diagnostics.setTypeface(Typeface.MONOSPACE);
+        diagnostics.setBackground(roundRect(Color.rgb(13, 14, 20), Color.rgb(75, 58, 72), 11));
+        diagnostics.setPadding(dp(12), dp(14), dp(12), dp(14));
+        copyStatus = label("", 13, MUTED, Typeface.NORMAL, 7);
+        endCard();
+
+        startCard("02  ·  CENTRAL BX");
+        label("Preparar o celular antigo como gateway", 16, WHITE, Typeface.BOLD, 7);
+        label("A central web orienta o processo e permite compartilhar o link com seu iPhone. " +
+            "O app atual é apenas diagnóstico e ainda não captura jogos.", 13, MUTED, Typeface.NORMAL, 13);
         Button web = button("Abrir central BX no navegador", false);
         web.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_VIEW,
                 Uri.parse("https://ct7-bx.github.io/BX-REMOTE-PLAY/remote/gateway.html"));
             try { startActivity(intent); }
             catch (Exception error) {
-                diagnostics.setText("Nenhum navegador disponível para abrir a central.");
+                copyStatus.setText("Não foi possível abrir um navegador neste aparelho.");
             }
         });
+        endCard();
 
-        diagnostics = label("Nenhum teste executado. Não há comunicação com PS4 nesta versão.",
-            14, WHITE, Typeface.NORMAL, 12);
-        diagnostics.setTextIsSelectable(true);
-        copyStatus = label("", 13, MUTED, Typeface.NORMAL, 12);
+        startCard("03  ·  SEGURANÇA E LIMITES");
+        label("A bateria e a temperatura são leituras pontuais, não um sistema de " +
+            "monitoramento 24 horas. Evite usar aparelhos quentes ou danificados.", 13, MUTED, Typeface.NORMAL, 12);
+        label("Sem internet, câmera, microfone ou captura de tela: o APK não solicita " +
+            "permissões e não coleta PINs nem contas PlayStation.", 13, MUTED, Typeface.NORMAL, 10);
+        endCard();
+
         if (savedInstanceState != null) {
             String restored = savedInstanceState.getString(STATE_REPORT, "");
             if (!restored.isEmpty()) {
                 report = restored;
                 diagnostics.setText(report);
                 copyButton.setEnabled(true);
+                readinessBanner.setText("ANÁLISE LOCAL  ·  relatório restaurado");
             }
         }
-        label("Privacidade: o APK não solicita permissão de internet, câmera, " +
-            "microfone, mídia ou armazenamento. Não coleta contas ou PINs, " +
-            "e não inicia serviço em segundo plano.", 12, MUTED, Typeface.NORMAL, 22);
+    }
+
+    private GradientDrawable roundRect(int background, int border, int radius) {
+        GradientDrawable shape = new GradientDrawable();
+        shape.setColor(background);
+        shape.setCornerRadius(dp(radius));
+        shape.setStroke(dp(1), border);
+        return shape;
+    }
+
+    private void startCard(String sectionTitle) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(15), dp(18), dp(15), dp(15));
+        card.setBackground(roundRect(CARD, Color.rgb(100, 67, 83), 17));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.bottomMargin = dp(14);
+        rootLayout.addView(card, params);
+        layout = card;
+        label(sectionTitle, 12, RED, Typeface.BOLD, 13);
+    }
+
+    private void endCard() {
+        layout = rootLayout;
     }
 
     @Override
@@ -252,6 +301,9 @@ public final class MainActivity extends Activity {
         report = result.toString();
         diagnostics.setText(report);
         copyButton.setEnabled(true);
+        readinessBanner.setText(lowRam
+            ? "LIMITADO  ·  memória baixa; teste apenas funções leves"
+            : "ANÁLISE CONCLUÍDA  ·  desempenho do gateway não comprovado");
     }
 
     private TextView label(String value, int sp, int color, int style, int bottom) {
