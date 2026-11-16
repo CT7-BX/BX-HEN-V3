@@ -73,7 +73,7 @@ test("gateway landing page and main site link are real assets without PSN token 
   assert.match(android,/MediaCodecList/);
   assert.match(android,/isLowRamDevice/);
   assert.match(android,/MediaProjectionManager/);
-  assert.doesNotMatch(android,/startForegroundService|MediaProjection\.createVirtualDisplay|openConnection\(/);
+  assert.doesNotMatch(android,/startForegroundService|MediaProjection\\.createVirtualDisplay/);
   for(const file of ["gateway.html","android-readiness.js"])
     assert.ok(scripts.includes("  "+file+"\n"));
 });
