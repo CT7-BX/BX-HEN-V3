@@ -62,3 +62,9 @@ As chamadas de pareamento HTTP no navegador agora possuem limite de 6,5 segundos
 ### Servidor de vínculo sugerido
 
 O site preenche automaticamente `wss://bx-remote-link.4rt949zpj8.workers.dev/v1/link`, correspondente ao Worker exclusivo BX-REMOTE-LINK implantado no Cloudflare. A URL WSS é usada **apenas para derivar as rotas HTTPS de pareamento**; o Worker não oferece WebSocket nem vídeo. O endpoint `/health` informa `configured:false` enquanto o titular da conta não definir o segredo privado do PS4. A configuração manual está em [cloudflare/README.md](../cloudflare/README.md). A disponibilidade do endereço público ainda precisa de um teste real no navegador.
+
+## Conexão HTTPS direta de pareamento
+
+O campo do site agora aceita diretamente `https://bx-remote-link.4rt949zpj8.workers.dev`. Isso é mais preciso: o serviço Cloudflare oferece uma **API HTTPS de vínculo**, não WebSocket de controle. Endereços legados `wss://.../v1/link` do simulador continuam aceitos e são convertidos em base HTTPS para os pedidos de código. `http://` sem TLS continua aceito apenas em localhost para teste local.
+
+O botão **Testar servidor** diferencia serviço online sem chave secreta, serviço preparado, endereço inválido e rede indisponível. O navegador interrompe uma verificação antiga ao alterar o servidor, evitando status incorreto. A aprovação via PKG real continua a significar **somente vínculo HTTP**, sem vídeo/áudio ou controles do jogo.
