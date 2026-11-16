@@ -1,6 +1,6 @@
-# BX-REMOTE-PLAY — prova de vínculo NATIVA para PS4 (v0.18 experimental)
+# BX-REMOTE-PLAY — PKG nativo com painel grafico para PS4 (v0.19 experimental)
 
-**Estado: pareamento HTTPS confirmado pelo usuário na v0.15, seguido de CE-34878-0 após alguns segundos. A v0.16 contornou o retorno de main; a v0.17 adicionou OTA experimental e a v0.18 inclui um ELF residente de diagnóstico, com execução e estabilidade ainda não verificadas em PS4 físico.** Este pacote não oferece Remote Play, streaming de vídeo/áudio, virtualização de controle, agente residente nem início automático.
+**Estado: o PKG v0.19 inclui um painel grafico de VideoOut (1920x1080), com etapa, status e codigo de 8 digitos. A compilacao e validacao ainda nao substituem teste no PS4. Pareamento HTTPS confirmado pelo usuário na v0.15, seguido de CE-34878-0 após alguns segundos. A v0.16 contornou o retorno de main; a v0.17 adicionou OTA experimental e a v0.18 inclui um ELF residente de diagnóstico, com execução e estabilidade ainda não verificadas em PS4 físico.** Este pacote nao oferece streaming de video/audio, controle remoto real de jogos nem vinculacao permanente; contem apenas um ELF de diagnostico separado, de ativacao manual.
 
 ## Por que outro PKG?
 
@@ -15,6 +15,14 @@ O pacote existente `ps4-agent/` v0.21 permanece intacto como diagnóstico HTTPS.
 5. O PKG verifica solicitações por HTTPS e exige um aperto **novo** em X para aprovar ou O para negar. OPTIONS cancela.
 6. Após a aprovação, o site confirma que o vínculo HTTP foi autorizado, mas **não inicia controles nem vídeo**, pois este aplicativo ainda não estabelece um WebSocket de console.
 7. Depois da aprovação, o aplicativo permanece aberto por até dois minutos, ou até OPTIONS. Então revoga o vínculo, limpa os recursos e entra em estado ocioso, sem retornar de `main()`. Feche o aplicativo pelo menu do botão PS. Não há AutoRun, agente residente, mídia ou listener público. O relatório de diagnóstico local registra etapas da execução caso o CE-34878-0 persista.
+
+## Nova interface grafica real — v0.19 experimental
+
+O aplicativo agora tenta inicializar **sceVideoOut** e desenhar seu proprio painel nativo PS4 usando dois framebuffers de memoria direta e uma fonte bitmap local. A tela exibe quatro secoes visuais (Vinculo, Servico, Atualizar e Diagnostico), etapa atual, codigo de 8 digitos e instrucoes do DualShock. Ao receber uma nova etapa, o painel e redesenhado. E uma UI nativa dentro do PKG, nao uma pagina web e nao um overlay de notificacoes.
+
+O fluxo de controle da v0.18 permanece: X aprova vinculo/continua, O nega, OPTIONS encerra, TRIANGULO prepara o ELF mediante consentimento quando ainda nao estiver instalado. Se a inicializacao do video falhar, o aplicativo usa notificacoes do sistema como alternativa. O painel nao inicia streaming ou o ELF sozinho.
+
+**Teste fisico necessario:** verificar se sceVideoOut apresenta imagem sem tela preta, se o codigo permanece visivel e se o console e jogos funcionam depois de fechar o PKG. A compilacao OpenOrbis valida vinculacao da biblioteca, mas nao substitui um teste real.
 
 ## Novo serviço independente em segundo plano — v0.18 experimental
 
