@@ -15,7 +15,7 @@ test("main screen provides physical and virtual control entry points", () => {
   for (const index of Array.from({ length: 18 }, (_, i) => i)) {
     assert.match(html, new RegExp('data-button="' + index + '"'));
   }
-  assert.match(html, /src="\.\/game-core\.js"/);
+  assert.match(html, /src="\.\/game-core\.js(?:\?v=[\d.]+)?"/);
   assert.match(html, /src="\.\/controller-core\.js"/);
   assert.match(html, /src="\.\/game\.js"/);
 });
