@@ -56,6 +56,18 @@
     const state=normalized(obj);
     return state?Object.freeze({seq:obj.seq,state}):null;
   }
+  function encodeAck(seq){
+    if(!Number.isSafeInteger(seq)||seq<1)throw new TypeError("Invalid ack");
+    return JSON.stringify({v:1,type:"ack",seq});
+  }
+  function decodeAck(raw){
+    if(typeof raw!=="string"||raw.length>128||raw.length<15)return null;
+    try{
+      const value=JSON.parse(raw);
+      return value&&value.v===1&&value.type==="ack"&&
+        Number.isSafeInteger(value.seq)&&value.seq>=1?value.seq:null;
+    }catch{return null;}
+  }
   function isNeutral(state){
     return Boolean(state && !state.buttons.length &&
       state.axes.every(x=>x===0)&&state.triggers.every(x=>x===0));
@@ -97,5 +109,5 @@
     return Object.freeze({receive,stop,lastSequence:()=>lastSeq});
   }
   return Object.freeze({LABEL,MAX_BYTES,WATCHDOG_MS,normalized,neutral,
-    isNeutral,encode,decode,createReceiver});
+    isNeutral,encode,decode,encodeAck,decodeAck,createReceiver});
 });
