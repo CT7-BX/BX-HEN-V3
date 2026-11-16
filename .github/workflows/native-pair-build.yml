@@ -103,6 +103,12 @@ jobs:
           "$OO_PS4_TOOLCHAIN/bin/linux/PkgTool.Core" pkg_validate \
             native-pair/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg
 
+      - name: Verify embedded resident ELF
+        run: |
+          test -s native-pair/bx-remote-service.elf
+          readelf -h native-pair/bx-remote-service.elf | grep -q 'Machine:.*Advanced Micro Devices X86-64'
+          ! grep -q 'payloads.ini' native-pair/resident_install.c
+
       - name: Record digest
         run: |
           test -s native-pair/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg
@@ -116,4 +122,5 @@ jobs:
           path: |
             native-pair/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg
             native-pair/pkg.sha256
+            native-pair/bx-remote-service.elf
           retention-days: 7
