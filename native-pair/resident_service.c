@@ -30,8 +30,14 @@ typedef struct BXServiceHTTP {
 } BXServiceHTTP;
 
 static void log_status(const char *phase, int result, int status) {
-    FILE *f=fopen(REPORT_PATH,"a+");
+    static char previous_phase[64]={0};
+    static int previous_result=0, previous_status=0;
+    FILE *f;
     long size=0;
+    /* Avoid writing the same 30-second heartbeat to flash storage all day. */
+    if(phase && strcmp(previous_phase,phase)==0 &&
+       previous_result==result && previous_status==status) return;
+    f=fopen(REPORT_PATH,"a+");
     if (!f) return;
     if (fseek(f,0,SEEK_END)==0) size=ftell(f);
     if (size>32768) {
@@ -39,9 +45,14 @@ static void log_status(const char *phase, int result, int status) {
         f=fopen(REPORT_PATH,"w");
         if(!f)return;
     }
-    fprintf(f,"BX-REMOTE-SERVICE v0.22 | state=%s | result=%d | http=%d\n",
-            phase, result, status);
+    fprintf(f,"BX-REMOTE-SERVICE v0.24 | state=%s | result=%d | http=%d\n",
+            phase ? phase : "unknown", result, status);
     fclose(f);
+    if(phase) {
+        snprintf(previous_phase,sizeof(previous_phase),"%s",phase);
+        previous_result=result;
+        previous_status=status;
+    }
 }
 static int exists(const char *path) {
     struct stat st;
