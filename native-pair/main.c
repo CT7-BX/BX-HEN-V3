@@ -40,6 +40,7 @@
 #define SSL_POOL_BYTES (128 * 1024)
 #define HTTP_MEMORY_BYTES (128 * 1024)
 #define POLL_ROUNDS 60
+#define MAX_POLL_NETWORK_RETRIES 2
 #define APPROVAL_POLL_TICKS 80
 #define APPROVED_HOLD_TICKS 1200 /* at most two minutes; user can exit earlier */
 #define CONFIG_RETRY_TICKS 1200 /* two minutes; safe first-run window */
@@ -184,6 +185,7 @@ static int call_api(
         sceHttpSetSendTimeOut(request, 6000000) < 0) {
         ok = -13; goto done;
     }
+    sceHttpSetRecvTimeOut(request,6000000);
     ok = sceHttpSendRequest(request,
         json_post ? (const void *)json_post : NULL,
         json_post ? strlen(json_post) : 0);
@@ -235,6 +237,7 @@ static int check_public_update(const HttpContext *ctx, BXUpdateManifest *availab
     if (sceHttpSetConnectTimeOut(request, 2500000) < 0 ||
         sceHttpSetResolveTimeOut(request, 2500000) < 0 ||
         sceHttpSetSendTimeOut(request, 2500000) < 0) goto cleanup;
+    sceHttpSetRecvTimeOut(request,2500000);
     if (sceHttpSendRequest(request, NULL, 0) < 0) goto cleanup;
     if (sceHttpGetStatusCode(request, &status) < 0 || status != 200) goto cleanup;
     for (;;) {
@@ -425,6 +428,7 @@ int main(void) {
     char message[180];
     uint32_t last_buttons = 0;
     int pad = -1, user_initialized = 0, status = 0, result = -1, accepted = 0, round, i;
+    int poll_network_failures = 0;
     const char *stage = "config";
     const char *final = "not_started";
 
@@ -526,9 +530,28 @@ int main(void) {
     /* Two-minute proof only; no service, no background process, no AutoRun. */
     for (round = 0; round < POLL_ROUNDS; ++round) {
         result = call_api(&http, &config, "/v1/pair/heartbeat", "{}", response, &status);
-        if (result != 1) { final = "heartbeat_lost"; break; }
+        if (result != 1) {
+            if (status != 401 && status != 403 &&
+                ++poll_network_failures <= MAX_POLL_NETWORK_RETRIES) {
+                notice("BX-REMOTE: Conexao oscilou. Repetindo verificacao HTTPS...");
+                usleep(400000);
+                --round; /* Do not shorten the 2-minute pairing window. */
+                continue;
+            }
+            final = "heartbeat_lost"; break;
+        }
         result = call_api(&http, &config, "/v1/pair/pending", NULL, response, &status);
-        if (result != 1) { final = "pending_http_failed"; break; }
+        if (result != 1) {
+            if (status != 401 && status != 403 &&
+                ++poll_network_failures <= MAX_POLL_NETWORK_RETRIES) {
+                notice("BX-REMOTE: Falha temporaria no vinculo. Tentando novamente...");
+                usleep(400000);
+                --round;
+                continue;
+            }
+            final = "pending_http_failed"; break;
+        }
+        poll_network_failures = 0; /* Successful pair check restores tolerance. */
         if (!bx_pair_status(response, state_name)) {
             final = "pending_response_invalid";
             result = -17;
