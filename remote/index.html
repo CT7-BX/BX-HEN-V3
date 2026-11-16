@@ -515,7 +515,7 @@
         if (info.pairingBackend === "cloudflare-durable-object" && info.configured !== true) {
           message("failed", "Servidor HTTPS responde, mas falta a chave privada no Cloudflare.");
         } else {
-          message("ok", "Servidor BX-REMOTE-LINK responde por HTTPS e informa chave configurada. Isso NÃO confirma que o PS4 está conectado. Abra o PKG v0.17 e verifique o código na TV.");
+          message("ok", "Servidor BX-REMOTE-LINK responde por HTTPS e informa chave configurada. Isso NÃO confirma que o PS4 está conectado. Abra o PKG v0.22 e verifique o código na TV.");
         }
       } catch (error) {
         if (request !== current) return;
@@ -566,5 +566,6 @@
   <script src="./pkg-updates.js?v=0.21"></script>
   <script src="./bridge-p2p.js?v=0.22"></script>
   <script src="./p2p-viewer.js?v=0.22"></script>
+  <script src="./site-ui.js?v=0.22"></script>
 </body>
 </html>
