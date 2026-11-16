@@ -1,4 +1,4 @@
-name: BX-REMOTE-PLAY — Publicar PKG experimental v0.13
+name: BX-REMOTE-PLAY — Publicar PKG experimental v0.14
 
 # This job only promotes an already-tested, SHA-256-pinned build from GitHub
 # Actions into a public release; it never rebuilds nor overwrites the package.
@@ -14,7 +14,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: bx-remote-pair-v013-release
+  group: bx-remote-pair-v014-release
   cancel-in-progress: false
 
 jobs:
@@ -33,16 +33,16 @@ jobs:
           set -euo pipefail
           mkdir -p staging public
           # Fixed, previously completed OpenOrbis workflow run.
-          gh run download 43790067387 --name bx-remote-play-native-pairing-untested --dir staging
+          gh run download 43866813712 --name bx-remote-play-native-pairing-untested --dir staging
           test -s staging/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg
           test -f staging/pkg.sha256
           actual="$(sha256sum staging/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg | cut -d ' ' -f 1)"
-          expected="dc4e7309414e23d65ce597e906241316a1155081a678f2e4d220f0e56dcfa0d8"
+          expected="108a6b92fc0aeffdb23e17d79e259a9f7b354b666cfab5c7116b1a22d27d8092"
           test "$actual" = "$expected" || { echo "Package SHA-256 mismatch"; exit 1; }
           grep -q "^$expected " staging/pkg.sha256 || { echo "Build hash manifest mismatch"; exit 1; }
-          cp staging/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg public/BX-REMOTE-PLAY-Pair-Test-v0.13.pkg
-          printf '%s  %s\n' "$expected" "BX-REMOTE-PLAY-Pair-Test-v0.13.pkg" > public/SHA256SUMS
-          test "$(stat -c '%s' public/BX-REMOTE-PLAY-Pair-Test-v0.13.pkg)" = "6619136"
+          cp staging/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg public/BX-REMOTE-PLAY-Pair-Test-v0.14.pkg
+          printf '%s  %s\n' "$expected" "BX-REMOTE-PLAY-Pair-Test-v0.14.pkg" > public/SHA256SUMS
+          test "$(stat -c '%s' public/BX-REMOTE-PLAY-Pair-Test-v0.14.pkg)" = "6619136"
 
       - name: Publish permanent public pre-release link
         env:
@@ -51,16 +51,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tag="pair-test-v0.13"
+          tag="pair-test-v0.14"
           if gh release view "$tag" --json tagName >/dev/null 2>&1; then
             echo "Release already exists. Not overwriting published assets."
             exit 0
           fi
           gh release create "$tag" \
-            public/BX-REMOTE-PLAY-Pair-Test-v0.13.pkg \
+            public/BX-REMOTE-PLAY-Pair-Test-v0.14.pkg \
             public/SHA256SUMS \
             --target "$GITHUB_SHA" \
-            --title "BX-REMOTE-PLAY — PS4 Pair Test v0.13 (experimental)" \
+            --title "BX-REMOTE-PLAY — PS4 Pair Test v0.14 (experimental)" \
             --prerelease \
-            --notes "PS4 Pair Test v0.13: gracefully handles missing HTTPS configuration, allows local retry with X after copying private config via FTP, and exits normally when OPTIONS is pressed. This is an experimental HTTPS pairing-only package. Built and structurally validated using OpenOrbis in GitHub Actions run 43790067387. The PKG has NOT been physically tested on a PS4. Requires a separately configured private HTTPS pairing server and matching PS4 token. It does NOT stream games, audio, video or real PS4 controls. SHA-256 is provided as a release asset."
+            --notes "PS4 Pair Test v0.14: automatically rechecks private config copied via FTP every 5 seconds, X retries and OPTIONS exits; distinguishes missing vs invalid config, handles UTF-8 BOM/Windows CRLF, explains HTTP 401/403/503, and safely finalizes partially initialized UserService. Experimental HTTPS pairing only. Built and structurally validated using OpenOrbis in GitHub Actions run 43866813712. The PKG has NOT been physically tested on a PS4. Requires a separately configured private HTTPS pairing server and matching PS4 token. It does NOT stream games, audio, video or real PS4 controls. SHA-256 is provided as a release asset."
           gh release view "$tag" --json url,assets --jq '{url: .url, assets: [.assets[].name]}'
