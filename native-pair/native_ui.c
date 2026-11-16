@@ -1,10 +1,11 @@
 /*
- * BX-REMOTE-PLAY native PS4 dashboard v0.22.
+ * BX-REMOTE-PLAY native PS4 dashboard v0.23.
  * Real RGB CPU framebuffer via OpenOrbis VideoOut, not the website, a
  * notification overlay, or a screenshot. No external fonts/graphics assets.
  * Fail open: pairing remains usable when the display cannot initialize.
  */
 #include "native_ui.h"
+#include "native_diag.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -37,7 +38,10 @@ typedef struct BXScreen {
     OrbisVideoOutBufferAttribute attribute;
     char status[148];
     char stage[48];
+    char hint[84];
     char code[12];
+    unsigned progress;
+    enum BXDiagnosticLevel level;
 } BXScreen;
 static BXScreen ui;
 
@@ -153,10 +157,10 @@ static void draw_frame(uint32_t *dst) {
     text(dst,116,45,"BX REMOTE PLAY",6,white,19);
     fill(dst,1440,44,385,62,color(55,26,42));
     fill(dst,1440,44,5,62,red);
-    text(dst,1484,58,"VERSAO 0.22 BETA",3,white,18);
+    text(dst,1484,58,"VERSAO 0.23 BETA",3,white,18);
 
     text(dst,83,170,"CENTRAL DO PS4",4,white,25);
-    text(dst,83,213,"VINCULO  -  ATUALIZACAO  -  DIAGNOSTICO",2,dim,58);
+    text(dst,83,213,"VINCULO  /  SERVICO  /  ATUALIZACAO  /  DIAGNOSTICO",2,dim,60);
     panel(dst,82,239,395,129,card,red);
     text(dst,108,265,"01 VINCULO",4,white,21);
     text(dst,108,320,"AUTORIZAR DISPOSITIVO",2,dim,30);
@@ -175,17 +179,39 @@ static void draw_frame(uint32_t *dst) {
 
     panel(dst,527,236,1310,572,card,red);
     text(dst,565,279,"STATUS DA SESSAO",3,dim,45);
-    text(dst,566,333,phase,4,white,47);
-    fill(dst,565,414,1235,2,color(66,52,67));
-    fill(dst,565,444,6,214,red);
-    text(dst,592,463,"CODIGO DE PAREAMENTO",3,dim,41);
+    text(dst,566,333,phase,4,
+         ui.level==BX_DIAG_FAILURE ? danger :
+         ui.level==BX_DIAG_GOOD ? teal : white,47);
+    /* Four segmented checkpoints are based on the last stage actually
+     * observed by the local PS4, not on server/media assumptions.
+     * Unknown stages remain at zero. Never claim PS4 video or controls.
+     */
+    {
+        const char *markers[4] = {"CONFIG", "REDE", "VINCULO", "FIM"};
+        int i;
+        for (i=0;i<4;++i) {
+            int left=565+i*310;
+            uint32_t shade=ui.progress >= (unsigned)(i+1)
+                ? (ui.level==BX_DIAG_FAILURE ? danger : teal)
+                : color(65,54,67);
+            fill(dst,left,386,291,7,shade);
+            text(dst,left,402,markers[i],2,dim,14);
+        }
+    }
+    fill(dst,565,438,1235,2,color(66,52,67));
+    fill(dst,565,453,6,202,red);
+    text(dst,592,471,"CODIGO DE PAREAMENTO",3,dim,41);
     if(ui.code[0]) {
-        fill(dst,589,521,535,110,color(22,43,39));
-        text(dst,610,535,ui.code,10,teal,9);
-    } else text(dst,592,529,"AGUARDANDO CODIGO",5,dim,27);
-    fill(dst,565,677,1235,2,color(66,52,67));
-    text(dst,565,700,"STATUS DO APLICATIVO",3,dim,41);
-    text(dst,565,744,status,2,white,96);
+        fill(dst,589,529,535,110,color(22,43,39));
+        text(dst,610,543,ui.code,10,teal,9);
+    } else text(dst,592,539,"AGUARDANDO CODIGO",4,dim,27);
+    fill(dst,565,667,1235,2,color(66,52,67));
+    text(dst,565,681,"STATUS DO APLICATIVO",2,dim,55);
+    text(dst,565,716,status,2,white,96);
+    fill(dst,565,770,6,31,
+         ui.level==BX_DIAG_FAILURE ? danger : teal);
+    text(dst,587,781,ui.hint[0]?ui.hint:"CONSULTE O RELATORIO LOCAL",
+         2,ui.level==BX_DIAG_FAILURE ? danger : dim,77);
 
     fill(dst,82,856,1755,120,color(21,20,29));
     fill(dst,82,856,1755,5,red);
@@ -237,6 +263,9 @@ int bx_ui_init(void) {
     ui.ready=1;
     strcpy(ui.stage,"INICIALIZANDO");
     strcpy(ui.status,"TESTE NATIVO    AGUARDANDO REDE");
+    strcpy(ui.hint,"PREPARE CFG PRIVADA NO PS4");
+    ui.progress=0u;
+    ui.level=BX_DIAG_WAIT;
     draw();
     return 1;
 fail:
@@ -245,19 +274,41 @@ fail:
 }
 int bx_ui_enabled(void) {return ui.ready;}
 void bx_ui_status(const char *message) {
+    char next[sizeof(ui.status)]={0};
     if(!ui.ready || !message)return;
-    snprintf(ui.status,sizeof(ui.status),"%s",message);
+    snprintf(next,sizeof(next),"%s",message);
+    if(strcmp(ui.status,next)==0)return; /* Avoid needless VideoOut flips. */
+    memcpy(ui.status,next,sizeof(next));
     draw();
 }
 void bx_ui_stage(const char *stage) {
+    char next[sizeof(ui.stage)]={0};
+    char hint[sizeof(ui.hint)]={0};
+    unsigned progress;
+    enum BXDiagnosticLevel level;
     if(!ui.ready || !stage)return;
-    snprintf(ui.stage,sizeof(ui.stage),"%s",stage);
+    snprintf(next,sizeof(next),"%s",bx_diag_label(stage));
+    snprintf(hint,sizeof(hint),"%s",bx_diag_hint(stage,0));
+    progress=bx_diag_progress(stage);
+    level=bx_diag_level(stage,0);
+    if(strcmp(ui.stage,next)==0 && strcmp(ui.hint,hint)==0 &&
+       ui.progress==progress && ui.level==level)return;
+    memcpy(ui.stage,next,sizeof(next));
+    memcpy(ui.hint,hint,sizeof(hint));
+    ui.progress=progress;
+    ui.level=level;
     draw();
 }
 void bx_ui_code(const char *code) {
+    char next[sizeof(ui.code)]={0};
+    size_t i;
     if(!ui.ready)return;
-    if(code && strlen(code)==8)snprintf(ui.code,sizeof(ui.code),"%s",code);
-    else ui.code[0]=0;
+    if(code && strlen(code)==8) {
+        for(i=0;i<8;++i)if(code[i]<'0'||code[i]>'9')break;
+        if(i==8)snprintf(next,sizeof(next),"%s",code);
+    }
+    if(strcmp(ui.code,next)==0)return;
+    memcpy(ui.code,next,sizeof(next));
     draw();
 }
 void bx_ui_shutdown(void) {

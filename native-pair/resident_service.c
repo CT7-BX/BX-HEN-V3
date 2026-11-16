@@ -1,5 +1,5 @@
 /*
- * BX-REMOTE-SERVICE v0.22 - experimental independent GoldHEN ELF process.
+ * BX-REMOTE-SERVICE v0.23 - experimental independent GoldHEN ELF process.
  * No video/audio/control: outbound HTTPS and explicit owner-approved 9295 probe only.
  * Does not persist a player authorization or expose local ports.
  * Must be explicitly enabled by the user through BX Pair Test.
@@ -83,7 +83,7 @@ static int http_open(BXServiceHTTP *h) {
     if(h->ssl<0)return 0;
     h->http=sceHttpInit(h->pool,h->ssl,128*1024);
     if(h->http<0)return 0;
-    h->tmpl=sceHttpCreateTemplate(h->http,"BX-REMOTE-SERVICE/0.22",
+    h->tmpl=sceHttpCreateTemplate(h->http,"BX-REMOTE-SERVICE/0.23",
                                 ORBIS_HTTP_VERSION_1_1,1);
     return h->tmpl>=0;
 }

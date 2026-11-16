@@ -13,7 +13,7 @@
 #define ENABLED "/data/bx-remote-service.enabled"
 #define STOP "/data/bx-remote-service.stop"
 #define VERSION_FILE "/data/bx-remote-service.version"
-#define RESIDENT_VERSION "0.22\n"
+#define RESIDENT_VERSION "0.23\n"
 #define LIMIT (8u * 1024u * 1024u)
 
 int bx_resident_prepare(void) {
