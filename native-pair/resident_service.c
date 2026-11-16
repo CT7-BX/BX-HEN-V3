@@ -39,7 +39,7 @@ static void log_status(const char *phase, int result, int status) {
         f=fopen(REPORT_PATH,"w");
         if(!f)return;
     }
-    fprintf(f,"BX-REMOTE-SERVICE v0.18 | state=%s | result=%d | http=%d\n",
+    fprintf(f,"BX-REMOTE-SERVICE v0.21 | state=%s | result=%d | http=%d\n",
             phase, result, status);
     fclose(f);
 }
