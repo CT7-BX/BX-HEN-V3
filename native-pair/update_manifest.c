@@ -69,8 +69,19 @@ int bx_update_parse(const char *text, BXUpdateManifest *out) {
             if (n <= prefix || n >= sizeof(value.pkg_url) ||
                 strncmp(equals, REPO_PREFIX, prefix) ||
                 strchr(equals, '?') || strchr(equals, '#') ||
-                !strstr(equals + prefix, "/BX-REMOTE-PLAY-Pair-Test-v") ||
                 n < 4 || strcmp(equals + n - 4, ".pkg")) return 0;
+            /* Require release tag and PKG filename to match the declared version.
+             * A valid checksum alone must not permit cross-version metadata.
+             */
+            {
+                char expected[256];
+                int written = snprintf(expected, sizeof(expected),
+                    REPO_PREFIX "pair-test-v%s/BX-REMOTE-PLAY-Pair-Test-v%s.pkg",
+                    value.version, value.version);
+                if (!(seen & 2u) || written < 0 ||
+                    (size_t)written >= sizeof(expected) ||
+                    strcmp(equals, expected)) return 0;
+            }
             memcpy(value.pkg_url, equals, n + 1);
             seen |= 8u;
         } else return 0;
