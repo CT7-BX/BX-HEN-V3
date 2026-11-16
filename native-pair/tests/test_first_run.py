@@ -31,9 +31,9 @@ class FirstRunFlowTests(unittest.TestCase):
         self.assertNotIn('fprintf(f, "console_token=', SOURCE)
 
     def test_version_labels_incremented(self):
-        self.assertIn("Pairing Proof v0.14", SOURCE)
-        self.assertIn("native pairing test 0.14", SOURCE)
-        self.assertIn("BX-REMOTE-PLAY-PS4-Pair/0.14", SOURCE)
+        self.assertIn("Pairing Proof v0.15", SOURCE)
+        self.assertIn("native pairing test 0.15", SOURCE)
+        self.assertIn("BX-REMOTE-PLAY-PS4-Pair/0.15", SOURCE)
 
 if __name__ == "__main__":
     unittest.main()
