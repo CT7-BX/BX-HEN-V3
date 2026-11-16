@@ -63,6 +63,33 @@ test("relay URLs reject remote unencrypted connections, secrets and unexpected p
   assert.equal(game.validRelayEndpoint("wss://my-relay.example/admin"), null);
 });
 
+test("pairing server accepts HTTPS without claiming WebSocket control", () => {
+  assert.deepEqual(game.validPairingServer("https://bx-remote-link.4rt949zpj8.workers.dev"), {
+    apiBase: "https://bx-remote-link.4rt949zpj8.workers.dev",
+    controlEndpoint: "wss://bx-remote-link.4rt949zpj8.workers.dev/v1/link"
+  });
+  assert.deepEqual(game.validPairingServer("wss://my-relay.example/v1/link"), {
+    apiBase: "https://my-relay.example",
+    controlEndpoint: "wss://my-relay.example/v1/link"
+  });
+  assert.deepEqual(game.validPairingServer("http://127.0.0.1:8765"), {
+    apiBase: "http://127.0.0.1:8765",
+    controlEndpoint: "ws://127.0.0.1:8765/v1/link"
+  });
+  assert.deepEqual(game.validPairingServer("https://my-relay.example/v1/link"), {
+    apiBase: "https://my-relay.example",
+    controlEndpoint: "wss://my-relay.example/v1/link"
+  });
+  for (const raw of [
+    "http://my-relay.example", "ws://my-relay.example/v1/link",
+    "https://my-relay.example/secret", "https://my-relay.example/?token=secret",
+    "https://user:password@my-relay.example", "https://my-relay.example/#x",
+    "javascript:alert(1)", "", "https://my-relay.example/other",
+  ]) {
+    assert.equal(game.validPairingServer(raw), null, raw);
+  }
+});
+
 test("quality settings are target profiles, not claimed active video streams", () => {
   assert.equal(game.qualityTargets.economy.height, 540);
   assert.equal(game.qualityTargets.balanced.height, 720);
