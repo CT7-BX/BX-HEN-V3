@@ -325,6 +325,7 @@
     peerConnected = false;
     pings.clear();
     rtts.length = 0;
+    nextSeq = 0;
     lastInputSignature = "";
     lastSent = 0;
     $("lagBadge").textContent = "RTT relay: —";
@@ -332,6 +333,9 @@
     sessionTimer = null;
     updateRelayStatus("Relay desconectado", false);
     if (existing) {
+      existing.onopen = null;
+      existing.onmessage = null;
+      existing.onerror = null;
       existing.onclose = null;
       try { existing.close(); } catch {}
     }
@@ -391,17 +395,21 @@
     }, 8000);
 
     client.onopen = () => {
+      if (ws !== client) return;
       // WebSocket cannot set Authorization headers in browsers. Send the secret
       // in the first application-level frame, never in the URL.
       client.send(JSON.stringify({ type: "hello", role: "player", token: token }));
       $("relayToken").value = "";
     };
     client.onmessage = event => {
+      if (ws !== client) return;
       let frame;
       try { frame = JSON.parse(event.data); } catch { return; }
       handleRelayFrame(frame);
     };
-    client.onerror = () => log("Falha de transporte. Confira WSS, origem e credenciais.");
+    client.onerror = () => {
+      if (ws === client) log("Falha de transporte. Confira WSS, origem e credenciais.");
+    };
     client.onclose = () => {
       if (ws === client) closeRelay("Sessão de laboratório encerrada.");
     };
