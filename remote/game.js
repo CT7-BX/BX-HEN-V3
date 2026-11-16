@@ -494,31 +494,44 @@
   window.addEventListener("gamepadconnected", () => refreshIndicators(getGamepad()));
   window.addEventListener("gamepaddisconnected", () => refreshIndicators(getGamepad()));
 
-  // Media integration seam for a future Chiaki/Remote Play bridge.
-  // An external, trusted gateway must explicitly provide a MediaStream.
-  // Attaching a stream does not prove that its source is a PS4.
-  function attachMediaStream(stream) {
+  // Media source isolation: WHEP and Mac P2P share a player but not ownership.
+  // A stale disconnect from one connection must not blank another one's video.
+  // This is still a generic MediaStream player, not a native PS4 client.
+  const mediaSwitcher = window.BXMediaSources?.createSwitcher({
+    onPreempt: (previous, next) => {
+      window.dispatchEvent(new CustomEvent("bxremote:media-preempt", {
+        detail: { previous, next }
+      }));
+    },
+    onAttach: (stream, owner) => {
+      video.srcObject = stream;
+      mediaAttached = Boolean(stream);
+      $("emptyState").hidden = mediaAttached;
+      $("mediaIndicator").classList.toggle("ok", mediaAttached);
+      $("mediaLabel").textContent = !stream ? "Vídeo PS4 não integrado"
+        : owner === "p2p" ? "Vídeo P2P do Mac conectado; origem PS4 não verificada"
+        : owner === "whep" ? "Gateway WHEP conectado; origem PS4 não verificada"
+        : "Fonte de vídeo experimental anexada; origem PS4 não verificada";
+      if (stream) {
+        video.play().catch(() => {
+          log("O navegador exige interação para iniciar a mídia. Toque no player e tente novamente.");
+        });
+      } else video.pause();
+    }
+  });
+  function attachMediaStream(stream, source = "legacy") {
     if (stream !== null && (typeof MediaStream === "undefined" || !(stream instanceof MediaStream))) {
       throw new TypeError("Expected a MediaStream or null.");
     }
-    video.srcObject = stream;
-    mediaAttached = Boolean(stream);
-    $("emptyState").hidden = mediaAttached;
-    $("mediaIndicator").classList.toggle("ok", mediaAttached);
-    $("mediaLabel").textContent = mediaAttached
-      ? "Fonte de vídeo experimental anexada; origem PS4 não verificada"
-      : "Vídeo PS4 não integrado";
-    if (stream) {
-      video.play().catch(() => {
-        log("O navegador exige interação para iniciar áudio e vídeo. Toque na tela e tente novamente.");
-      });
-    } else {
-      video.pause();
+    if (!mediaSwitcher) {
+      throw new Error("Módulo de gerenciamento de fontes não carregado.");
     }
+    return mediaSwitcher.attach(stream, source);
   }
 
   window.BXRemotePlayer = Object.freeze({
     attachMediaStream: attachMediaStream,
+    activeMediaSource: () => mediaSwitcher?.currentOwner() || null,
     getPreferences: () => Object.freeze({
       quality: quality.value, route: route.value, touch: mode.value,
       touchOpacity: Number(touchOpacity.value), touchSize: Number(touchSize.value)
