@@ -1,3 +1,11 @@
+## 2026-11-16 — Pair Test v0.14: estabilidade nativa e configuração FTP
+
+- O aplicativo PS4 testa automaticamente a presença do arquivo privado FTP a cada cinco segundos enquanto a tela de configuração está aberta. X revalida; OPTIONS sai.
+- Distingue arquivo de configuração ausente de arquivo inválido, aceita BOM UTF-8 e linhas em branco CRLF de editores móveis/Windows, sem enfraquecer validações de HTTPS/token.
+- Notificações mais específicas para HTTP 401, 403 e 503, com estágios e códigos preservados no relatório local sem credenciais.
+- Corrigida a finalização do UserService em casos de inicialização parcial.
+- Atualizado PKG experimental v0.14 (Title ID `BRPM00001`). Compilação CI/OpenOrbis não equivale a validação no PS4 físico; sem vídeo, áudio ou comandos de jogo.
+
 
 ## 2026-11-16 — Interface v0.10: estabilidade em conexões móveis
 
