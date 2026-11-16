@@ -72,9 +72,9 @@ class FirstRunFlowTests(unittest.TestCase):
         self.assertIn("__attribute__((noreturn))", SOURCE)
 
     def test_version_labels_incremented(self):
-        self.assertIn("Pairing Proof v0.15", SOURCE)
-        self.assertIn("native pairing test 0.15", SOURCE)
-        self.assertIn("BX-REMOTE-PLAY-PS4-Pair/0.15", SOURCE)
+        self.assertIn("Pairing Proof v0.16", SOURCE)
+        self.assertIn("native pairing test 0.16", SOURCE)
+        self.assertIn("BX-REMOTE-PLAY-PS4-Pair/0.16", SOURCE)
 
 if __name__ == "__main__":
     unittest.main()
