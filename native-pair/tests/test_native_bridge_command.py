@@ -1,4 +1,4 @@
-"""Guard BX v0.21 approved one-shot command channel.
+"""Guard BX v0.22 approved one-shot command channel.
 A successful build only proves the transport prototype compiles: NO video or
 audio and NO real gameplay controls are implemented by this version.
 """
@@ -30,8 +30,8 @@ class NativeCommandBridgeChecks(unittest.TestCase):
             self.assertNotIn(forbidden, RESIDENT)
 
     def test_user_opt_in_elf_version_and_original_dashboard_preserved(self):
-        self.assertIn('VERSION := 0.21', MAKE)
-        self.assertIn('#define CURRENT_UPDATE_MINOR 21u', MANAGER)
+        self.assertIn('VERSION := 0.22', MAKE)
+        self.assertIn('#define CURRENT_UPDATE_MINOR 22u', MANAGER)
         self.assertIn('RESIDENT_VERSION "0.21\\n"', INSTALL)
         self.assertIn('memcmp(version,"0.21\\n",5)', MANAGER)
         self.assertIn('ORBIS_PAD_BUTTON_TRIANGLE', MANAGER)
