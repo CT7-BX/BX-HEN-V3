@@ -1,5 +1,5 @@
 /*
- * BX-REMOTE-PLAY native PS4 dashboard v0.19.
+ * BX-REMOTE-PLAY native PS4 dashboard v0.22.
  * Real RGB CPU framebuffer via OpenOrbis VideoOut, not the website, a
  * notification overlay, or a screenshot. No external fonts/graphics assets.
  * Fail open: pairing remains usable when the display cannot initialize.
@@ -140,51 +140,58 @@ static void panel(uint32_t *dst, int x, int y, int w, int h, uint32_t bg,
     fill(dst,x,y,7,h,accent);
 }
 static void draw_frame(uint32_t *dst) {
-    const uint32_t bg=color(9,10,15), card=color(28,28,37),
-                   dim=color(174,177,193), white=color(245,240,242),
-                   red=color(239,52,83), teal=color(98,209,153),
-                   danger=color(227,105,116);
+    const uint32_t bg=color(9,10,14), card=color(24,24,33),
+                   dim=color(176,175,190), white=color(247,245,248),
+                   red=color(243,53,82), teal=color(107,222,155),
+                   danger=color(230,103,126);
     const char *phase = ui.stage[0] ? ui.stage : "INICIALIZANDO";
     const char *status = ui.status[0] ? ui.status : "ABRA O BX REMOTE PLAY NO PS4";
     fill(dst,0,0,UI_W,UI_H,bg);
-    fill(dst,0,0,UI_W,128,color(24,18,29));
+    fill(dst,0,0,UI_W,138,color(25,19,29));
     fill(dst,0,0,UI_W,8,red);
-    fill(dst,74,43,20,48,red);
-    text(dst,115,45,"BX REMOTE PLAY",6,white,19);
-    text(dst,1513,57,"VERSAO 0.19",3,dim,19);
+    fill(dst,70,43,22,52,red);
+    text(dst,116,45,"BX REMOTE PLAY",6,white,19);
+    fill(dst,1440,44,385,62,color(55,26,42));
+    fill(dst,1440,44,5,62,red);
+    text(dst,1484,58,"VERSAO 0.22 BETA",3,white,18);
 
-    text(dst,83,183,"PAINEL DO PS4",4,white,25);
+    text(dst,83,170,"CENTRAL DO PS4",4,white,25);
+    text(dst,83,213,"VINCULO  -  ATUALIZACAO  -  DIAGNOSTICO",2,dim,58);
     panel(dst,82,239,395,129,card,red);
     text(dst,108,265,"01 VINCULO",4,white,21);
-    text(dst,108,320,"CODIGO HTTPS",2,dim,30);
+    text(dst,108,320,"AUTORIZAR DISPOSITIVO",2,dim,30);
 
     panel(dst,82,385,395,129,card,teal);
     text(dst,108,410,"02 SERVICO",4,white,21);
-    text(dst,108,465,"ELF EXPERIMENTAL",2,dim,30);
+    text(dst,108,465,"EXECUTA SEM PKG ABERTO",2,dim,30);
 
     panel(dst,82,531,395,129,card,red);
     text(dst,108,556,"03 ATUALIZAR",4,white,21);
-    text(dst,108,611,"PKG VIA HTTPS",2,dim,30);
+    text(dst,108,611,"VERSAO OFICIAL",2,dim,30);
 
     panel(dst,82,678,395,129,card,danger);
     text(dst,108,702,"04 DIAGNOSTICO",3,white,25);
-    text(dst,108,758,"SEM VIDEO REAL",2,dim,29);
+    text(dst,108,758,"REMOTE PLAY EM TESTES",2,dim,29);
 
     panel(dst,527,236,1310,572,card,red);
-    text(dst,565,279,"ETAPA ATUAL",3,dim,45);
+    text(dst,565,279,"STATUS DA SESSAO",3,dim,45);
     text(dst,566,333,phase,4,white,47);
-    fill(dst,565,421,1235,3,color(55,53,64));
-    text(dst,565,452,"CODIGO DE PAREAMENTO",3,dim,41);
-    if(ui.code[0]) text(dst,565,516,ui.code,10,teal,9);
-    else text(dst,565,529,"AGUARDANDO CODIGO",5,dim,27);
-    text(dst,565,681,"STATUS DO APLICATIVO",3,dim,41);
-    text(dst,565,737,status,2,white,96);
+    fill(dst,565,414,1235,2,color(66,52,67));
+    fill(dst,565,444,6,214,red);
+    text(dst,592,463,"CODIGO DE PAREAMENTO",3,dim,41);
+    if(ui.code[0]) {
+        fill(dst,589,521,535,110,color(22,43,39));
+        text(dst,610,535,ui.code,10,teal,9);
+    } else text(dst,592,529,"AGUARDANDO CODIGO",5,dim,27);
+    fill(dst,565,677,1235,2,color(66,52,67));
+    text(dst,565,700,"STATUS DO APLICATIVO",3,dim,41);
+    text(dst,565,744,status,2,white,96);
 
-    fill(dst,82,865,1755,110,color(19,20,27));
-    fill(dst,82,865,1755,3,red);
-    text(dst,110,897,"X APROVAR / SEGUIR     O RECUSAR     TRIANGULO SERVICO",3,white,80);
-    text(dst,110,939,"OPTIONS ENCERRAR     SEM STREAMING DE VIDEO OU AUDIO",2,dim,100);
-    text(dst,84,1025,"BX REMOTE PLAY    SISTEMA DE PAREAMENTO E DIAGNOSTICO",2,dim,94);
+    fill(dst,82,856,1755,120,color(21,20,29));
+    fill(dst,82,856,1755,5,red);
+    text(dst,110,885,"X APROVAR / SEGUIR     O RECUSAR     TRIANGULO SERVICO",3,white,80);
+    text(dst,110,940,"OPTIONS ENCERRAR   -   STREAMING DIRETO AINDA INDISPONIVEL",2,dim,100);
+    text(dst,84,1025,"BX REMOTE PLAY   -   PKG DE VINCULO E DIAGNOSTICO",2,dim,94);
 }
 static void draw(void) {
     OrbisVideoOutFlipStatus s;
