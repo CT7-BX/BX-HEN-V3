@@ -46,6 +46,8 @@ test("mobile pairing calls have bounded timeouts and cancel outstanding requests
   assert.match(pairing, /function stopHealthCheck\(\)/);
   assert.match(pairing, /game\.validPairingServer/);
   assert.match(pairing, /function errorMessage\(error\)/);
+  assert.match(pairing, /dataset\.relayCheck = "unconfigured"/);
+  assert.match(pairing, /\$\("pairSection"\)\?\.addEventListener\("toggle"/);
 });
 
 test("approved pairing connects to existing relay without manual secret entry", () => {
