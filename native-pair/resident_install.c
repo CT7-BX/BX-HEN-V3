@@ -12,12 +12,14 @@
 #define TEMP "/data/payloads/bx-remote-service.elf.tmp"
 #define ENABLED "/data/bx-remote-service.enabled"
 #define STOP "/data/bx-remote-service.stop"
+#define VERSION_FILE "/data/bx-remote-service.version"
+#define RESIDENT_VERSION "0.20\n"
 #define LIMIT (8u * 1024u * 1024u)
 
 int bx_resident_prepare(void) {
     unsigned char bytes[4096];
     unsigned char magic[4];
-    FILE *input=NULL,*output=NULL,*flag=NULL;
+    FILE *input=NULL,*output=NULL,*flag=NULL,*version=NULL;
     unsigned long total=0;
     size_t n;
     int result=-1;
@@ -54,9 +56,19 @@ int bx_resident_prepare(void) {
     flag=NULL;
     /* The STOP flag is a user-operated kill-switch, not a service secret. */
     remove(STOP);
+    /* Version marker is written ONLY after opt-in copying succeeded.
+     * An older resident ELF is offered for upgrade on the next PKG launch.
+     */
+    version=fopen(VERSION_FILE,"wb");
+    if(!version){result=-14;goto done;}
+    if(fwrite(RESIDENT_VERSION,1,sizeof(RESIDENT_VERSION)-1,version)
+       !=sizeof(RESIDENT_VERSION)-1){result=-15;goto done;}
+    if(fclose(version)!=0){version=NULL;result=-16;goto done;}
+    version=NULL;
     result=1;
 done:
     if(flag)fclose(flag);
+    if(version)fclose(version);
     if(output)fclose(output);
     if(input)fclose(input);
     memset(bytes,0,sizeof(bytes));

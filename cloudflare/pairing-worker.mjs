@@ -233,7 +233,19 @@ export class BXPairingRoom {
       }
 
       if (path === "/v1/pair/heartbeat") {
-        await readJson(request);
+        const heartbeat = await readJson(request);
+        /* Owner-authenticated PS4 native ELF reports LOCAL loopback readiness.
+         * No private IPs, gameplay data, PINs or accounts are accepted.
+         * This does NOT mean a playable video/audio stream exists.
+         */
+        if (Object.prototype.hasOwnProperty.call(heartbeat, "remotePlayTcp9295")) {
+          const probe = heartbeat.remotePlayTcp9295;
+          if (probe !== true && probe !== false && probe !== null)
+            return problem("INVALID_PROBE", 400, origin);
+          await this.ctx.storage.put("native-remoteplay-probe", {
+            tcp9295: probe, checkedAt: now
+          });
+        }
         await this.ctx.storage.put("last-console-heartbeat", now);
         return reply({ state: "online", leaseSeconds: PRESENCE_MS / 1000 }, 200, origin);
       }
@@ -320,9 +332,23 @@ export class BXPairingRoom {
         }
         // This Worker has no console input/media transport. NEVER return a
         // player token nor advertise a real Remote Play session.
-        return reply({
-          status: entry.status, controlAvailable: false
-        }, 200, origin);
+        const response = { status: entry.status, controlAvailable: false };
+        if (entry.status === "approved") {
+          const probe = await this.ctx.storage.get("native-remoteplay-probe");
+          /* Only the approved short-lived claimant may inspect diagnostics.
+           * A stale probe must never be described as current availability.
+           */
+          if (probe && Number.isFinite(probe.checkedAt)
+              && now - probe.checkedAt >= 0
+              && now - probe.checkedAt <= 90000
+              && [true, false, null].includes(probe.tcp9295)) {
+            response.remotePlayProbe = {
+              loopbackTcp9295: probe.tcp9295,
+              checkedSecondsAgo: Math.floor((now - probe.checkedAt) / 1000)
+            };
+          }
+        }
+        return reply(response, 200, origin);
       }
       if (path === "/v1/pair/revoke") {
         await readJson(request);

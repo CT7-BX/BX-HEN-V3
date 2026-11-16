@@ -1,6 +1,6 @@
-# BX-REMOTE-PLAY — PKG nativo com painel grafico para PS4 (v0.19 experimental)
+# BX-REMOTE-PLAY — PKG nativo com painel grafico para PS4 (v0.20 experimental)
 
-**Estado: o PKG v0.19 inclui um painel grafico de VideoOut (1920x1080), com etapa, status e codigo de 8 digitos. A compilacao e validacao ainda nao substituem teste no PS4. Pareamento HTTPS confirmado pelo usuário na v0.15, seguido de CE-34878-0 após alguns segundos. A v0.16 contornou o retorno de main; a v0.17 adicionou OTA experimental e a v0.18 inclui um ELF residente de diagnóstico, com execução e estabilidade ainda não verificadas em PS4 físico.** Este pacote nao oferece streaming de video/audio, controle remoto real de jogos nem vinculacao permanente; contem apenas um ELF de diagnostico separado, de ativacao manual.
+**Estado: o PKG v0.20 inclui um painel grafico de VideoOut (1920x1080), com etapa, status e codigo de 8 digitos. A compilacao e validacao ainda nao substituem teste no PS4. Pareamento HTTPS confirmado pelo usuário na v0.15, seguido de CE-34878-0 após alguns segundos. A v0.16 contornou o retorno de main; a v0.17 adicionou OTA experimental e a v0.18 inclui um ELF residente de diagnóstico, com execução e estabilidade ainda não verificadas em PS4 físico.** Este pacote nao oferece streaming de video/audio, controle remoto real de jogos nem vinculacao permanente; contem apenas um ELF de diagnostico separado, de ativacao manual.
 
 ## Por que outro PKG?
 
@@ -15,6 +15,20 @@ O pacote existente `ps4-agent/` v0.21 permanece intacto como diagnóstico HTTPS.
 5. O PKG verifica solicitações por HTTPS e exige um aperto **novo** em X para aprovar ou O para negar. OPTIONS cancela.
 6. Após a aprovação, o site confirma que o vínculo HTTP foi autorizado, mas **não inicia controles nem vídeo**, pois este aplicativo ainda não estabelece um WebSocket de console.
 7. Depois da aprovação, o aplicativo permanece aberto por até dois minutos, ou até OPTIONS. Então revoga o vínculo, limpa os recursos e entra em estado ocioso, sem retornar de `main()`. Feche o aplicativo pelo menu do botão PS. Não há AutoRun, agente residente, mídia ou listener público. O relatório de diagnóstico local registra etapas da execução caso o CE-34878-0 persista.
+
+## Diagnóstico de Remote Play sem Mac — v0.20
+
+O objetivo definitivo é usar **somente PS4 e celular**. O PKG v0.20 mantém a interface v0.19 que já foi aberta com êxito no console, mas inclui uma revisão do **ELF residente independente**. Ele não captura nem transporta vídeo; a nova função testa, **no próprio PS4**, se uma conexão TCP local para `127.0.0.1:9295` é aceita. Porta 9295 é usada na negociação do Remote Play, e o resultado é apenas um indício de serviço acessível, **não** autenticação, transmissão, áudio ou funcionamento em jogos. Um resultado negativo pode ocorrer por restrição de loopback, mesmo com Remote Play habilitado.
+
+O ELF envia via heartbeat HTTPS autenticado um dos três estados: `remotePlayTcp9295:true` (socket conectado), `false` (conexão recusada/inacessível) ou `null` (erro criando socket). Não envia IP, conta, PIN nem vídeo. O Worker guarda esse diagnóstico por até 90 segundos e só o revela a um navegador com **vínculo temporal aprovado pelo PS4**. Um dispositivo sem vínculo não vê informações do console.
+
+**Atualizar o ELF é uma ação separada de instalar o PKG.** A v0.18 copiava o ELF e pulava a pergunta de instalação nas versões seguintes. A v0.20 passa a criar `/data/bx-remote-service.version` e a oferecer **TRIÂNGULO = atualizar serviço ELF** quando o arquivo residente não corresponde à versão 0.20. Feche primeiro a execução antiga do ELF; abra o PKG v0.20, pressione TRIÂNGULO para copiar e depois inicie o novo arquivo pelo GoldHEN LaunchPad. O PKG não muda AutoRun nem inicia o ELF sozinho.
+
+Os registros `remoteplay_tcp_open`, `remoteplay_tcp_unreachable` ou `remoteplay_probe_failed` ficam em `/data/bx-remote-service-report.txt`, sem informações de conta ou tokens. **Não disponibilize o relatório se ele contiver outros dados pessoais adicionados manualmente.** O arquivo de configuração privado continua em `/user/data/bx-remote-pair.cfg`.
+
+Teste de aceitação: (a) instalar e abrir v0.20, (b) pressionar TRIÂNGULO se oferecer atualização do ELF, (c) fechar o PKG e iniciar o ELF manualmente, (d) abrir novamente o PKG para aprovar o vínculo temporário e consultar o status no site. O serviço residente deve continuar ativo enquanto o PKG não está aberto, mas a permanência durante um jogo precisa ser confirmada no hardware.
+
+Para transmitir imagem real ao navegador sem Mac, ainda falta uma ponte de protocolos que encaminhe o transporte TCP/UDP autenticado do Remote Play (incluindo mídia e controles) e um cliente decodificador. A implementação atual **não** faz isso. Veja [plano de engenharia PS4 independente](../docs/PS4-ONLY-VIDEO-BRIDGE.md).
 
 ## Nova interface grafica real — v0.19 experimental
 

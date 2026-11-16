@@ -97,7 +97,7 @@ test("HTTP-only approval is reported without initiating game controls or video",
     "https://bx-remote-link.4rt949zpj8.workers.dev/v1/pair/claim",
     "https://bx-remote-link.4rt949zpj8.workers.dev/v1/pair/status"
   ]);
-  assert.match(b.get("pairStatus").textContent, /canal de controle nem vídeo/);
+  assert.match(b.get("pairStatus").textContent, /Diagnóstico nativo de Remote Play ainda não recebido/);
   assert.equal(b.dispatched.length, 0);
   assert.equal(b.get("pairClaim").disabled, false);
   assert.equal(b.get("pairCode").value, "");

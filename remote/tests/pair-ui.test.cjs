@@ -14,7 +14,7 @@ test("main screen has honest pairing entry point with consent messaging", () => 
   assert.match(html, /id="pairCode"/);
   assert.match(html, /id="pairClaim"/);
   assert.match(html, /id="pairCancel"/);
-  assert.match(html, /BX Dashboard v0\.19 no PS4/);
+  assert.match(html, /BX Dashboard v0\.20 no PS4/);
   assert.match(html, /id="pairCheck"/);
   assert.match(html, /id="pairServerStatus"/);
   assert.match(html, /value="https:\/\/bx-remote-link\.4rt949zpj8\.workers\.dev"/);
@@ -48,6 +48,16 @@ test("mobile pairing calls have bounded timeouts and cancel outstanding requests
   assert.match(pairing, /function errorMessage\(error\)/);
   assert.match(pairing, /dataset\.relayCheck = "unconfigured"/);
   assert.match(pairing, /\$\("pairSection"\)\?\.addEventListener\("toggle"/);
+});
+
+test("approved temporary pairing exposes native PS4 readiness but does not advertise media", () => {
+  assert.match(pairing, /function describeNativeRemotePlayProbe\(state\)/);
+  assert.match(pairing, /diag\.loopbackTcp9295 === true/);
+  assert.match(pairing, /diag\.loopbackTcp9295 === false/);
+  assert.match(pairing, /diag\.checkedSecondsAgo > 90/);
+  assert.match(pairing, /nenhum jogo|não existe transmissão de vídeo\/áudio/);
+  assert.match(html, /Diagnóstico independente PS4/);
+  assert.match(html, /src="\.\/pair-client\.js\?v=0\.23"/);
 });
 
 test("approved pairing connects to existing relay without manual secret entry", () => {

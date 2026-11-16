@@ -22,6 +22,17 @@
   const report = message => {
     $("pairStatus").textContent = message;
   };
+  function describeNativeRemotePlayProbe(state) {
+    const diag = state?.remotePlayProbe;
+    if (!diag || !Number.isInteger(diag.checkedSecondsAgo) ||
+        diag.checkedSecondsAgo < 0 || diag.checkedSecondsAgo > 90)
+      return "Diagnóstico nativo de Remote Play ainda não recebido. Execute o serviço ELF v0.20 no PS4.";
+    if (diag.loopbackTcp9295 === true)
+      return "Diagnóstico do serviço: porta TCP 9295 respondeu localmente no PS4. Ainda não existe transmissão de vídeo/áudio nem controle.";
+    if (diag.loopbackTcp9295 === false)
+      return "Diagnóstico do serviço: porta TCP 9295 não respondeu ao teste local. Verifique Uso remoto no PS4; a restrição de loopback também pode causar esse resultado.";
+    return "Diagnóstico do serviço: não foi possível criar o socket de teste no PS4. Confira o relatório local do ELF.";
+  }
 
   function pairingTarget() {
     return game.validPairingServer($("pairEndpoint").value.trim());
@@ -194,7 +205,8 @@
         if (state.status === "approved") {
           $("pairClaim").disabled = false;
           if (state.controlAvailable === false) {
-            report("Vínculo aprovado com o PS4 (HTTP). O agente ainda não possui canal de controle nem vídeo; nenhum jogo será transmitido.");
+            report("Vínculo aprovado com o PS4 (HTTP). " +
+              describeNativeRemotePlayProbe(state));
             claimantToken = null;
             return;
           }

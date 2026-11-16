@@ -4,6 +4,10 @@ Esta pasta implementa um **backend HTTPS de vínculo com código temporário**, 
 
 **Não é ainda Remote Play:** este serviço não recebe vídeo, áudio ou comandos de controle e não abre portas no PS4. Mesmo quando o código for aprovado, o site apresentará **vínculo HTTP autorizado, sem streaming**.
 
+## Resultado nativo restrito Remote Play — v0.20
+
+O ELF residente v0.20 envia o campo opcional `remotePlayTcp9295` com `true`, `false` ou `null` em `POST /v1/pair/heartbeat`. A requisição exige o token privado de console já configurado. O Worker guarda apenas o resultado da tentativa local `127.0.0.1:9295` e timestamp, sem número IP, credenciais, imagens ou mídia. `GET /v1/pair/status` acrescenta `remotePlayProbe.loopbackTcp9295` **somente ao navegador de vínculo temporário aprovado**, e somente enquanto o resultado tiver menos de 90 segundos. `/health` não revela o teste nem indica transmissão. `controlAvailable:false` e `video:false` continuam corretos. Veja [o plano de arquitetura PS4 sem computador](../docs/PS4-ONLY-VIDEO-BRIDGE.md).
+
 ## Sinalização P2P para primeira imagem real (experimental)
 
 A nova API `/v1/media/{offer,answer,close}` utiliza **o Durable Object existente** com uma sala efêmera de ingresso de três minutos. Ela permite que um Mac, com o Chiaki já conectado a um PS4, compartilhe uma janela/aba com um iPhone executando o player BX; o vídeo e o áudio disponíveis seguem por WebRTC diretamente entre os navegadores. O Worker armazena apenas SDP temporário (pode conter candidatos de IP privado), nunca vídeo, áudio, credenciais PSN ou controles. A sala exige um token de 256 bits que não entra em URLs; origin restrita e proteção contra excesso de novas salas.
