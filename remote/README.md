@@ -2,6 +2,16 @@
 
 A página principal em [index.html](index.html) prioriza a tela e o controle físico. Sem controle conectado no iPhone, o modo automático mostra um DualShock virtual **sobre a área de vídeo**.
 
+## Central de atualizações do PKG (consulta pública)
+
+A página `remote/` possui a seção **Atualizar PKG do PS4 — versão oficial**. Ao abrir essa seção ou pressionar **Verificar versão oficial**, o navegador consulta o manifesto público `remote/update.txt` sem enviar credenciais ou tokens. O formulário exibe a versão publicada, o SHA-256 informado pelo release e links para baixar o pacote no GitHub ou abrir sua página de release. O link só é habilitado quando nome do arquivo, versão, `BRPM00001`, hash e domínio de download correspondem exatamente ao formato oficial do projeto. **O navegador não instala o PKG nem detecta qual versão está instalada no PS4.**
+
+Para atualização no próprio console, o **PKG Dashboard v0.19** contém um OTA experimental: ao abrir o aplicativo com conexão/configuração privada válida, verifica se existe uma versão publicada mais recente, tenta baixá-la, checa o SHA-256 e pede X antes de instalar. Isso ainda não comprova êxito de instalação no hardware; se o instalador experimental falhar, use o Package Installer do GoldHEN com o PKG transferido por USB/FTP. Para instalar uma versão publicada pelo site, baixe o pacote e transfira ao PS4: **clicar no site não envia instalação para o console**.
+
+O ELF residente atual só envia heartbeats HTTPS. Para oferecer no futuro **Solicitar atualização pelo site**, seria necessário um serviço autenticado que recebesse esse pedido, validasse a autorização específica do usuário e exigisse confirmação no console antes de instalar. Não há endpoint para isso hoje; portanto, o site não mostra botão de instalação remota.
+
+**Correção de publicação:** o script GitHub Pages agora copia `media-whep.js` e `media-controls.js`, que já existiam no repositório mas eram omitidos da pasta `_site`. Também publica `pkg-updates.js`. O workflow verifica a presença desses arquivos para evitar regressões. O receptor WHEP ainda depende de um gateway real e continua sem vídeo de PS4 até haver uma fonte.
+
 ## Funcionalidades implementadas no navegador
 
 - Reconhecimento de controle físico via Gamepad API e prioridade para ele em modo automático.

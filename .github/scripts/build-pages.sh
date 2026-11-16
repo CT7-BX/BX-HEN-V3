@@ -25,6 +25,9 @@ assets=(
   controller-core.js
   game-core.js
   game.js
+  media-whep.js
+  media-controls.js
+  pkg-updates.js
   pair-client.js
   first-tests.js
   touch-layout.css
