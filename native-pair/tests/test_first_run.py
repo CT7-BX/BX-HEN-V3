@@ -77,9 +77,9 @@ class FirstRunFlowTests(unittest.TestCase):
         self.assertIn("ORBIS_PAD_BUTTON_TRIANGLE", SOURCE)
 
     def test_version_labels_incremented(self):
-        self.assertIn("Pairing Proof v0.23", SOURCE)
-        self.assertIn("native pairing test 0.23", SOURCE)
-        self.assertIn("BX-REMOTE-PLAY-PS4-Pair/0.23", SOURCE)
+        self.assertIn("Pairing Proof v0.24", SOURCE)
+        self.assertIn("native pairing test 0.24", SOURCE)
+        self.assertIn("BX-REMOTE-PLAY-PS4-Pair/0.24", SOURCE)
 
 if __name__ == "__main__":
     unittest.main()
