@@ -152,7 +152,8 @@
     .pair-steps li::marker{color:#f36c88;font-weight:800}
   </style>
   <link rel="stylesheet" href="./touch-layout.css">
-  <link rel="stylesheet" href="./site-v2.css?v=0.25">
+  <link rel="stylesheet" href="./site-v2.css?v=0.26">
+  <link rel="stylesheet" href="./command-center.css?v=0.26">
 </head>
 <body>
   <div class="shell">
@@ -163,13 +164,62 @@
         <a href="#pairSection">Vincular</a>
         <a href="#pkgUpdatesSection">Atualizações</a>
       </nav>
-      <div class="beta">Interface 0.25 · Beta</div>
+      <div class="beta">Interface 0.26 · Beta</div>
     </header>
     <main>
       <div class="intro">
         <p class="bx-eyebrow">BX LAB · Remote Play</p>
-        <h1>Seu PS4. Seu controle. <span style="color:#ff738a">Seu espaço.</span></h1>
-        <p>Um único painel para preparar o console, testar o vínculo e receber mídia quando houver uma fonte conectada. A transmissão direta dos jogos pelo BX ainda está em desenvolvimento — o player não simula imagens.</p>
+        <h1>Seu PS4. <span style="color:#ff738a">Seu próximo jeito de jogar.</span></h1>
+        <p>Prepare o PS4, escolha como deseja se conectar e acompanhe o que realmente está disponível. A imagem direta dos jogos no BX ainda precisa de um cliente Remote Play; os testes não simulam streaming.</p>
+      </div>
+      <section class="bx-command-center" id="bxCommandCenter" aria-label="Central de conexão BX">
+        <div class="bx-cockpit-main">
+          <div class="bx-cockpit-head">
+            <span class="bx-kicker">BX COMMAND CENTER · PRÓXIMA GERAÇÃO</span>
+            <span class="bx-version-chip">INTERFACE v0.26</span>
+          </div>
+          <h2>Escolha sua rota.</h2>
+          <p class="bx-cockpit-sub">Quatro formas de preparar sua sessão. Escolha um modo para ver os passos, marcar o que você já realizou e abrir a ferramenta correspondente.</p>
+          <div class="bx-mode-options" id="bxModeOptions" role="group" aria-label="Modos de conexão do BX"></div>
+          <div class="bx-mode-detail" aria-live="off">
+            <div class="bx-mode-detail-top">
+              <h3 id="bxModeTitle">BX Native</h3>
+              <span class="bx-mode-state" id="bxModeState">Em desenvolvimento</span>
+            </div>
+            <p id="bxModeDescription">Preparação da conexão PS4 e iPhone.</p>
+            <div class="bx-step-progress-row">
+              <span>PREPARAÇÃO · MARCAÇÕES MANUAIS</span>
+              <span id="bxModeProgress">0 de 4 etapas marcadas manualmente</span>
+            </div>
+            <div class="bx-progress-track">
+              <div id="bxProgressBar" class="bx-progress-fill" role="progressbar"
+                aria-label="Progresso manual de preparação" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+            </div>
+            <div class="bx-mode-steps" id="bxModeSteps" aria-label="Checklist de preparação"></div>
+            <div class="bx-cockpit-actions">
+              <a class="bx-main-action" id="bxModeAction" href="#pairSection">Abrir vínculo do PS4</a>
+              <button class="bx-copy-action" id="bxCopyChecklist" type="button">Copiar checklist</button>
+            </div>
+            <p class="bx-cockpit-note" id="bxModeNote">Vínculo aprovado não significa sessão de jogo.</p>
+            <p id="bxCopyStatus" role="status" aria-live="polite"></p>
+            <textarea id="bxChecklistFallback" aria-label="Checklist para copiar" readonly hidden></textarea>
+          </div>
+        </div>
+        <aside class="bx-cockpit-side" aria-label="Estado real das conexões">
+          <div class="bx-system-card">
+            <span class="bx-eyebrow">VISÃO GERAL</span>
+            <h3>Estado do BX</h3>
+            <p class="bx-system-sub">Os indicadores são informativos. Nenhum deles inicia ou comprova uma sessão Remote Play completa.</p>
+            <div class="bx-live-summary" id="bxLiveSummary" role="group" aria-label="Estado atual do sistema"></div>
+            <div id="bxGameplayWarning" class="bx-true-status">Vídeo independente do PS4 ainda não integrado</div>
+            <a class="bx-system-action" href="#systemDiagnostics">Abrir diagnóstico completo</a>
+            <p class="bx-guide-disclosure">Os itens marcados no checklist são sua própria confirmação. A página não armazena códigos de vínculo nem interpreta a escolha do modo como conexão estabelecida.</p>
+          </div>
+        </aside>
+      </section>
+      <div class="bx-section-banner" aria-label="Acessos rápidos do projeto">
+        <strong>Ferramentas e laboratório</strong>
+        <small>Acesso direto às seções de configuração já existentes</small>
       </div>
       <nav class="bx-quicknav" aria-label="Escolha o que deseja fazer">
         <a href="#noMacPlay"><span class="bx-quick-icon" aria-hidden="true">▶</span><span><strong>Jogar sem Mac</strong><small>Teste com aplicativo Remote Play no iPhone</small></span></a>
@@ -469,7 +519,12 @@
         </aside>
       </div>
     </main>
-    <footer class="foot">BX-REMOTE-PLAY · CT7-BX · Layout 0.22 · Interface experimental — o streaming direto dos jogos ainda está em desenvolvimento.</footer>
+    <nav class="bx-mobile-dock" aria-label="Navegação rápida no celular">
+      <a href="#bxCommandCenter"><span aria-hidden="true">◇</span>Modos</a>
+      <a href="#stage"><span aria-hidden="true">▣</span>Player</a>
+      <a href="#systemDiagnostics"><span aria-hidden="true">⌁</span>Diagnóstico</a>
+    </nav>
+    <footer class="foot">BX-REMOTE-PLAY · CT7-BX · Interface 0.26 · Interface experimental — o streaming direto dos jogos ainda está em desenvolvimento.</footer>
   </div>
   <!-- Self-contained HTTPS health check: must work even if the controller
        bundle, game-core, or pairing script fails to load in a mobile browser. -->
@@ -591,5 +646,6 @@
   <script src="./p2p-viewer.js?v=0.23"></script>
   <script src="./site-ui.js?v=0.22"></script>
   <script src="./diagnostics.js?v=0.25"></script>
+  <script src="./command-center.js?v=0.26"></script>
 </body>
 </html>
