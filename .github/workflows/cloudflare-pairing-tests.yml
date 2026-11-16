@@ -29,6 +29,7 @@ jobs:
           node --check cloudflare/pairing-worker.mjs
           node --check cloudflare/tests/pairing-worker.test.mjs
           node --check cloudflare/tests/media-signaling.test.mjs
+          node --check cloudflare/tests/native-bridge-command.test.mjs
       - name: Run offline Durable Object pairing tests
         run: node --test cloudflare/tests/*.test.mjs
       - name: Check Worker has no embedded production keys or fake Remote Play
