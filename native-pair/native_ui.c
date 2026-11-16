@@ -274,7 +274,7 @@ fail:
 }
 int bx_ui_enabled(void) {return ui.ready;}
 void bx_ui_status(const char *message) {
-    char next[sizeof(ui.status)];
+    char next[sizeof(ui.status)]={0};
     if(!ui.ready || !message)return;
     snprintf(next,sizeof(next),"%s",message);
     if(strcmp(ui.status,next)==0)return; /* Avoid needless VideoOut flips. */
@@ -282,8 +282,8 @@ void bx_ui_status(const char *message) {
     draw();
 }
 void bx_ui_stage(const char *stage) {
-    char next[sizeof(ui.stage)];
-    char hint[sizeof(ui.hint)];
+    char next[sizeof(ui.stage)]={0};
+    char hint[sizeof(ui.hint)]={0};
     unsigned progress;
     enum BXDiagnosticLevel level;
     if(!ui.ready || !stage)return;
