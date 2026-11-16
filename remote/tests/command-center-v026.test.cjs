@@ -79,7 +79,7 @@ test("major redesign includes accessible modes, live status, safety and iPhone m
   }
   assert.match(html,/Interface 0\.26/);
   assert.match(html,/command-center\.css\?v=0\.26/);
-  assert.match(html,/command-center\.js\?v=0\.28/);
+  assert.match(html,/command-center\.js\?v=0\.29/);
   assert.match(html,/role="progressbar"/);
   assert.match(html,/aria-label="Navegação rápida no celular"/);
   assert.match(css,/@media\(max-width:700px\)/);
@@ -111,7 +111,7 @@ test("Android v0.4 is a modern device and public HTTPS diagnostic, not a fake st
   assert.doesNotMatch(android,/startForegroundService|createVirtualDisplay\(/);
   assert.match(gateway,/gateway-hero/);
   assert.match(gateway,/Voltar à central de modos do BX/);
-  assert.match(gateway,/APK experimental v0\.3/);
+  assert.match(gateway,/APK experimental v0\.4/);
   assert.match(gateway,/href="\.\/#bxCommandCenter"/);
 });
 
