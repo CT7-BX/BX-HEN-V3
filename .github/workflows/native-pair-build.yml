@@ -36,7 +36,7 @@ jobs:
           cc -std=c11 -Wall -Wextra -Werror -pedantic \
             native-pair/update_manifest.c native-pair/tests/update_manifest_test.c -o /tmp/bx-update-manifest
           /tmp/bx-update-manifest
-          cc -std=c11 -Wall -Wextra -Werror -pedantic \\
+          cc -std=c11 -Wall -Wextra -Werror -pedantic \
             native-pair/sha256.c native-pair/tests/sha256_test.c -o /tmp/bx-sha256
           /tmp/bx-sha256
           node --check native-pair/tools/generate_setup.mjs
