@@ -7,9 +7,10 @@ PS4_LD ?= ld.lld
 
 PS4_ID := BRPM00001
 CONTENT_ID := IV0000-BRPM00001_00-BXREMOTEPAIR0001
-VERSION := 0.17
+VERSION := 0.18
 OUT := build
-OBJECTS := $(OUT)/main.o $(OUT)/pair_protocol.o $(OUT)/pair_config.o $(OUT)/update_manifest.o $(OUT)/sha256.o $(OUT)/ota_download.o $(OUT)/ota_install.o
+RESIDENT_OBJECTS := $(OUT)/resident_service.o $(OUT)/lifecycle.o $(OUT)/pair_config.o $(OUT)/pair_protocol.o
+OBJECTS := $(OUT)/main.o $(OUT)/pair_protocol.o $(OUT)/pair_config.o $(OUT)/update_manifest.o $(OUT)/sha256.o $(OUT)/ota_download.o $(OUT)/ota_install.o $(OUT)/resident_install.o
 LIBS := -lc -lkernel -lSceNet -lSceSsl -lSceHttp -lSceSysmodule -lSceSysUtil -lScePad -lSceUserService -lSceAppInstUtil
 
 CFLAGS := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables \
@@ -26,12 +27,22 @@ check-sdk:
 	  (echo "Configure OO_PS4_TOOLCHAIN com o OpenOrbis instalado." >&2; exit 1)
 	@command -v $(PS4_CC) >/dev/null && command -v $(PS4_LD) >/dev/null
 
-$(OUT)/%.o: %.c pair_protocol.h pair_config.h update_manifest.h sha256.h ota_download.h ota_install.h | check-sdk
+$(OUT)/%.o: %.c pair_protocol.h pair_config.h update_manifest.h sha256.h ota_download.h ota_install.h resident_install.h | check-sdk
 	@mkdir -p $(OUT)
 	$(PS4_CC) $(CFLAGS) -o $@ $<
 
 $(OUT)/bx_pair_proof.elf: $(OBJECTS) | check-sdk
 	$(PS4_LD) $(OBJECTS) -o $@ $(LDFLAGS)
+
+$(OUT)/lifecycle.o: ../ps4-agent/resident/lifecycle.c ../ps4-agent/resident/lifecycle.h | check-sdk
+	@mkdir -p $(OUT)
+	$(PS4_CC) $(CFLAGS) -o $@ $<
+
+$(OUT)/bx_remote_service.elf: $(RESIDENT_OBJECTS) | check-sdk
+	$(PS4_LD) $(RESIDENT_OBJECTS) -o $@ $(LDFLAGS)
+
+bx-remote-service.elf: $(OUT)/bx_remote_service.elf
+	cp $< $@
 
 eboot.bin: $(OUT)/bx_pair_proof.elf
 	"$(SDK)/bin/$(PLATFORM)/create-fself" -in=$< \
@@ -57,11 +68,11 @@ sce_sys/param.sfo: | check-sdk
 	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ TITLE_ID --type Utf8 --maxsize 12 --value '$(PS4_ID)'
 	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" sfo_setentry $@ VERSION --type Utf8 --maxsize 8 --value '$(VERSION)'
 
-pkg: eboot.bin sce_sys/param.sfo check-assets
+pkg: eboot.bin bx-remote-service.elf sce_sys/param.sfo check-assets
 	"$(SDK)/bin/$(PLATFORM)/create-gp4" -out pkg.gp4 \
 	  --content-id=$(CONTENT_ID) \
-	  --files "eboot.bin sce_sys/param.sfo sce_sys/icon0.png sce_sys/about/right.sprx sce_module/libc.prx sce_module/libSceFios2.prx"
+	  --files "eboot.bin sce_sys/param.sfo sce_sys/icon0.png sce_sys/about/right.sprx sce_module/libc.prx sce_module/libSceFios2.prx bx-remote-service.elf"
 	"$(SDK)/bin/$(PLATFORM)/PkgTool.Core" pkg_build pkg.gp4 .
 
 clean:
-	rm -rf $(OUT) eboot.bin pkg.gp4 sce_sys/param.sfo "$(CONTENT_ID).pkg"
+	rm -rf $(OUT) eboot.bin bx-remote-service.elf pkg.gp4 sce_sys/param.sfo "$(CONTENT_ID).pkg"
