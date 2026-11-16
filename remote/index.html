@@ -84,6 +84,10 @@
     .media-config{margin:18px 0 3px;padding:14px;border:1px solid #674656;border-radius:12px;background:#17171e}
     .media-config h3{margin:0 0 9px;color:#f7dde6}
     .media-config .field-note{overflow-wrap:anywhere}
+    .media-config [hidden]{display:none!important}
+    #mediaNoGateway{border:1px solid #6d4249;border-radius:10px;padding:12px;background:#20171d;margin:12px 0}
+    #mediaNoGateway strong{color:#ffe1e8}
+    #mediaBridgeStatus[data-state="waiting"]{border-color:#a67d4e;color:#ffe0af}
     #mediaBridgeStatus{padding:9px 10px;background:#101219;border-radius:9px;border:1px solid #464451}
     #mediaBridgeStatus[data-state="connected"]{border-color:#498769;color:#b5f1cd}
     #mediaBridgeStatus[data-state="error"]{border-color:#bd6373;color:#ffdae2}
@@ -155,7 +159,7 @@
       <div class="workspace">
         <div class="display-box">
           <section class="stage" id="stage" aria-label="Tela de jogo e controles">
-            <video class="stream" id="streamVideo" autoplay playsinline webkit-playsinline preload="none" aria-label="Vídeo da sessão, quando disponível"></video>
+            <video class="stream" id="streamVideo" autoplay muted playsinline webkit-playsinline preload="none" aria-label="Vídeo da sessão, quando disponível"></video>
             <div class="screen-empty" id="emptyState">
               <div class="glyph" aria-hidden="true">▣</div>
               <h2>Nenhum sinal de vídeo</h2>
@@ -272,7 +276,19 @@
           </details>
           <section class="media-config" aria-labelledby="mediaHeading" id="mediaSection">
             <h3 id="mediaHeading">Vídeo e áudio reais — gateway (beta)</h3>
-            <p class="field-note">O BX agora aceita uma sessão <strong>WebRTC/WHEP real</strong>. É necessário um gateway WHEP HTTPS que já receba a mídia do PS4. O vínculo HTTPS do PKG não transmite mídia, e o Worker BX-REMOTE-LINK não é um servidor WHEP.</p>
+            <p class="field-note">O BX pode reproduzir um fluxo WebRTC/WHEP de um gateway <strong>já ligado a uma fonte real</strong>. O vínculo HTTPS do PKG não transmite mídia, e o Worker BX-REMOTE-LINK não é um servidor WHEP.</p>
+            <label class="field" for="mediaConnectionMode">Como deseja testar?</label>
+            <select id="mediaConnectionMode" aria-describedby="mediaBridgeStatus">
+              <option value="setup" selected>Não tenho gateway — mostrar o que falta</option>
+              <option value="whep">Já tenho um servidor WHEP funcional</option>
+            </select>
+            <div id="mediaNoGateway">
+              <strong>Sem fonte de mídia conectada</strong>
+              <p class="field-note">Não há endereço automático para preencher. O PKG v0.19 e o Worker fazem pareamento, mas ainda não capturam nem encaminham vídeo e áudio dos jogos.</p>
+              <p class="field-note">Para verificar a transmissão real do PS4 agora, use um cliente Remote Play compatível (Chiaki-NG) na mesma rede do console. Para assistir dentro do BX, precisamos desenvolver e hospedar a ponte entre Remote Play e WebRTC.</p>
+              <p class="field-note"><a href="https://github.com/CT7-BX/BX-REMOTE-PLAY/blob/main/docs/REAL-AV-TEST-PLAN.md" target="_blank" rel="noopener noreferrer">Abrir procedimento de teste com PS4 real</a></p>
+            </div>
+            <div id="mediaGatewayFields" hidden>
             <label class="field" for="mediaEndpoint">Endereço HTTPS do seu gateway WHEP</label>
             <input id="mediaEndpoint" type="url" inputmode="url" autocomplete="off" spellcheck="false"
               placeholder="https://seu-gateway.example/live/whep" aria-describedby="mediaBridgeStatus">
@@ -284,7 +300,8 @@
               <button class="action plain" id="mediaDisconnect" type="button" disabled>Desconectar</button>
               <button class="action plain" id="mediaResume" type="button" disabled>Ativar áudio</button>
             </div>
-            <p class="field-note" id="mediaBridgeStatus" role="status" aria-live="polite" data-state="idle">Nenhuma fonte de mídia conectada. O gateway precisa estar configurado antes de usar Conectar vídeo.</p>
+            </div>
+            <p class="field-note" id="mediaBridgeStatus" role="status" aria-live="polite" data-state="idle">Aguardando um gateway de mídia real. O PKG não envia a imagem dos jogos.</p>
             <p class="field-note" id="mediaHealth" role="region" aria-label="Métricas de áudio e vídeo" aria-live="off" data-video="no" data-audio="no">Sem dados reais recebidos. Nenhuma fonte de vídeo ou áudio foi confirmada.</p>
             <p class="field-note">O contador acima informa quadros realmente decodificados e bytes de áudio WebRTC recebidos. Não prova que a fonte seja um PS4 nem que o som esteja audível.</p>
             <p class="field-note">Sem gateway próprio? <a href="https://chiaki.csphere.fr/" target="_blank" rel="noopener noreferrer">Abrir Chiaki-NG-Web</a> (cliente externo de terceiros, em outra aba). Ele utiliza seu próprio proxy de Remote Play e não fornece automaticamente uma URL WHEP para o BX.</p>
@@ -471,8 +488,8 @@
   <script src="./controller-core.js"></script>
   <script src="./game-core.js?v=0.10"></script>
   <script src="./game.js"></script>
-  <script src="./media-whep.js"></script>
-  <script src="./media-controls.js"></script>
+  <script src="./media-whep.js?v=0.20"></script>
+  <script src="./media-controls.js?v=0.20"></script>
   <script src="./pair-client.js?v=0.10"></script>
   <script src="./first-tests.js"></script>
 </body>

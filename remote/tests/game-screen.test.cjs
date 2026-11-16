@@ -22,7 +22,7 @@ test("main screen provides physical and virtual control entry points", () => {
 
 test("player has video seam and both native and CSS fullscreen controls", () => {
   assert.match(html, /id="streamVideo"/);
-  assert.match(html, /autoplay playsinline/);
+  assert.match(html, /autoplay (?:muted )?playsinline/);
   assert.match(html, /id="fullscreenBtn"/);
   assert.match(html, /id="exitFullscreenInStage"/);
   assert.match(engine, /attachMediaStream/);

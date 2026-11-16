@@ -14,7 +14,15 @@
   const video = $("streamVideo");
   const resume = $("mediaResume");
   const stats = $("mediaHealth");
-  if (!core || !connect || !disconnect || !endpoint || !secret || !status || !video || !resume || !stats) return;
+  const mode = $("mediaConnectionMode");
+  const fields = $("mediaGatewayFields");
+  const noGateway = $("mediaNoGateway");
+  if (!core || !connect || !disconnect || !endpoint || !secret || !status ||
+      !video || !resume || !stats || !mode || !fields || !noGateway) return;
+  /* Safari requires a user gesture to enable audible WebRTC media.
+   * Start video muted for autoplay, then ask for a tap only when audio exists.
+   */
+  video.muted = true;
 
   let current = null;
   let generation = 0;
@@ -60,7 +68,7 @@
     current = null;
     if (old) old.stop();
     clearStream();
-    connect.disabled = false;
+    connect.disabled = mode.value !== "whep" || !core.validEndpoint(endpoint.value.trim());
     disconnect.disabled = true;
     resume.disabled = true;
     updateStats(null);
@@ -71,8 +79,12 @@
     const token = secret.value;
     secret.value = ""; // Never store the gateway access token.
     stop("Preparando recepção do gateway...");
+    if (mode.value !== "whep") {
+      setStatus("waiting", "Sem gateway configurado: o PKG e o Worker não enviam vídeo dos jogos.");
+      return;
+    }
     if (!core.validEndpoint(address)) {
-      setStatus("error", "Informe um endpoint WHEP HTTPS completo (não use o Worker de pareamento).");
+      setStatus("error", "O endereço precisa ser HTTPS e incluir o caminho WHEP. Não use o Worker de pareamento.");
       return;
     }
     if (typeof RTCPeerConnection !== "function" || typeof MediaStream !== "function") {
@@ -92,13 +104,19 @@
         onStream: stream => {
           if (request !== generation) return;
           window.BXRemotePlayer.attachMediaStream(stream);
-          resume.disabled = !stream;
+          const audioAvailable = Boolean(stream && typeof stream.getAudioTracks === "function" &&
+            stream.getAudioTracks().some(track => track.readyState !== "ended"));
+          resume.disabled = !audioAvailable;
         },
         onStatus: message => {
           if (request === generation) setStatus("connecting", message);
         },
         onMetrics: metrics => {
-          if (request === generation) updateStats(metrics);
+          if (request !== generation) return;
+          updateStats(metrics);
+          if (metrics.videoFramesDecoded > 0) {
+            setStatus("connected", "Quadros de vídeo decodificados do gateway. A origem PS4 ainda não foi verificada.");
+          }
         }
       });
       current = receiver;
@@ -118,7 +136,12 @@
         invalid_sdp_type: "Gateway não respondeu com application/sdp.",
         whep_http_401: "Gateway recusou o token de mídia (HTTP 401).",
         whep_http_403: "Acesso ao gateway negado (HTTP 403).",
-        whep_http_404: "Endpoint não encontrado: o servidor não disponibiliza WHEP (HTTP 404)."
+        whep_http_404: "Endpoint não encontrado (404). A URL WHEP está errada ou o servidor de mídia não foi instalado.",
+        whep_http_405: "Este caminho não aceita POST WHEP (405). Confira a URL do servidor.",
+        whep_http_415: "Servidor recusou a oferta SDP (415). Confira o suporte WHEP.",
+        whep_http_503: "Servidor WHEP indisponível (503). Verifique se há fonte de mídia ativa.",
+        gateway_timeout: "O gateway não respondeu em 15 segundos. Verifique servidor HTTPS, rede e proxy.",
+        gateway_network_error: "Não foi possível alcançar o gateway. Confira HTTPS, DNS, CORS e a rede. O Worker de pareamento não é um gateway."
       };
       const code = error && error.message;
       const explanation = messages[code] ||
@@ -129,18 +152,50 @@
     }
   });
 
+  function syncMode() {
+    const configured = mode.value === "whep";
+    fields.hidden = !configured;
+    noGateway.hidden = configured;
+    if (current) {
+      stop(configured ? "Gateway alterado; conecte novamente." :
+        "Conexão encerrada. Nenhum gateway selecionado.");
+    } else {
+      connect.disabled = !configured || !core.validEndpoint(endpoint.value.trim());
+      if (!configured) setStatus("waiting", "Ainda não existe uma fonte de mídia do PS4 ligada ao BX.");
+      else if (!core.validEndpoint(endpoint.value.trim()))
+        setStatus("waiting", "Informe a URL HTTPS de um servidor WHEP já configurado.");
+      else setStatus("idle", "Servidor informado. Conecte para verificar se existe vídeo e áudio real.");
+    }
+    resume.disabled = true;
+  }
+  mode.addEventListener("change", syncMode);
+  endpoint.addEventListener("input", () => {
+    if (!current && mode.value === "whep") syncMode();
+  });
+  syncMode();
+
   disconnect.addEventListener("click", () => stop());
   resume.addEventListener("click", () => {
+    const stream = video.srcObject;
+    if (!stream || typeof stream.getAudioTracks !== "function" ||
+        !stream.getAudioTracks().some(track => track.readyState !== "ended")) {
+      setStatus("waiting", "Nenhuma trilha de áudio foi recebida. Verifique a fonte no gateway.");
+      return;
+    }
     video.muted = false;
+    video.volume = 1;
     video.play().then(() => {
-      setStatus("connected", "Reprodução de mídia iniciada. A origem PS4 depende do gateway.");
+      setStatus("connecting", "Reprodução de áudio habilitada no navegador. Confirme se o som está audível.");
     }).catch(() => {
-      setStatus("error", "O navegador bloqueou a reprodução. Toque na tela e tente novamente.");
+      setStatus("error", "O navegador bloqueou o áudio. Toque novamente no botão Ativar áudio.");
     });
   });
   video.addEventListener("playing", () => {
     if (!current || !video.srcObject || video.readyState < 2) return;
-    setStatus("connected", "Vídeo do gateway em reprodução; origem PS4 não verificada.");
+    if (stats.dataset.video === "yes")
+      setStatus("connected", "Vídeo decodificado pelo navegador; origem PS4 não verificada.");
+    else
+      setStatus("connecting", "Player ativo, mas ainda sem quadros decodificados de vídeo.");
   });
   video.addEventListener("error", () => {
     if (current) setStatus("error", "O navegador não conseguiu reproduzir o fluxo de mídia.");
