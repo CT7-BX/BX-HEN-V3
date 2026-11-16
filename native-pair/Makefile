@@ -7,7 +7,7 @@ PS4_LD ?= ld.lld
 
 PS4_ID := BRPM00001
 CONTENT_ID := IV0000-BRPM00001_00-BXREMOTEPAIR0001
-VERSION := 0.15
+VERSION := 0.16
 OUT := build
 OBJECTS := $(OUT)/main.o $(OUT)/pair_protocol.o $(OUT)/pair_config.o $(OUT)/update_manifest.o
 LIBS := -lc -lkernel -lSceNet -lSceSsl -lSceHttp -lSceSysmodule -lSceSysUtil -lScePad -lSceUserService
