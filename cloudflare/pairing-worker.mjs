@@ -16,6 +16,8 @@ const REQUEST_BYTES = 1024;
 const MEDIA_SIGNAL_BYTES = 24000;
 const MEDIA_MAX_SDP = 20000;
 const MEDIA_JOIN_MS = 180000;
+const BRIDGE_PROBE_MS = 90000; // strict one-shot console command expiry
+const BRIDGE_KEY = "native-bridge-probe-v1";
 const mediaRoutes = new Set([
   "POST /v1/media/offer", "GET /v1/media/offer",
   "POST /v1/media/answer", "GET /v1/media/answer",
@@ -26,11 +28,14 @@ const routes = new Set([
   "POST /v1/pair/claim", "GET /v1/pair/pending",
   "POST /v1/pair/decide", "GET /v1/pair/status",
   "POST /v1/pair/revoke",
+  "POST /v1/bridge/probe", "GET /v1/bridge/probe",
+  "POST /v1/bridge/probe-result",
   ...mediaRoutes
 ]);
 const protectedRoutes = new Set([
   "/v1/pair/heartbeat", "/v1/pair/start", "/v1/pair/pending",
-  "/v1/pair/decide", "/v1/pair/revoke"
+  "/v1/pair/decide", "/v1/pair/revoke",
+  "/v1/bridge/probe-result"
 ]);
 
 function reply(data, status = 200, origin = "") {
@@ -247,10 +252,74 @@ export class BXPairingRoom {
           });
         }
         await this.ctx.storage.put("last-console-heartbeat", now);
+        const queuedProbe = await this.ctx.storage.get(BRIDGE_KEY);
+        if (queuedProbe && queuedProbe.state === "queued" &&
+            queuedProbe.expiresAt > now && typeof queuedProbe.id === "string") {
+          // The console itself pulls this one fixed allowlisted command.
+          return reply({ state: "online", leaseSeconds: PRESENCE_MS / 1000,
+            bridgeProbeId: queuedProbe.id }, 200, origin);
+        }
         return reply({ state: "online", leaseSeconds: PRESENCE_MS / 1000 }, 200, origin);
+      }
+      if (path === "/v1/bridge/probe" && request.method === "POST") {
+        // Claims are session-scoped, locally approved on the physical PS4,
+        // and are never persisted by the browser or accepted from a URL.
+        const ticket = authToken(request);
+        if (!entry || entry.status !== "approved" ||
+            !entry.claimHash || !ticket ||
+            !ctEqual(await digest(ticket), entry.claimHash)) {
+          return problem("INVALID_CLAIM", 401, origin);
+        }
+        if (origin !== ALLOWED_ORIGIN) return problem("FORBIDDEN", 403, origin);
+        const data = await readJson(request);
+        if (Object.keys(data).length !== 0) return problem("BAD_COMMAND", 400, origin);
+        const existing = await this.ctx.storage.get(BRIDGE_KEY);
+        if (existing && existing.expiresAt > now && existing.state !== "done") {
+          return problem("COMMAND_BUSY", 409, origin);
+        }
+        const id = randomToken();
+        await this.ctx.storage.put(BRIDGE_KEY, {
+          id, state: "queued",
+          expiresAt: Math.min(entry.expiresAt, now + BRIDGE_PROBE_MS),
+          tcp9295: null
+        });
+        return reply({ status: "queued", expiresInSeconds: BRIDGE_PROBE_MS / 1000 }, 200, origin);
+      }
+      if (path === "/v1/bridge/probe" && request.method === "GET") {
+        const ticket = authToken(request);
+        if (!entry || entry.status !== "approved" || !entry.claimHash ||
+            !ticket || !ctEqual(await digest(ticket), entry.claimHash)) {
+          return problem("INVALID_CLAIM", 401, origin);
+        }
+        if (origin !== ALLOWED_ORIGIN) return problem("FORBIDDEN", 403, origin);
+        const job = await this.ctx.storage.get(BRIDGE_KEY);
+        if (!job || job.expiresAt <= now) {
+          if (job) await this.ctx.storage.delete(BRIDGE_KEY);
+          return reply({ status: "idle" }, 200, origin);
+        }
+        return reply(job.state === "done"
+          ? { status: "done", tcp9295: job.tcp9295 }
+          : { status: "queued" }, 200, origin);
+      }
+      if (path === "/v1/bridge/probe-result" && request.method === "POST") {
+        const data = await readJson(request);
+        const job = await this.ctx.storage.get(BRIDGE_KEY);
+        if (!job || job.state !== "queued" || job.expiresAt <= now ||
+            !/^[a-f0-9]{64}$/.test(data.id || "") ||
+            !ctEqual(data.id, job.id) ||
+            Object.keys(data).some(k => !["id", "tcp9295"].includes(k)) ||
+            !Object.prototype.hasOwnProperty.call(data, "tcp9295") ||
+            ![true, false, null].includes(data.tcp9295)) {
+          return problem("BAD_COMMAND_RESULT", 409, origin);
+        }
+        job.state = "done";
+        job.tcp9295 = data.tcp9295;
+        await this.ctx.storage.put(BRIDGE_KEY, job);
+        return reply({ status: "accepted" }, 200, origin);
       }
       if (path === "/v1/pair/start") {
         await readJson(request);
+        await this.ctx.storage.delete(BRIDGE_KEY);
         const heartbeat = await this.ctx.storage.get("last-console-heartbeat");
         if (!Number.isFinite(heartbeat) || now - heartbeat >= PRESENCE_MS) {
           return problem("CONSOLE_OFFLINE", 409, origin);
@@ -352,6 +421,7 @@ export class BXPairingRoom {
       }
       if (path === "/v1/pair/revoke") {
         await readJson(request);
+        await this.ctx.storage.delete(BRIDGE_KEY);
         await this.ctx.storage.delete(key);
         return reply({ status: "revoked" }, 200, origin);
       }
