@@ -1,10 +1,24 @@
-# BX-REMOTE-PLAY — primeira integração real de mídia WebRTC/WHEP
+# BX-REMOTE-PLAY — recepção WebRTC/WHEP e diagnóstico sem gateway
+
+## Por que o botão anterior não mostrava imagem
+
+O BX v0.19 possui um **PKG com menu gráfico**, um **ELF separado que só envia heartbeat HTTPS** e um **receptor WebRTC** no site. Nenhum deles publica mídia do PS4. O Worker BX-REMOTE-LINK serve apenas para pareamento e não é um gateway de vídeo, áudio ou transporte Remote Play.
+
+**Se você não instalou e configurou um gateway de mídia real, não existe uma URL WHEP que faça o PS4 aparecer.** Colocar o endereço do Worker, do GitHub Pages, do cliente Chiaki ou o código do PS4 nesses campos não funciona. Não é falha de digitação.
+
+No site atualizado, a seção começa em **Não tenho gateway** e explica o requisito antes de liberar os campos avançados. Só selecione **Já tenho um servidor WHEP funcional** quando você possuir o endereço de um gateway que publique o fluxo do PS4.
+
+O receptor foi reforçado com timeout HTTP de **15 segundos** e alerta se, após 20 segundos de negociação WebRTC, **nenhum quadro de vídeo** tiver sido decodificado. Há indicação específica de 401/403 (autorização), 404/405 (URL incorreta), 503 (servidor indisponível), HTTPS/CORS e recepção de áudio. No Safari/iPhone o vídeo inicia mudo e o áudio é ativado por um toque explícito **apenas depois de receber uma trilha de áudio**. Não há áudio ou vídeo de demonstração oculto.
+
+**Essas melhorias são da recepção/diagnóstico. Não implementam uma fonte de mídia no PS4.** A próxima entrega verdadeira exige conexão Remote Play com um cliente/gateway que consiga alcançar o console na rede e republicação segura das trilhas ao navegador. O GitHub Pages e o Worker Cloudflare não transportam sozinhos o UDP do Remote Play.
+
+
 
 ## Estado verificável
 
 O frontend agora possui um **receptor de mídia real** usando a API `RTCPeerConnection` e o protocolo [WHEP (WebRTC-HTTP Egress)](https://www.ietf.org/archive/id/draft-ietf-wish-whep-01.html). Ele negocia SDP por HTTPS, solicita áudio e vídeo em modo `recvonly`, aceita trilhas reais em `MediaStream` e as envia para o player de vídeo existente. Não gera frames ou áudio falsos. O token é mantido somente durante a sessão, não vai para o Worker de pareamento, não aparece na URL e não é salvo no navegador.
 
-**Isso ainda não liga automaticamente a câmera/tela do PS4 ao BX.** Para ver os jogos é necessário um servidor de mídia WHEP que efetivamente receba o sinal do Remote Play. O PKG Pair Test v0.17 é somente um cliente de vínculo HTTPS; não captura telas ou som, não roda um servidor WHEP e não encaminha comandos dos jogos.
+**Isso ainda não liga automaticamente a câmera/tela do PS4 ao BX.** Para ver os jogos é necessário um servidor de mídia WHEP que efetivamente receba o sinal do Remote Play. O PKG Dashboard v0.19 oferece menu gráfico e vínculo HTTPS; não captura telas ou som, não roda um servidor WHEP e não encaminha comandos dos jogos.
 
 ## Dois caminhos distintos
 
@@ -12,7 +26,7 @@ O frontend agora possui um **receptor de mídia real** usando a API `RTCPeerConn
 
 Para usar o Chiaki-NG-Web diretamente, é necessário registrar seu próprio PS4 e permitir que o proxy Chiaki tenha acesso à rede do console. A versão web não resolve automaticamente CGNAT, não faz PSN hole punching e não funciona apenas copiando arquivos para o GitHub Pages. O site público de terceiros é uma opção externa; se preferir privacidade, siga a documentação do projeto e hospede sua própria instância. Nunca envie credenciais, identificadores de conta, códigos de registro ou configuração privada do console ao BX.
 
-**Caminho B — usar a tela BX com mídia real:** configure um gateway **que ofereça WHEP** e tenha uma fonte de vídeo/áudio do PS4. No painel lateral, informe o endpoint HTTPS WHEP (não a URL de um site Chiaki, nem o Worker de pareamento), digite um token de mídia separado se necessário e selecione **Conectar vídeo**. O navegador envia um offer SDP, recebe answer SDP, negocia WebRTC e reproduz as trilhas que chegarem. O botão **Ativar áudio** permite repetir a reprodução com gesto explícito no Safari. O botão **Desconectar** fecha a sessão e solicita DELETE do recurso WHEP.
+**Caminho B — usar a tela BX com mídia real:** configure um gateway **que ofereça WHEP** e tenha uma fonte de vídeo/áudio do PS4. No painel lateral, informe o endpoint HTTPS WHEP (não a URL de um site Chiaki, nem o Worker de pareamento), digite um token de mídia separado se necessário e selecione **Conectar vídeo**. O navegador envia um offer SDP, recebe answer SDP, negocia WebRTC e reproduz as trilhas que chegarem. O botão **Ativar áudio** aparece habilitado somente quando o navegador recebe uma trilha de áudio, permitindo um gesto explícito no Safari. O botão **Desconectar** fecha a sessão e solicita DELETE do recurso WHEP.
 
 Não há, neste repositório, um **gateway Chiaki → WHEP implantado**, nem uma fonte de PS4 ligada ao receptor. Portanto, apontar o BX para o Worker atual exibirá erro de WHEP, corretamente. Para usar um servidor WHEP comum, é indispensável configurar uma aplicação adicional que faça a sessão de Remote Play e publique as trilhas nesse gateway. O frontend não transforma por si só o proxy Chiaki em WHEP.
 
