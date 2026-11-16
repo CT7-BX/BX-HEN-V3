@@ -33,6 +33,7 @@ assets=(
   gateway.html
   android-readiness.js
   bridge-p2p.js
+  input-transport.js
   p2p-sender.js
   p2p-viewer.js
   pkg-updates.js
