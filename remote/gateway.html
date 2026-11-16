@@ -7,7 +7,7 @@
 <meta name="description" content="BX Android Gateway: avalie seu celular antigo antes dos testes de Remote Play.">
 <title>BX-REMOTE-PLAY | Android Gateway</title>
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="./site-v2.css?v=0.25">
+<link rel="stylesheet" href="./site-v2.css?v=0.26">
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#090a0f;color:#f6f0f4}
@@ -41,6 +41,39 @@ button:focus-visible,a:focus-visible{outline:3px solid #ffb7c4;outline-offset:3p
 .steps{padding-left:22px}.steps li{margin:11px 0;color:#d9ccd6;line-height:1.55}.steps li::marker{color:#ff7e96;font-weight:800}
 small{color:#b5a8b6;line-height:1.5}
 @media(max-width:640px){.summary{grid-template-columns:1fr}.summary article{padding:13px}.buttons>*{flex:1 1 100%}}
+/* Android Gateway 0.26 — three-stage roadmap and larger touch affordances */
+.gateway-hero{position:relative;overflow:hidden;border:1px solid #8c4d67;border-radius:19px;
+  padding:clamp(18px,4vw,32px);margin-top:24px;
+  background:radial-gradient(circle at 95% -10%,#b73e6359,transparent 60%),
+             linear-gradient(135deg,#2b1927,#12141c 72%);}
+.gateway-hero::after{content:"BX";position:absolute;right:0;bottom:-43px;
+  font-size:180px;font-weight:900;letter-spacing:-.1em;color:#ff8ba00a;pointer-events:none}
+.gateway-hero .eyebrow{margin-top:0}
+.gateway-hero .lead{max-width:680px;position:relative;z-index:1}
+.gateway-chip{display:inline-flex;align-items:center;gap:8px;border-radius:999px;
+  padding:8px 12px;background:#3d2130;color:#ffd4df;border:1px solid #a45972;
+  font-size:.71rem;font-weight:900;letter-spacing:.04em}
+.gateway-chip::before{content:"";width:8px;height:8px;border-radius:50%;background:#ff7592}
+.summary article{position:relative;min-height:142px}
+.summary article:first-child{border-color:#5e9b78;background:#1b2722}
+.summary article:first-child strong{color:#b7f2d4}
+.summary article:nth-child(2)::before,.summary article:nth-child(3)::before{
+  content:"EM DESENVOLVIMENTO";display:block;color:#eaaaaf;
+  letter-spacing:.06em;font-size:.57rem;font-weight:900;margin-bottom:11px}
+.summary article:first-child::before{content:"DIAGNÓSTICO DISPONÍVEL";display:block;color:#8cddb1;
+  letter-spacing:.06em;font-size:.57rem;font-weight:900;margin-bottom:11px}
+.gateway-section-title{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+.gateway-section-title .num{display:grid;place-items:center;width:34px;height:34px;
+  border-radius:10px;background:#5f2840;color:#ffdbe5;font-size:.82rem;font-weight:900}
+.gateway-card-mark{font-size:.7rem;letter-spacing:.06em;font-weight:800;color:#fba1b5}
+.gateway-divider{height:1px;background:#533e4d;margin:18px 0}
+.gateway-bottom-link{display:block;border-radius:13px;text-align:center;text-decoration:none;
+  padding:13px;border:1px solid #9d5770;background:linear-gradient(110deg,#bf2c50,#4e2037);
+  color:#fff!important;font-weight:900;margin-top:18px}
+.gateway-bottom-link:focus-visible{outline:3px solid #ffbdce;outline-offset:2px}
+@media(max-width:640px){.gateway-hero{margin-top:16px}.summary article{min-height:90px}
+ .gateway-hero::after{font-size:100px;bottom:-24px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 </style>
 </head>
 <body>
@@ -49,15 +82,19 @@ small{color:#b5a8b6;line-height:1.5}
   <strong>BX-<span>REMOTE</span>-PLAY · ANDROID</strong>
   <a href="./">← Voltar ao player</a>
 </header>
-<p class="eyebrow">Gateway Android · Etapa 1 de desenvolvimento</p>
-<h1>Seu Android antigo. <span>Uma nova ponte.</span></h1>
-<p class="lead">Queremos usar um Android em casa como ponte entre PS4 e iPhone, sem Mac. Primeiro precisamos confirmar o hardware. Este diagnóstico funciona sem saber o modelo do aparelho — e não tenta iniciar uma sessão de jogo sem um cliente Remote Play.</p>
+<div class="gateway-hero">
+  <span class="gateway-chip">BX MOBILE LAB · v0.26</span>
+  <p class="eyebrow">Android Gateway · Desenvolvimento modular</p>
+  <h1>Seu Android antigo.<br><span>Uma nova ponte.</span></h1>
+  <p class="lead">Trabalhamos em uma ponte PS4 → Android → iPhone, sem Mac. A primeira etapa já mede os recursos do aparelho, sem depender do modelo exato. Streaming e controles ainda não fazem parte desse APK.</p>
+</div>
 <div class="summary" aria-label="Etapas de implementação">
   <article><strong>01 · Compatibilidade</strong><span>Avaliar versão do Android, memória e suporte a vídeo</span></article>
   <article><strong>02 · Captura e transporte</strong><span>Futuro aplicativo nativo com autorização de tela, rede e WebRTC</span></article>
   <article><strong>03 · Controle e imagem</strong><span>Integração com Remote Play do PS4 e controles do iPhone, ainda não implementada</span></article>
 </div>
 <section class="card" aria-labelledby="checkTitle">
+  <div class="gateway-section-title"><span class="num">01</span><span class="gateway-card-mark">TESTE LOCAL · NAVEGADOR</span></div>
   <h2 id="checkTitle">Verificar este Android</h2>
   <p>Abra esta página no celular antigo e toque em <strong>Analisar aparelho</strong>. O navegador revela apenas uma estimativa. Para diagnóstico mais completo, o aplicativo Android poderá consultar diretamente os recursos do sistema.</p>
   <div class="buttons">
@@ -75,15 +112,17 @@ small{color:#b5a8b6;line-height:1.5}
 
 </section>
 <section class="card" aria-labelledby="nativeTitle">
+  <div class="gateway-section-title"><span class="num">02</span><span class="gateway-card-mark">FERRAMENTA NATIVA · V0.3</span></div>
   <h2 id="nativeTitle">BX Android Gateway — aplicativo nativo</h2>
-  <p>O APK experimental v0.2 já pode ser compilado para celulares a partir do Android 7. Ele verifica RAM física e livre, versão do Android, codecs H.264 e leituras pontuais de bateria e temperatura diretamente no aparelho. <strong>Esse APK ainda não retransmite jogos.</strong></p>
+  <p>O APK experimental v0.3 já pode ser compilado para celulares a partir do Android 7. Ele verifica RAM física e livre, versão do Android, codecs H.264 e leituras pontuais de bateria e temperatura diretamente no aparelho. <strong>Esse APK ainda não retransmite jogos.</strong></p>
   <div class="buttons">
-    <a class="action-link" href="https://github.com/CT7-BX/BX-REMOTE-PLAY/actions/workflows/android-gateway-build.yml" rel="noopener noreferrer" target="_blank">Consultar APK v0.2 no GitHub Actions</a>
+    <a class="action-link" href="https://github.com/CT7-BX/BX-REMOTE-PLAY/actions/workflows/android-gateway-build.yml" rel="noopener noreferrer" target="_blank">Consultar APK v0.3 no GitHub Actions</a>
     <a class="action-link" href="https://developer.android.com/media/platform/av-capture" rel="noopener noreferrer" target="_blank">Entender permissões do Android</a>
   </div>
   <p class="warning">O aplicativo mede bateria, memória e temperatura apenas quando você tocar em Analisar. <strong>Isso não monitora segurança 24h</strong> nem garante que o aparelho antigo consiga transmitir jogos. Evite deixá-lo superaquecendo ou carregando sem supervisão.</p>
 </section>
 <section class="card">
+  <div class="gateway-section-title"><span class="num">03</span><span class="gateway-card-mark">ROTEIRO DE STREAMING · NÃO IMPLEMENTADO</span></div>
   <h2>Como será a integração com o PS4</h2>
   <ol class="steps">
     <li>Confirmar no Android a compatibilidade de codecs, memória e conectividade Wi-Fi.</li>
@@ -92,8 +131,9 @@ small{color:#b5a8b6;line-height:1.5}
     <li>Testar reconexão e estabilidade antes de considerar uso contínuo.</li>
   </ol>
   <p class="hint">O modo BX Native, somente PS4 + iPhone, continua como objetivo paralelo. Nenhum dos dois modos já transmite vídeo do PS4 no nosso site.</p>
+  <a class="gateway-bottom-link" href="./#bxCommandCenter">Voltar à central de modos do BX</a>
 </section>
 </main>
-<script src="./android-readiness.js?v=0.25"></script>
+<script src="./android-readiness.js?v=0.26"></script>
 </body>
 </html>
