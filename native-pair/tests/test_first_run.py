@@ -31,7 +31,7 @@ class FirstRunFlowTests(unittest.TestCase):
         self.assertNotIn('fprintf(f, "console_token=', SOURCE)
 
     def test_update_check_uses_public_http_without_console_secret(self):
-        updater = SOURCE[SOURCE.index("static void check_public_update("):
+        updater = SOURCE[SOURCE.index("static int check_public_update("):
                          SOURCE.index("static int read_config(")]
         self.assertIn("UPDATE_MANIFEST_URL", updater)
         self.assertIn("bx_update_parse(body, &update)", updater)
