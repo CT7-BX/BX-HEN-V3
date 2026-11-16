@@ -1,3 +1,9 @@
+## PS4 v0.24 + Android Gateway v0.4 — estabilidade e novo visual
+
+O PKG PS4 recebeu um novo painel VideoOut nativo, com fundo em degradê, cartões arredondados, código temporário em destaque, progresso e orientação para falhas. O residente passou a recuperar inicialização de rede e conexões HTTPS interrompidas com backoff, mantendo a parada manual, e a evitar gravação repetitiva dos mesmos logs. O pareamento do PKG tolera até duas falhas de consulta transitórias. **Isso não cria vídeo ou controle do PS4 no navegador.**
+
+O APK Android ganhou uma interface mais moderna com três cartões: Sistema, Conectividade HTTPS e Próximos passos. O teste HTTPS é voluntário, usa apenas o endpoint público `/health`, tempos máximos de cinco segundos, sem autenticação nem dados do PS4. **A única permissão Android adicionada é INTERNET**, sem câmera, áudio, captura de tela ou execução contínua. O relatório de hardware continua privado até cópia voluntária. Não confundir servidor alcançável com console conectado.
+
 # BX-REMOTE-PLAY — interface, pareamento PS4 e mídia WHEP experimental
 
 ## Interface v0.26 — BX Command Center
