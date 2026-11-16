@@ -34,6 +34,9 @@ jobs:
             native-pair/pair_protocol.c native-pair/pair_config.c native-pair/tests/config_test.c -o /tmp/bx-pair-config
           /tmp/bx-pair-config
           cc -std=c11 -Wall -Wextra -Werror -pedantic \
+            native-pair/native_diag.c native-pair/tests/native_diag_test.c -o /tmp/bx-native-diag
+          /tmp/bx-native-diag
+          cc -std=c11 -Wall -Wextra -Werror -pedantic \
             native-pair/update_manifest.c native-pair/tests/update_manifest_test.c -o /tmp/bx-update-manifest
           /tmp/bx-update-manifest
           cc -std=c11 -Wall -Wextra -Werror -pedantic \
