@@ -76,6 +76,11 @@
     .field{display:block;margin:13px 0 5px;font-size:.8rem;font-weight:750}
     select,input{display:block;width:100%;border:1px solid #625363;border-radius:9px;padding:11px 12px;background:#100f16;color:#eee}
     .field-note{font-size:.76rem;color:#9f939f;margin:5px 0 10px}
+    #pairServerStatus{padding:11px 12px;border:1px solid #785361;border-radius:10px;background:#211822;color:#fff4f5;line-height:1.55;min-height:3.2em}
+    #pairServerStatus[data-relay-check="ok"]{border-color:#498769;color:#a9f2c8}
+    #pairServerStatus[data-relay-check="failed"],#pairServerStatus[data-relay-check="invalid"]{border-color:#c36b77;color:#ffd8de}
+    #pairCheck:disabled{opacity:.78;cursor:progress}
+
     .callout{border:1px solid #6b4650;background:#291c24;color:#e4c3cd;padding:11px;border-radius:10px;font-size:.81rem;line-height:1.5;margin:14px 0}
     .relay-config{margin-top:17px;border:1px solid #55404a;border-radius:11px;padding:10px}.relay-config summary{cursor:pointer;font-weight:750;color:#ffc0cd}
     .progress-list{margin:0;padding:0;list-style:none;display:grid;gap:9px}
@@ -258,7 +263,7 @@
             <summary>Primeiros testes — checklist e diagnóstico</summary>
             <p class="field-note">Preparação para testes no PS4 físico. A instalação/execução do PKG e o vídeo ainda não foram validados. Os itens abaixo são marcados por você e não significam validação automática.</p>
             <div class="first-tests-steps">
-              <label><input type="checkbox" data-test-step> PS4 com GoldHEN ativo e Pair Test v0.12 instalado</label>
+              <label><input type="checkbox" data-test-step> PS4 com GoldHEN ativo e Pair Test v0.13 instalado</label>
               <label><input type="checkbox" data-test-step> Servidor HTTPS/WSS protegido configurado, com tokens privados</label>
               <label><input type="checkbox" data-test-step> Arquivo privado de configuração copiado para o PS4</label>
               <label><input type="checkbox" data-test-step> Código de oito dígitos exibido pelo Pair Test no PS4</label>
@@ -278,15 +283,16 @@
             <summary>Vincular PS4 — conexão experimental</summary>
             <p class="field-note">Pode testar um PS4 com o PKG Pair Test (ainda sem validação física), ou um console simulado. A aprovação do vínculo não habilita vídeo, áudio ou controle real.</p>
             <ol class="pair-steps" aria-label="Passos de vinculação">
-              <li>Abra o <strong>Pair Test v0.12</strong> no PS4, com a configuração privada pronta.</li>
+              <li>Abra o <strong>Pair Test v0.13</strong> no PS4, com a configuração privada pronta.</li>
               <li>Digite aqui os oito números mostrados na TV.</li>
               <li>Confirme no PS4 com <strong>X</strong>, ou recuse com <strong>O</strong>.</li>
             </ol>
             <label class="field" for="pairEndpoint">Servidor HTTPS de vinculação</label>
             <input id="pairEndpoint" type="url" inputmode="url" autocomplete="off" spellcheck="false" value="https://bx-remote-link.4rt949zpj8.workers.dev" aria-describedby="pairServerStatus">
             <div class="toolbar-left" style="margin-top:9px">
-              <button class="action plain" type="button" id="pairCheck">Testar servidor</button>
+              <button class="action plain" type="button" id="pairCheck">Testar servidor HTTPS</button>
             </div>
+            <p class="field-note"><a href="https://bx-remote-link.4rt949zpj8.workers.dev/health" target="_blank" rel="noopener noreferrer" id="pairHealthDirect">Abrir diagnóstico HTTPS direto (sem chave)</a></p>
             <p class="field-note" id="pairServerStatus" role="status" aria-live="polite">O BX-REMOTE-LINK é um serviço HTTPS experimental. Clique em Testar servidor; para vincular o PS4, é preciso configurar a mesma chave privada no Worker e no console.</p>
             <p class="field-note"><a href="https://github.com/CT7-BX/BX-REMOTE-PLAY/blob/main/cloudflare/README.md" target="_blank" rel="noopener noreferrer">Como configurar o vínculo de teste</a> · O serviço ainda não transmite vídeo ou controles.</p>
             <label class="field" for="pairCode">Código de 8 números exibido pelo aplicativo PS4 ou simulador</label>
@@ -316,10 +322,105 @@
     </main>
     <footer class="foot">BX-REMOTE-PLAY · CT7-BX · Interface experimental · Sem conexão com o PS4 real</footer>
   </div>
+  <!-- Self-contained HTTPS health check: must work even if the controller
+       bundle, game-core, or pairing script fails to load in a mobile browser. -->
+  <script id="bx-health-check-standalone">
+  (function () {
+    "use strict";
+    var button = document.getElementById("pairCheck");
+    var status = document.getElementById("pairServerStatus");
+    var endpoint = document.getElementById("pairEndpoint");
+    var section = document.getElementById("pairSection");
+    if (!button || !status || !endpoint || !section) return;
+    window.BXRemoteHealthStandalone = true;
+    var originalLabel = button.textContent;
+    var current = 0;
+    var controller = null;
+    function message(state, text) {
+      status.dataset.relayCheck = state;
+      status.textContent = text;
+    }
+    function cancel() {
+      ++current;
+      if (controller) controller.abort();
+      controller = null;
+      button.disabled = false;
+      button.textContent = originalLabel;
+    }
+    async function testHealth() {
+      cancel();
+      var request = current;
+      var url;
+      try {
+        url = new URL(endpoint.value.trim());
+        var local = ["localhost", "127.0.0.1", "[::1]"].indexOf(url.hostname) !== -1;
+        if (!(url.protocol === "https:" || (local && url.protocol === "http:")) ||
+            url.pathname !== "/" || url.search || url.hash ||
+            url.username || url.password) {
+          throw new Error("invalid_address");
+        }
+      } catch (error) {
+        message("invalid", "Endereço inválido: use https://... (WSS é apenas para simulador).");
+        return;
+      }
+      if (typeof fetch !== "function" || typeof AbortController !== "function") {
+        message("failed", "Navegador não suporta teste HTTPS automático. Use Abrir diagnóstico HTTPS direto.");
+        return;
+      }
+      message("checking", "Verificando HTTPS... Aguarde o resultado aqui.");
+      button.textContent = "Verificando HTTPS...";
+      button.disabled = true;
+      controller = new AbortController();
+      var timeout = setTimeout(function () { controller && controller.abort(); }, 6500);
+      try {
+        var response = await fetch(url.origin + "/health", {
+          method: "GET", mode: "cors", credentials: "omit",
+          cache: "no-store", referrerPolicy: "no-referrer",
+          signal: controller.signal
+        });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        var info = await response.json();
+        if (request !== current) return;
+        if (info.status !== "ok" || info.mode !== "control-prototype" || info.pairing !== true) {
+          throw new Error("invalid_server");
+        }
+        if (info.pairingBackend === "cloudflare-durable-object" && info.configured !== true) {
+          message("failed", "Servidor HTTPS responde, mas falta a chave privada no Cloudflare.");
+        } else {
+          message("ok", "Servidor BX-REMOTE-LINK responde por HTTPS e informa chave configurada. Isso NÃO confirma que o PS4 está conectado. Abra o PKG v0.13 e verifique o código na TV.");
+        }
+      } catch (error) {
+        if (request !== current) return;
+        message("failed", error && error.name === "AbortError"
+          ? "Tempo esgotado (6,5 s). Abra o diagnóstico HTTPS direto para verificar conexão."
+          : "Falha ao verificar HTTPS (rede, CORS ou resposta inesperada). Abra o diagnóstico HTTPS direto logo acima.");
+      } finally {
+        clearTimeout(timeout);
+        if (request === current) {
+          controller = null;
+          button.disabled = false;
+          button.textContent = originalLabel;
+        }
+      }
+    }
+    button.addEventListener("click", testHealth);
+    endpoint.addEventListener("input", function () {
+      cancel();
+      message("not_tested", "Endereço alterado. Clique em Testar servidor HTTPS.");
+    });
+    var openedOnce = false;
+    section.addEventListener("toggle", function () {
+      if (section.open && !openedOnce) {
+        openedOnce = true;
+        testHealth();
+      }
+    });
+  })();
+  </script>
   <script src="./controller-core.js"></script>
-  <script src="./game-core.js"></script>
+  <script src="./game-core.js?v=0.9"></script>
   <script src="./game.js"></script>
-  <script src="./pair-client.js"></script>
+  <script src="./pair-client.js?v=0.9"></script>
   <script src="./first-tests.js"></script>
 </body>
 </html>
