@@ -14,7 +14,7 @@ test("main screen has honest pairing entry point with consent messaging", () => 
   assert.match(html, /id="pairCode"/);
   assert.match(html, /id="pairClaim"/);
   assert.match(html, /id="pairCancel"/);
-  assert.match(html, /BX Dashboard v0\.20 no PS4/);
+  assert.match(html, /BX Dashboard v0\.21 no PS4/);
   assert.match(html, /id="pairCheck"/);
   assert.match(html, /id="pairServerStatus"/);
   assert.match(html, /value="https:\/\/bx-remote-link\.4rt949zpj8\.workers\.dev"/);
@@ -57,7 +57,7 @@ test("approved temporary pairing exposes native PS4 readiness but does not adver
   assert.match(pairing, /diag\.checkedSecondsAgo > 90/);
   assert.match(pairing, /nenhum jogo|não existe transmissão de vídeo\/áudio/);
   assert.match(html, /Diagnóstico independente PS4/);
-  assert.match(html, /src="\.\/pair-client\.js\?v=0\.23"/);
+  assert.match(html, /src="\.\/pair-client\.js\?v=0\.24"/);
 });
 
 test("approved pairing connects to existing relay without manual secret entry", () => {
