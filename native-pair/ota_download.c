@@ -1,6 +1,7 @@
 /* BX-REMOTE-PLAY verified OTA download: no install, no token, no TLS bypass. */
 #include "ota_download.h"
 #include "sha256.h"
+#include <stdbool.h>
 #include <orbis/Http.h>
 #include <stdint.h>
 #include <stdio.h>
