@@ -74,7 +74,7 @@ int bx_update_parse(const char *text, BXUpdateManifest *out) {
             memcpy(value.pkg_url, equals, n + 1);
             seen |= 8u;
         } else return 0;
-        p = end ? end + 1 : p + length;
+        p = end ? end + 1 : p + strlen(p);
     }
     if (seen != 15u) return 0;
     *out = value;
