@@ -29,6 +29,12 @@ O ELF residente atual só envia heartbeats HTTPS. Para oferecer no futuro **Soli
 - Indicador RTT do navegador até o relay; **não** é ping do PS4 ou latência real do jogo.
 - Liberação de comandos de toque quando termina a pressão ou quando a página perde foco.
 
+## Piloto P2P para imagem real no player do BX
+
+O arquivo [bridge.html](bridge.html) permite que um Mac com Chiaki conectado ao PS4 compartilhe uma janela/aba **sob permissão explícita do navegador**, enviando mídia WebRTC diretamente a outro navegador. No iPhone, a seção **Receber imagem do Mac — teste P2P real** aceita um código privado de sessão de 64 caracteres e anexa as trilhas reais ao player BX. Áudio depende da captura suportada pelo navegador. **O Mac precisa ficar ligado e o PKG v0.19 não envia vídeo nem controla jogos.**
+
+A sinalização temporária usa o Worker existente `bx-remote-link` (rotas `/v1/media/*`). Este recurso exige que a nova versão do Worker esteja implantada; publicar os arquivos estáticos do GitHub Pages não é suficiente. Por segurança, os códigos não entram nas URLs. Para instruções completas, limitações de rede e privacidade, veja [P2P-REAL-VIDEO-PILOT.md](../docs/P2P-REAL-VIDEO-PILOT.md).
+
 ## Teste físico de vídeo e áudio sem manter o PKG aberto
 
 O painel **Testar imagem e áudio reais do PS4 — primeira etapa** orienta a validar o serviço Remote Play nativo com um cliente Chiaki local. A aprovação HTTPS do BX v0.19, o PIN do Remote Play e o fluxo WHEP são mecanismos **distintos**. Para uma primeira prova física, siga [o plano de teste real de vídeo e áudio](../docs/REAL-AV-TEST-PLAN.md). Os contadores WHEP do site servem para verificar mídia de um gateway, mas não verificam a identidade da origem PS4.

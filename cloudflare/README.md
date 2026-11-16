@@ -4,6 +4,12 @@ Esta pasta implementa um **backend HTTPS de vínculo com código temporário**, 
 
 **Não é ainda Remote Play:** este serviço não recebe vídeo, áudio ou comandos de controle e não abre portas no PS4. Mesmo quando o código for aprovado, o site apresentará **vínculo HTTP autorizado, sem streaming**.
 
+## Sinalização P2P para primeira imagem real (experimental)
+
+A nova API `/v1/media/{offer,answer,close}` utiliza **o Durable Object existente** com uma sala efêmera de ingresso de três minutos. Ela permite que um Mac, com o Chiaki já conectado a um PS4, compartilhe uma janela/aba com um iPhone executando o player BX; o vídeo e o áudio disponíveis seguem por WebRTC diretamente entre os navegadores. O Worker armazena apenas SDP temporário (pode conter candidatos de IP privado), nunca vídeo, áudio, credenciais PSN ou controles. A sala exige um token de 256 bits que não entra em URLs; origin restrita e proteção contra excesso de novas salas.
+
+**Isso não faz o PS4 enviar vídeo diretamente ao Worker.** A mídia depende do Mac e do Chrome/Edge terem permissão de captura de janela/aba. Não há TURN para redes diferentes nem controle remoto do jogo. Documentação: [Piloto real de vídeo P2P](../docs/P2P-REAL-VIDEO-PILOT.md).
+
 ## Arquitetura
 
 - Um Worker exclusivo chamado `bx-remote-link`, separado do host `bx-hen`.
