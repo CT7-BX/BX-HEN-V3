@@ -1,5 +1,5 @@
 /*
- * BX-REMOTE-PLAY PS4 Pairing Proof v0.12
+ * BX-REMOTE-PLAY PS4 Pairing Proof v0.13
  *
  * NEW, SEPARATE PKG. Not the existing v0.21 HTTPS diagnostic.
  * Foreground-only console-side HTTP pairing test, with local DualShock consent.
@@ -35,6 +35,7 @@
 #define POLL_ROUNDS 60
 #define APPROVAL_POLL_TICKS 80
 #define APPROVED_NOTICE_SECONDS 20
+#define CONFIG_RETRY_TICKS 1200 /* two minutes; exit safely even if no controller input */
 
 typedef struct HttpContext {
     int initialized_net;
@@ -52,7 +53,7 @@ static void report(const char *stage, int code, int status) {
     FILE *f = fopen(REPORT_PATH, "w");
     if (!f) f = fopen("/user/data/bx-remote-pairing-report.txt", "w");
     if (!f) return;
-    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.12\n");
+    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.13\n");
     fprintf(f, "stage=%s\n", stage ? stage : "unknown");
     fprintf(f, "result_code=%d\nhttp_status=%d\n", code, status);
     fprintf(f, "streaming=NOT_IMPLEMENTED\n");
@@ -80,7 +81,7 @@ static int open_http(HttpContext *ctx) {
     if (ctx->ssl < 0) return 0;
     ctx->http = sceHttpInit(ctx->pool, ctx->ssl, HTTP_MEMORY_BYTES);
     if (ctx->http < 0) return 0;
-    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.12",
+    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.13",
         ORBIS_HTTP_VERSION_1_1, 1);
     return ctx->tmpl >= 0;
 }
@@ -212,21 +213,60 @@ int main(void) {
     const char *stage = "config";
     const char *final = "not_started";
 
+    /* A missing or malformed private configuration is expected on first
+     * launch: do NOT exit with a non-zero code which some PS4 shells show
+     * as an application error. Keep the foreground app responsive and allow
+     * an explicit local retry after transferring the file through FTP.
+     * Neither this code nor the PKG contains a secret.
+     */
     if (!read_config(&config)) {
-        notice("BX-REMOTE: Falta configurar servidor HTTPS e token privado.");
+        int configured = 0;
+        notice("BX-REMOTE: Config ausente. FTP: /user/data/bx-remote-pair.cfg");
         report("missing_or_invalid_config", -1, 0);
-        sleep(5);
-        return 2;
+        pad = pad_open();
+        if (pad < 0) {
+            notice("BX-REMOTE: Sem controle. Confira config e abra de novo.");
+            sleep(10);
+        } else {
+            notice("BX-REMOTE: Copie config via FTP. X = tentar; OPTIONS = sair.");
+            for (i = 0; i < CONFIG_RETRY_TICKS; i++) {
+                int choice = poll_decision(pad, &last_buttons);
+                if (choice == -2) break;
+                if (choice == 1) {
+                    if (read_config(&config)) {
+                        configured = 1;
+                        notice("BX-REMOTE: Config encontrada. Iniciando vinculo HTTPS.");
+                        break;
+                    }
+                    notice("BX-REMOTE: Config ausente ou invalida. X tenta novamente.");
+                }
+                if (i > 0 && i % 150 == 0) {
+                    notice("BX-REMOTE: FTP + arquivo .cfg. X tenta; OPTIONS sai.");
+                }
+                usleep(100000);
+            }
+        }
+        if (!configured) {
+            /* Expected first-run state: terminate normally, without
+             * claiming successful pairing or crashing the PS4 shell. */
+            report("missing_or_invalid_config", -1, 0);
+            if (pad >= 0) scePadClose(pad);
+            sceUserServiceTerminate();
+            memset(&config, 0, sizeof(config));
+            return 0;
+        }
     }
     if (!open_http(&http)) {
         notice("BX-REMOTE: Falha ao iniciar bibliotecas HTTPS.");
         report("network_init_failed", -2, 0);
         close_http(&http);
+        if (pad >= 0) scePadClose(pad);
+        sceUserServiceTerminate();
         memset(&config, 0, sizeof(config));
         sleep(5);
-        return 3;
+        return 0; /* Expected network failure: report it, do not crash PS4 shell. */
     }
-    pad = pad_open();
+    if (pad < 0) pad = pad_open();
     if (pad < 0) {
         notice("BX-REMOTE: Controle nao encontrado; vinculo cancelado.");
         final = "no_local_controller";
@@ -325,5 +365,5 @@ finish:
     sceUserServiceTerminate();
     close_http(&http);
     memset(&config, 0, sizeof(config));
-    return accepted ? 0 : 1;
+    return 0; /* All expected test outcomes are logged, not process errors. */
 }
