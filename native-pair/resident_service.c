@@ -105,7 +105,10 @@ static int heartbeat(BXServiceHTTP *h, BXPairConfig *cfg, int *status, int rp_tc
     if(snprintf(auth,sizeof(auth),"Bearer %s",cfg->console_token)>=(int)sizeof(auth))return -11;
     connection=sceHttpCreateConnectionWithURL(h->tmpl,url,false);
     if(connection<0){result=connection;goto done;}
-    request=sceHttpCreateRequestWithURL(connection,ORBIS_METHOD_POST,url,2);
+    /* The request length must match the entire JSON body, not the old
+     * two-byte "{}" heartbeat. Otherwise native POST may truncate diagnostics.
+     */
+    request=sceHttpCreateRequestWithURL(connection,ORBIS_METHOD_POST,url,body_len);
     if(request<0){result=request;goto done;}
     if(sceHttpAddRequestHeader(request,"Authorization",auth,0)<0 ||
        sceHttpAddRequestHeader(request,"Content-Type","application/json",0)<0 ||
