@@ -13,11 +13,20 @@ const RATE_MS = 60000;
 const MAX_ATTEMPTS = 8;
 const MAX_CODE_ATTEMPTS = 32; // across all IPs for one short-lived PIN
 const REQUEST_BYTES = 1024;
+const MEDIA_SIGNAL_BYTES = 24000;
+const MEDIA_MAX_SDP = 20000;
+const MEDIA_JOIN_MS = 180000;
+const mediaRoutes = new Set([
+  "POST /v1/media/offer", "GET /v1/media/offer",
+  "POST /v1/media/answer", "GET /v1/media/answer",
+  "POST /v1/media/close"
+]);
 const routes = new Set([
   "POST /v1/pair/heartbeat", "POST /v1/pair/start",
   "POST /v1/pair/claim", "GET /v1/pair/pending",
   "POST /v1/pair/decide", "GET /v1/pair/status",
-  "POST /v1/pair/revoke"
+  "POST /v1/pair/revoke",
+  ...mediaRoutes
 ]);
 const protectedRoutes = new Set([
   "/v1/pair/heartbeat", "/v1/pair/start", "/v1/pair/pending",
@@ -72,7 +81,7 @@ function authToken(request) {
   return /^Bearer [^\s]{1,128}$/.test(authorization)
     ? authorization.slice(7) : null;
 }
-async function readJson(request) {
+async function readJson(request, maxBytes = REQUEST_BYTES) {
   if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(
     request.headers.get("Content-Type") || ""
   )) throw { code: "UNSUPPORTED_MEDIA_TYPE", status: 415 };
@@ -85,7 +94,7 @@ async function readJson(request) {
       const { done, value } = await reader.read();
       if (done) break;
       size += value.byteLength;
-      if (size > REQUEST_BYTES) {
+      if (size > maxBytes) {
         await reader.cancel();
         throw { code: "BODY_TOO_LARGE", status: 413 };
       }
@@ -102,6 +111,87 @@ async function readJson(request) {
     throw { code: "BAD_JSON", status: 400 };
   }
   return data;
+}
+
+/* Opt-in browser-to-browser screen sharing signal ONLY. This Durable Object
+ * temporarily stores encrypted-WebRTC SDP metadata (private IP candidates may
+ * appear), never media frames, audio, PSN credentials or remote-control input.
+ * A high-entropy one-time bearer is copied privately between owner's devices.
+ * Single active room, rate limited, 3-minute join window; no public listing.
+ */
+function validSdp(sdp) {
+  return typeof sdp === "string" && sdp.length >= 12 &&
+    sdp.length <= MEDIA_MAX_SDP && /^v=0\r?\n/.test(sdp) &&
+    sdp.includes("m=video");
+}
+async function handleMediaSignal(request, storage, origin) {
+  if (origin !== ALLOWED_ORIGIN) return problem("FORBIDDEN", 403, origin);
+  const pathname = new URL(request.url).pathname;
+  const now = Date.now();
+  const key = "bx-media-signal-v1";
+  let entry = await storage.get(key);
+  if (entry && entry.expiresAt <= now) {
+    await storage.delete(key);
+    entry = null;
+  }
+  if (pathname === "/v1/media/offer" && request.method === "POST") {
+    if (entry) return problem("ROOM_BUSY", 409, origin);
+    const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+    const ipHash = await digest(ip);
+    const rateKey = "bx-media-rate-v1";
+    const rates = (await storage.get(rateKey)) || {};
+    const rate = rates[ipHash] && now - rates[ipHash].at < 60000
+      ? rates[ipHash] : { at: now, attempts: 0 };
+    if (++rate.attempts > 3) return problem("RATE_LIMITED", 429, origin);
+    // Keep only recent entries and bounded memory to reduce abuse.
+    const alive = Object.entries(rates).filter(([, value]) => value &&
+      now - value.at < 60000).slice(-63);
+    const updated = Object.fromEntries(alive);
+    updated[ipHash] = rate;
+    await storage.put(rateKey, updated);
+    const input = await readJson(request, MEDIA_SIGNAL_BYTES);
+    if (!validSdp(input.sdp) || input.type !== "offer") {
+      return problem("INVALID_OFFER", 400, origin);
+    }
+    const ticket = randomToken();
+    await storage.put(key, {
+      hash: await digest(ticket), offer: input.sdp,
+      answer: null, joined: false, expiresAt: now + MEDIA_JOIN_MS
+    });
+    return reply({ code: ticket, expiresInSeconds: MEDIA_JOIN_MS / 1000,
+      transport: "peer-webrtc", ps4SourceVerified: false }, 200, origin);
+  }
+  const ticket = authToken(request);
+  if (!entry || !/^[a-f0-9]{64}$/.test(ticket || "") ||
+      !ctEqual(await digest(ticket), entry.hash)) {
+    return problem("MEDIA_ROOM_NOT_FOUND", 401, origin);
+  }
+  if (pathname === "/v1/media/offer" && request.method === "GET") {
+    if (entry.joined) return problem("ROOM_ALREADY_JOINED", 409, origin);
+    entry.joined = true;
+    await storage.put(key, entry);
+    return reply({ type: "offer", sdp: entry.offer }, 200, origin);
+  }
+  if (pathname === "/v1/media/answer" && request.method === "POST") {
+    if (!entry.joined || entry.answer) return problem("ANSWER_NOT_EXPECTED", 409, origin);
+    const input = await readJson(request, MEDIA_SIGNAL_BYTES);
+    if (input.type !== "answer" || !validSdp(input.sdp)) {
+      return problem("INVALID_ANSWER", 400, origin);
+    }
+    entry.answer = input.sdp;
+    await storage.put(key, entry);
+    return reply({ status: "received" }, 200, origin);
+  }
+  if (pathname === "/v1/media/answer" && request.method === "GET") {
+    return reply(entry.answer ? { status: "ready", type: "answer", sdp: entry.answer }
+      : { status: "waiting" }, 200, origin);
+  }
+  if (pathname === "/v1/media/close" && request.method === "POST") {
+    await readJson(request);
+    await storage.delete(key);
+    return reply({ status: "closed" }, 200, origin);
+  }
+  return problem("NOT_FOUND", 404, origin);
 }
 
 export class BXPairingRoom {
@@ -122,6 +212,9 @@ export class BXPairingRoom {
     const path = url.pathname;
     const now = Date.now();
     try {
+      if (path.startsWith("/v1/media/")) {
+        return await handleMediaSignal(request, this.ctx.storage, origin);
+      }
       if (protectedRoutes.has(path)) {
         if (!/^[0-9a-f]{64}$/.test(this.env.BX_RELAY_CONSOLE_TOKEN || "")) {
           return problem("BACKEND_NOT_CONFIGURED", 503, origin);
@@ -274,7 +367,8 @@ export default {
         status: "ok", mode: "control-prototype",
         pairing: true, pairingBackend: "cloudflare-durable-object",
         configured: /^[0-9a-f]{64}$/.test(env.BX_RELAY_CONSOLE_TOKEN || ""),
-        ps4Control: false, video: false
+        ps4Control: false, video: false,
+        mediaSignaling: true, mediaTransport: "browser-p2p-only"
       }, 200, origin);
     }
     if (url.pathname === "/v1/link") {
