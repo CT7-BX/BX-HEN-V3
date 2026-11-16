@@ -47,7 +47,7 @@ Esse domínio é apenas exemplo. O utilitário cria dois arquivos privados com t
 
 O backend deve ser iniciado com `cd relay && npm install --ignore-scripts && npm start` **por trás de um reverse proxy TLS/WSS confiável**. O processo Node fica por padrão em loopback `127.0.0.1:8765` e não deve ser publicado diretamente na internet. A origem `https://ct7-bx.github.io` já está incluída na configuração privada gerada; se testar o HTML no localhost, permita também essa origem no backend.
 
-Na página **Vincular PS4 — conexão experimental**, configure `wss://relay.seudominio.com/v1/link`, clique em **Testar servidor** e verifique se aparece `Relay acessível`. Isso confirma somente a resposta HTTP `/health`, **não** o PS4.
+Na página **Vincular PS4 — conexão experimental**, configure `https://relay.seudominio.com`, clique em **Testar servidor** e verifique se aparece `Relay acessível`. Isso confirma somente a resposta HTTP `/health`, **não** o PS4.
 
 ## 4. Instalar e testar no console
 
@@ -79,3 +79,9 @@ Na página **Vincular PS4 — conexão experimental**, configure `wss://relay.se
 Copie somente: versão do PKG, `stage`, `result_code`, `http_status` do relatório, o texto de **Copiar diagnóstico** do site e se apareceu a notificação na TV. Não envie fotos que mostrem tokens, nomes de usuário/contas, códigos de pareamento válidos, endereços privados ou o arquivo de configuração.
 
 **Limite atual:** não há agente residente nem gateway de vídeo/áudio. Próximo marco depois da prova: validar serviço PS4 contínuo e uma sessão Remote Play local real; só depois testar outra rede/CGNAT. Esses passos dependem do console real e de uma infraestrutura de mídia apropriada.
+
+## Atualização: endereço correto do BX-REMOTE-LINK
+
+Para o backend Cloudflare, informe **`https://bx-remote-link.4rt949zpj8.workers.dev`**, não `wss://...`. Esse Worker só aceita as rotas de vínculo por HTTPS. No site, **Testar servidor** avisará se o Worker está online mas sem a chave privada `BX_RELAY_CONSOLE_TOKEN`. Isso requer uma configuração manual privada no Cloudflare e o arquivo correspondente no PS4; a chave não deve ser enviada ao ChatGPT ou publicada.
+
+Em testes locais com o relay Node antigo, `ws://localhost:8765/v1/link` ainda funciona; em qualquer servidor externo só se aceita HTTPS/WSS com TLS válido. A etapa de vídeo e controles reais permanece pendente.
