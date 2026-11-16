@@ -79,7 +79,7 @@ test("major redesign includes accessible modes, live status, safety and iPhone m
   }
   assert.match(html,/Interface 0\.26/);
   assert.match(html,/command-center\.css\?v=0\.26/);
-  assert.match(html,/command-center\.js\?v=0\.26/);
+  assert.match(html,/command-center\.js\?v=0\.28/);
   assert.match(html,/role="progressbar"/);
   assert.match(html,/aria-label="Navegação rápida no celular"/);
   assert.match(css,/@media\(max-width:700px\)/);
