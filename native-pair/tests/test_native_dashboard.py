@@ -26,7 +26,7 @@ class NativeDashboardTests(unittest.TestCase):
 
     def test_native_dashboard_does_not_imitate_video_or_media_transport(self):
         self.assertIn("STREAMING DIRETO AINDA INDISPONIVEL", UI)
-        self.assertIn("CODIGO DE PAREAMENTO", UI)
+        self.assertIn("CODIGO TEMPORARIO", UI)
         self.assertIn('"01  CONFIG"', UI)
         self.assertIn('"02  REDE"', UI)
         self.assertIn('"03  VINCULO"', UI)
