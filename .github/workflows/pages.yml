@@ -24,6 +24,10 @@ jobs:
         run: |
           test -s _site/index.html
           test -s _site/remote/game.js
+          test -s _site/remote/pkg-updates.js
+          test -s _site/remote/media-whep.js
+          test -s _site/remote/media-controls.js
+          test -s _site/remote/update.txt
           test -s _site/remote/ps4-probe.txt
           test ! -e _site/relay/server.mjs
           test ! -e _site/ps4-agent/main.c
