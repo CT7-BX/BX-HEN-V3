@@ -18,6 +18,7 @@ test("GitHub Pages deployment stages only the public frontend allowlist", () => 
     for (const asset of [
       "index.html", ".nojekyll", "remote/index.html", "remote/game.js",
       "remote/game-core.js", "remote/controller-core.js", "remote/pair-client.js", "remote/first-tests.js",
+      "remote/media-whep.js", "remote/media-controls.js", "remote/pkg-updates.js",
       "remote/touch-layout.css", "remote/relay-lab.html",
       "remote/manifest.webmanifest", "remote/ps4-probe.txt", "remote/update.txt", "remote/icon.svg"
     ]) {
@@ -35,6 +36,7 @@ test("GitHub Pages deployment stages only the public frontend allowlist", () => 
       fs.readdirSync(path.join(dir, "remote")).sort(),
       ["controller-core.js", "game-core.js", "game.js", "icon.svg",
        "index.html", "manifest.webmanifest", "pair-client.js", "first-tests.js", "ps4-probe.txt",
+       "media-whep.js", "media-controls.js", "pkg-updates.js",
        "relay-lab.html", "touch-layout.css", "update.txt"].sort()
     );
     const rerun = spawnSync("bash", [path.join(root, ".github/scripts/build-pages.sh"), dir], {
