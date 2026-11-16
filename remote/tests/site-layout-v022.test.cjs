@@ -12,7 +12,7 @@ const logic = fs.readFileSync(path.join(ROOT, "site-ui.js"), "utf8");
 const native = fs.readFileSync(path.resolve(ROOT, "../native-pair/native_ui.c"), "utf8");
 
 test("same branded theme is applied to player and Mac source page", () => {
-  assert.match(html, /href="\.\/site-v2\.css\?v=0\.22"/);
+  assert.match(html, /href="\.\/site-v2\.css\?v=0\.24"/);
   assert.match(bridge, /href="\.\/site-v2\.css\?v=0\.22"/);
   assert.match(bridge, /<body class="bridge-page">/);
   assert.match(html, /Interface 0\.23/);
