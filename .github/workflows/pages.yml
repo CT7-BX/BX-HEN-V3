@@ -33,6 +33,7 @@ jobs:
           test -s _site/remote/gateway.html
           test -s _site/remote/android-readiness.js
           test -s _site/remote/bridge-p2p.js
+          test -s _site/remote/input-transport.js
           test -s _site/remote/p2p-sender.js
           test -s _site/remote/p2p-viewer.js
           test -s _site/remote/media-whep.js
