@@ -365,7 +365,7 @@ static void offer_resident_setup(int pad, uint32_t *last_buttons) {
     if(marker) {
         size_t read=fread(version,1,sizeof(version)-1,marker);
         fclose(marker);
-        if(read==5 && memcmp(version,"0.20\\n",5)==0
+        if(read==5 && memcmp(version,"0.20\n",5)==0
           && stat("/data/payloads/bx-remote-service.elf",&installed)==0) {
             /* Already installed the current resident, skip repeat prompt. */
             return;
