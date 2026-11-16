@@ -263,7 +263,7 @@
             <summary>Primeiros testes — checklist e diagnóstico</summary>
             <p class="field-note">Preparação para testes no PS4 físico. A instalação/execução do PKG e o vídeo ainda não foram validados. Os itens abaixo são marcados por você e não significam validação automática.</p>
             <div class="first-tests-steps">
-              <label><input type="checkbox" data-test-step> PS4 com GoldHEN ativo e Pair Test v0.14 instalado</label>
+              <label><input type="checkbox" data-test-step> PS4 com GoldHEN ativo e Pair Test v0.15 instalado</label>
               <label><input type="checkbox" data-test-step> Servidor HTTPS/WSS protegido configurado, com tokens privados</label>
               <label><input type="checkbox" data-test-step> Arquivo privado de configuração copiado para o PS4</label>
               <label><input type="checkbox" data-test-step> Código de oito dígitos exibido pelo Pair Test no PS4</label>
@@ -281,9 +281,9 @@
           </details>
           <details class="relay-config" id="pairSection">
             <summary>Vincular PS4 — conexão experimental</summary>
-            <p class="field-note">Pode testar o pareamento HTTP com o Pair Test v0.14 no PS4 ou com um console simulado; o app já foi aberto em hardware, mas o vínculo completo ainda não foi validado. A aprovação do vínculo não habilita vídeo, áudio ou controle real.</p>
+            <p class="field-note">Pode testar o pareamento HTTP com o Pair Test v0.15 no PS4 ou com um console simulado; o app já foi aberto em hardware, mas o vínculo completo ainda não foi validado. A aprovação do vínculo não habilita vídeo, áudio ou controle real.</p>
             <ol class="pair-steps" aria-label="Passos de vinculação">
-              <li>Abra o <strong>Pair Test v0.14</strong> no PS4, com a configuração privada pronta.</li>
+              <li>Abra o <strong>Pair Test v0.15</strong> no PS4, com a configuração privada pronta.</li>
               <li>Digite aqui os oito números mostrados na TV.</li>
               <li>Confirme no PS4 com <strong>X</strong>, ou recuse com <strong>O</strong>.</li>
             </ol>
@@ -295,6 +295,7 @@
             <p class="field-note"><a href="https://bx-remote-link.4rt949zpj8.workers.dev/health" target="_blank" rel="noopener noreferrer" id="pairHealthDirect">Abrir diagnóstico HTTPS direto (sem chave)</a></p>
             <p class="field-note" id="pairServerStatus" role="status" aria-live="polite">O BX-REMOTE-LINK é um serviço HTTPS experimental. Clique em Testar servidor; para vincular o PS4, é preciso configurar a mesma chave privada no Worker e no console.</p>
             <p class="field-note"><a href="https://github.com/CT7-BX/BX-REMOTE-PLAY/blob/main/cloudflare/README.md" target="_blank" rel="noopener noreferrer">Como configurar o vínculo de teste</a> · O serviço ainda não transmite vídeo ou controles.</p>
+            <p class="field-note"><a href="https://github.com/CT7-BX/BX-REMOTE-PLAY/releases" target="_blank" rel="noopener noreferrer">Versões e PKGs do PS4</a> · A v0.15 verifica novas versões automaticamente ao iniciar com HTTPS configurado, mas a instalação ainda é manual.</p>
             <label class="field" for="pairCode">Código de 8 números exibido pelo aplicativo PS4 ou simulador</label>
             <input id="pairCode" type="text" inputmode="numeric" pattern="[0-9 -]{8,16}" maxlength="16" autocomplete="one-time-code" enterkeyhint="done" placeholder="1234 5678" aria-describedby="pairCodeHelp">
             <p id="pairCodeHelp" class="field-note">Os oito números aparecem na TV e expiram após cerca de dois minutos. Pode colar com espaço ou hífen; o código não é salvo no navegador.</p>
