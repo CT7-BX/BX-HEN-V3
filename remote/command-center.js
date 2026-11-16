@@ -165,6 +165,10 @@
     }
     updateProgress();
     latestReport = "";
+    const backup = $("bxChecklistFallback");
+    if (backup) { backup.hidden = true; backup.value = ""; }
+    const message = $("bxCopyStatus");
+    if (message) message.textContent = "";
   }
   function syncStatus() {
     const health = $("pairServerStatus");
