@@ -1,4 +1,4 @@
-# BX-REMOTE-PLAY — interface experimental e pareamento PS4 v0.15
+# BX-REMOTE-PLAY — interface, pareamento PS4 e mídia WHEP experimental
 
 A página principal em [index.html](index.html) prioriza a tela e o controle físico. Sem controle conectado no iPhone, o modo automático mostra um DualShock virtual **sobre a área de vídeo**.
 
@@ -14,16 +14,16 @@ A página principal em [index.html](index.html) prioriza a tela e o controle fí
 - Arquivo manifest e ícone SVG para uso como web app.
 - Três perfis de resolução e frame rate como **metas** (540p30, 720p60 e 1080p60). Não afetam um encoder ainda inexistente.
 - Seleção de rota local, remota ou automática como **planejamento visual**; não muda o transporte real.
-- Tela de vídeo preparada para uma futura MediaStream de um gateway confiável, sem mídia falsa.
+- Receptor WebRTC/WHEP funcional para trilhas reais de vídeo e áudio fornecidas por um gateway HTTPS compatível (não fornece por si só mídia do PS4). Sem frames artificiais.
 - Integração opcional com relay WSS para teste com **console simulado**, com token de jogador informado manualmente, sem armazenamento local de credenciais.
 - Indicador RTT do navegador até o relay; **não** é ping do PS4 ou latência real do jogo.
 - Liberação de comandos de toque quando termina a pressão ou quando a página perde foco.
 
 ## O que ainda não funciona
 
-**Não existe streaming de vídeo ou áudio do PS4**, agente permanente, autenticação real do console, captura do protocolo Remote Play e servidor de mídia implantado. O relay atual só confirma comandos com um console **simulado**. O PKG compilado é teste HTTPS de execução única, não um serviço de streaming.
+**Ainda não existe um gateway integrado ao PS4 capaz de fornecer vídeo/áudio**, agente permanente, autenticação de sessão Remote Play nativa, captura do protocolo Remote Play ou servidor de mídia implantado. O receptor WHEP pode exibir vídeo/áudio de um gateway que você configure, mas não cria a fonte. O relay atual só confirma comandos com um console **simulado**. O PKG compilado é teste HTTPS de execução única, não um serviço de streaming.
 
-O GitHub Pages hospeda apenas a interface, sem gateway TCP/UDP, TURN ou processo Node.
+O GitHub Pages hospeda apenas a interface, sem gateway TCP/UDP, TURN ou processo Node. Consulte [Integração real de mídia](../docs/REAL-MEDIA-GATEWAY.md) para usar Chiaki-NG-Web em cliente externo ou configurar um endpoint WHEP de mídia compatível.
 
 ## Como testar
 
@@ -90,10 +90,10 @@ Quando o botão **Testar servidor HTTPS** é clicado em **Vincular PS4 — conex
 ## Estado de integração (novembro de 2026)
 
 - Controles virtuais, Gamepad API, diagnósticos e verificações de navegador: implementados no frontend; dependem das permissões e capacidades do navegador.
-- Worker HTTPS e PKG Pair Test v0.15: vínculo experimental com confirmação local no PS4; **não** é transporte de jogos.
+- Worker HTTPS e PKG Pair Test v0.17: vínculo experimental com confirmação local no PS4; **não** é transporte de jogos.
 - WSS `/v1/link`: relay separado para simulador, não é oferecido pelo Worker HTTPS.
 - Perfis de qualidade e rota: metas visuais, sem encoder, servidor de mídia ou seleção efetiva de transporte.
-- Vídeo/áudio do PS4, comandos reais, gateway de mídia, serviço residente e atualização automática do PKG: **não implementados**.
-- A v0.15 apenas consulta um manifesto público e notifica quando há versão nova; não baixa nem instala o PKG.
+- Receptor de mídia WHEP/WebRTC: **implementado no navegador**, sujeito a fonte externa; vídeo/áudio do PS4, comandos reais, gateway Chiaki→WHEP e serviço residente: **não implementados**.
+- A v0.17 tenta baixar atualizações verificadas e oferece instalação no console com X; atualização interna ainda sem confirmação em hardware PS4.
 
 Para um teste físico, valide separadamente a saúde do Worker, a configuração privada do console, a exibição do código, a confirmação local e o resultado do vínculo. Nunca publique tokens ou arquivos `.cfg` privados.
