@@ -1,3 +1,11 @@
+
+## 2026-11-16 — Interface v0.10: estabilidade em conexões móveis
+
+- Consultas HTTPS do status de vínculo toleram até duas falhas transitórias consecutivas e retomam a mesma solicitação; nunca repetem automaticamente o envio do PIN.
+- Cancelamento e retorno de página via Safari BFCache redefinem os botões e cancelam requisições antigas, sem recuperar tokens persistidos.
+- Diagnóstico HTTPS independente revalida após retornar à página; campo WSS do simulador recebe aviso mais claro.
+- Novos testes para falhas intermitentes, erros definitivos e navegação iOS. **Não habilita streaming nem comprova pareamento real do PS4.**
+
 # Histórico de atualizações — BX-REMOTE-PLAY
 
 ## 2026-11-15 — Pair Test v0.13: tratar configuração ausente sem erro de encerramento
