@@ -146,7 +146,7 @@ test("main screen exposes WHEP controls separately from HTTP pairing and WSS sim
   assert.match(html, /id="mediaDisconnect"/);
   assert.match(html, /id="realAvTest"/);
   assert.match(html, /id="mediaHealth"/);
-  assert.match(html, /Ele não é o código|Ele não é|Ele não|Ele não|não é o código de oito dígitos/);
+  assert.match(html, /não é o código de oito dígitos/);
   assert.match(html, /Chiaki-NG-Web/);
   assert.match(html, /src="\.\/media-whep\.js"/);
   assert.match(html, /src="\.\/media-controls\.js"/);
