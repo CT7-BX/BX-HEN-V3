@@ -95,3 +95,7 @@ Use o [roteiro de testes no PS4 e no iPhone/Mac](docs/FIRST-HARDWARE-TESTS.md) p
 ## Servidor BX-REMOTE-LINK experimental (Cloudflare)
 
 Um Worker **separado** chamado `bx-remote-link` foi implantado no Cloudflare, com armazenamento durável para código de pareamento HTTP. O site agora sugere seu endereço automaticamente; o Worker não oferece controle remoto nem mídia. **Ainda não há credencial privada de console instalada no Worker**, portanto o pareamento permanece bloqueado até que o titular da conta configure o Secret `BX_RELAY_CONSOLE_TOKEN` e use o mesmo segredo no PKG PS4. Veja [cloudflare/README.md](cloudflare/README.md) para o passo manual; a URL pública ainda necessita de teste direto. O BX-HEN não foi alterado.
+
+### Usar o servidor HTTPS para pareamento (ajuste de interface)
+
+O formulário **Vincular PS4 — conexão experimental** agora já sugere a URL HTTPS do BX-REMOTE-LINK, em vez de um WSS inexistente. Além de mensagens claras sobre segredo não configurado, o Worker retorna HTTP 503 quando um código é solicitado sem o segredo do PS4 e bloqueia requisições HTTP em texto claro. O relay WSS simulado continua compatível. O serviço continua sem vídeo, áudio ou controle real: [procedimento do Cloudflare](cloudflare/README.md).
