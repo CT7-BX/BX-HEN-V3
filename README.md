@@ -10,7 +10,7 @@ Permitir futuramente jogar e controlar um PS4 em casa por meio de um iPhone ou M
 
 ## Situação real
 
-**Interface 0.7 — controles, diagnóstico LAN, vínculo experimental e checklist de testes.** A página em [remote/](remote/) possui controles de toque automáticos no celular, dois sticks multitoque, suporte a DualShock 4, layout imersivo/tela cheia, metas de qualidade e uma interface para o relay de laboratório. O vídeo do PS4 ainda não está conectado.
+**Interface 0.8 — controles, diagnóstico LAN, vínculo guiado e checklist de testes.** A página em [remote/](remote/) possui controles de toque automáticos no celular, dois sticks multitoque, suporte a DualShock 4, layout imersivo/tela cheia, metas de qualidade e uma interface para o relay de laboratório. O vídeo do PS4 ainda não está conectado.
 
 **O PKG PS4 de diagnóstico foi aprimorado na v0.21**, com notificação de resultado, ícone próprio, tratamento de erros de rede temporários e testes adicionais de metadados e integridade. Continua sem validação em console físico e não transmite jogos.
 
@@ -99,3 +99,7 @@ Um Worker **separado** chamado `bx-remote-link` foi implantado no Cloudflare, co
 ### Usar o servidor HTTPS para pareamento (ajuste de interface)
 
 O formulário **Vincular PS4 — conexão experimental** agora já sugere a URL HTTPS do BX-REMOTE-LINK, em vez de um WSS inexistente. Além de mensagens claras sobre segredo não configurado, o Worker retorna HTTP 503 quando um código é solicitado sem o segredo do PS4 e bloqueia requisições HTTP em texto claro. O relay WSS simulado continua compatível. O serviço continua sem vídeo, áudio ou controle real: [procedimento do Cloudflare](cloudflare/README.md).
+
+### Melhorias no primeiro pareamento (interface 0.8)
+
+O painel de vínculo agora oferece um guia de três passos, consulta o servidor automaticamente uma vez quando aberto, aceita colar um PIN de oito dígitos com espaços ou hífens e mostra o tempo restante para a aprovação. A tela diferencia claramente servidor ainda sem segredo, código inválido e confirmação apenas HTTP. O backend limita também tentativas erradas distribuídas entre vários endereços. **Ainda não há serviço residente nem vídeo/áudio ou controle remoto real do PS4.**

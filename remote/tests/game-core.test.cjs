@@ -98,3 +98,15 @@ test("quality settings are target profiles, not claimed active video streams", (
   assert.equal(game.median([20, 60]), 40);
   assert.equal(game.median([]), null);
 });
+
+
+test("numeric pairing codes may be pasted with spaces or dashes, without accepting arbitrary characters", () => {
+  assert.equal(game.normalizePairingCode("12345678"), "12345678");
+  assert.equal(game.normalizePairingCode("1234 5678"), "12345678");
+  assert.equal(game.normalizePairingCode("1234-5678"), "12345678");
+  assert.equal(game.normalizePairingCode(" 12 34 - 56 78 "), "12345678");
+  for (const invalid of [
+    null, 12345678, "", "1234567", "123456789", "1234a678",
+    "<script>", "1234/5678", "1".repeat(33)
+  ]) assert.equal(game.normalizePairingCode(invalid), null);
+});

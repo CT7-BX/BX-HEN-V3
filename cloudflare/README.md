@@ -78,3 +78,7 @@ A configuração da chave secreta através da conexão Cloudflare foi bloqueada.
 ### Melhorias de validação e estado
 
 O frontend agora utiliza diretamente HTTPS para o pareamento, sem apresentar o endpoint WebSocket inexistente como requisito. O Worker recusa pedidos HTTP em texto claro e devolve `BACKEND_NOT_CONFIGURED` (HTTP 503) quando tentam solicitar código sem um segredo de console válido; o site traduz esse erro em uma orientação, sem expor chaves. Testes incluem pedidos malformados, vínculo somente HTTP, compatibilidade com relay WSS simulado e ausência de falsas promessas de streaming.
+
+### Limite global de tentativas do código de teste
+
+Além de oito tentativas por endereço durante um minuto, o backend encerra novas tentativas de um PIN depois de 32 erros distribuídos entre redes diferentes. O PS4 autenticado pode gerar um novo código. Esse mecanismo reduz adivinhação distribuída, mas não substitui proteção de borda/WAF e pode ser alvo de bloqueio intencional por terceiros; a janela de código curta evita bloqueio permanente. Não publicar o segredo do console.

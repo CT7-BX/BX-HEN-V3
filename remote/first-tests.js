@@ -7,7 +7,7 @@
 
   function snapshot(input) {
     const c = input || {};
-    const relay = ["ok", "failed", "invalid", "not_tested"].includes(c.relayStatus)
+    const relay = ["ok", "failed", "invalid", "unconfigured", "not_tested"].includes(c.relayStatus)
       ? c.relayStatus : "not_tested";
     return Object.freeze({
       siteSecure: c.siteSecure === true,
@@ -28,7 +28,7 @@
       .map(item => item === true) : [];
     const yesNo = b => b ? "SIM" : "NAO";
     return [
-      "BX-REMOTE-PLAY | TESTE DE PREPARACAO v0.7",
+      "BX-REMOTE-PLAY | TESTE DE PREPARACAO v0.8",
       "Site HTTPS/contexto seguro: " + yesNo(s.siteSecure),
       "Gamepad API disponivel: " + yesNo(s.gamepadAPI),
       "Controle fisico conectado: " + yesNo(s.gamepadConnected),

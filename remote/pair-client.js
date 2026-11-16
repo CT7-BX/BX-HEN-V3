@@ -120,7 +120,7 @@
       }
       if (info.pairingBackend === "cloudflare-durable-object" &&
           info.configured !== true) {
-        target.dataset.relayCheck = "failed";
+        target.dataset.relayCheck = "unconfigured";
         target.textContent = "BX-REMOTE-LINK online. Falta adicionar a chave privada do console em Cloudflare → bx-remote-link → Variables and Secrets.";
         return;
       }
@@ -143,12 +143,12 @@
 
   $("pairClaim").addEventListener("click", async () => {
     const server = pairingTarget();
-    const code = $("pairCode").value.trim();
+    const code = game.normalizePairingCode($("pairCode").value);
     if (!server) {
       report("Informe o endereço HTTPS do servidor de vínculo.");
       return;
     }
-    if (!/^\d{8}$/.test(code)) {
+    if (!code) {
       report("Digite os oito números exibidos no aplicativo PS4 de teste ou no simulador.");
       return;
     }
@@ -166,6 +166,10 @@
       const claim = await jsonRequest(base, "/v1/pair/claim", {
         data: { code }, signal: controller.signal
       });
+      if (current !== requestId || controller.signal.aborted) return;
+      if (typeof claim.claimToken !== "string" || !/^[a-f0-9]{64}$/.test(claim.claimToken)) {
+        throw new Error("INVALID_CLAIM");
+      }
       claimantToken = claim.claimToken;
       report("Aguardando aprovação pelo DualShock 4 no PS4 de teste ou pelo simulador...");
     } catch (error) {
@@ -209,6 +213,14 @@
           claimantToken = null;
           return;
         }
+        if (!["pending_confirmation", "waiting"].includes(state.status)) {
+          report("O servidor não possui uma solicitação ativa. Gere outro código.");
+          $("pairClaim").disabled = false;
+          claimantToken = null;
+          return;
+        }
+        report("Aguardando aprovação na TV... " +
+          Math.max(0, Math.ceil((stopAt - Date.now()) / 1000)) + "s restantes.");
       } catch (error) {
         if (current === requestId) report(errorMessage(error));
         $("pairClaim").disabled = false;
@@ -230,6 +242,16 @@
     $("pairCode").value = "";
     report("Solicitação cancelada neste navegador.");
   });
+  // Check the public backend once when the user opens the pairing section.
+  // No console secret, PIN or account data is sent by this GET request.
+  let openedOnce = false;
+  $("pairSection")?.addEventListener("toggle", () => {
+    if (!openedOnce && $("pairSection").open) {
+      openedOnce = true;
+      $("pairCheck").click();
+    }
+  });
+
   window.addEventListener("pagehide", () => {
     cancelActiveClaim();
     stopHealthCheck();

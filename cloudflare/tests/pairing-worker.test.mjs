@@ -149,3 +149,28 @@ test("eight attempts per IP per minute are allowed, ninth is throttled", async (
   const rejected = await post(env, "/v1/pair/claim", { code: "00000000" });
   assert.equal(rejected.status, 429);
 });
+
+
+test("one short-lived pairing PIN cannot be brute-forced across many IPs", async () => {
+  const { env } = instance();
+  await post(env, "/v1/pair/heartbeat", {}, TOKEN);
+  const started = (await post(env, "/v1/pair/start", {}, TOKEN)).json;
+  const invalid = started.code === "00000000" ? "99999999" : "00000000";
+  for (let i = 0; i < 32; i++) {
+    const result = await post(env, "/v1/pair/claim", { code: invalid }, undefined, {
+      ip: "198.51.100." + (i + 1)
+    });
+    assert.equal(result.status, 400, "each isolated IP may fail before global cap");
+  }
+  const blocked = await post(env, "/v1/pair/claim", { code: started.code }, undefined, {
+    ip: "203.0.113.250"
+  });
+  assert.equal(blocked.status, 429, "correct PIN is not usable after global abuse limit");
+  // A new code can be issued by the authenticated console; attackers cannot.
+  const fresh = (await post(env, "/v1/pair/start", {}, TOKEN)).json;
+  const allowed = await post(env, "/v1/pair/claim", { code: fresh.code }, undefined, {
+    ip: "203.0.113.250"
+  });
+  assert.equal(allowed.status, 200);
+  assert.equal(typeof allowed.json.claimToken, "string");
+});
