@@ -144,6 +144,19 @@ body:not(.bridge-page) .virtual-pad button:focus-visible{outline:3px solid #ffc0
 .bx-flag.warning{color:#ffe1b0;border-color:#795635;background:#2d251b}
 .bx-toolgroup{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:10px 0}
 .bx-toolgroup .action{flex:1 1 175px}
+.bx-diag-results{display:grid;gap:8px;margin:12px 0}
+.bx-diag-row{
+  display:grid;gap:4px;border:1px solid #4a404d;
+  padding:11px 12px;border-radius:11px;background:#16151d;
+}
+.bx-diag-row strong{font-size:.83rem;color:#fff}
+.bx-diag-row span{font-size:.76rem;line-height:1.5;color:#c8b9c6}
+.bx-diag-row[data-state="ok"]{border-left:4px solid #70d5a0}
+.bx-diag-row[data-state="attention"]{border-left:4px solid #d5a46c}
+.bx-diag-row[data-state="unavailable"]{border-left:4px solid #ec6478}
+#diagnosticsStatus{font-size:.8rem;line-height:1.5;color:#e4cbd4}
+#systemDiagnostics{scroll-margin-top:90px}
+
 body:not(.bridge-page) .callout{border-color:#6c4355;background:#2a1b24}
 body:not(.bridge-page) #realAvTest:not([open]){background:#181720}
 
