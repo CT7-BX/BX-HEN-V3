@@ -171,7 +171,7 @@ public final class MainActivity extends Activity {
     private void inspectDevice() {
         copyStatus.setText("");
         StringBuilder result = new StringBuilder(600);
-        result.append("BX Android Gateway — diagnóstico v0.2.0\n");
+        result.append("BX Android Gateway — diagnóstico v0.3.0\n");
         result.append("Sistema: Android ").append(Build.VERSION.RELEASE).append("\n");
         result.append("API: ").append(Build.VERSION.SDK_INT).append("\n");
         result.append("Modelo (relatório local): ").append(Build.MANUFACTURER).append(" ")
