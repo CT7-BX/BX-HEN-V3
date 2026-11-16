@@ -281,7 +281,7 @@
           </details>
           <details class="relay-config" id="pairSection">
             <summary>Vincular PS4 — conexão experimental</summary>
-            <p class="field-note">Pode testar um PS4 com o PKG Pair Test (ainda sem validação física), ou um console simulado. A aprovação do vínculo não habilita vídeo, áudio ou controle real.</p>
+            <p class="field-note">Pode testar o pareamento HTTP com o Pair Test v0.13 no PS4 ou com um console simulado; o app já foi aberto em hardware, mas o vínculo completo ainda não foi validado. A aprovação do vínculo não habilita vídeo, áudio ou controle real.</p>
             <ol class="pair-steps" aria-label="Passos de vinculação">
               <li>Abra o <strong>Pair Test v0.13</strong> no PS4, com a configuração privada pronta.</li>
               <li>Digite aqui os oito números mostrados na TV.</li>
@@ -306,12 +306,12 @@
           </details>
           <details class="relay-config" id="relaySection">
             <summary>Conectar ao simulador (avançado)</summary>
-            <label class="field" for="relayEndpoint">Servidor WSS</label>
+            <label class="field" for="relayEndpoint">Servidor WSS (somente simulador, não conecta ao PS4)</label>
             <input id="relayEndpoint" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="wss://servidor.example/v1/link">
             <label class="field" for="relayToken">Token de jogador</label>
             <input id="relayToken" type="password" autocomplete="off" placeholder="Token da sessão de teste">
             <div class="toolbar-left" style="margin-top:11px"><button class="action primary" type="button" id="relayConnect">Conectar teste</button><button class="action plain" type="button" id="relayDisconnect" disabled>Encerrar</button></div>
-            <p class="field-note">Exige um relay externo configurado por você; não há servidor público. Os comandos chegam somente ao console simulado.</p>
+            <p class="field-note">Este campo WSS é exclusivamente do simulador. Não use o endereço HTTPS do BX-REMOTE-LINK aqui: o Worker público ainda não tem WebSocket de controles.</p>
           </details>
           <h3>Laboratório</h3>
           <p>Teste a troca de comandos com o console simulado. A página de teste é separada para evitar confusão com uma sessão real.</p>
@@ -416,12 +416,23 @@
         testHealth();
       }
     });
+    // Returning from another tab or Safari BFCache must never leave the
+    // previous health button disabled or present an old success as current.
+    if (typeof window.addEventListener === "function") {
+      window.addEventListener("pagehide", cancel);
+      window.addEventListener("pageshow", function (event) {
+        if (!event || !event.persisted) return;
+        cancel();
+        message("not_tested", "Página restaurada. Verifique o servidor HTTPS novamente.");
+        if (section.open) testHealth();
+      });
+    }
   })();
   </script>
   <script src="./controller-core.js"></script>
-  <script src="./game-core.js?v=0.9"></script>
+  <script src="./game-core.js?v=0.10"></script>
   <script src="./game.js"></script>
-  <script src="./pair-client.js?v=0.9"></script>
+  <script src="./pair-client.js?v=0.10"></script>
   <script src="./first-tests.js"></script>
 </body>
 </html>
