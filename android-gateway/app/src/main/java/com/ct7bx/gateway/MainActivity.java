@@ -21,6 +21,15 @@ import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.os.SystemClock;
+import org.json.JSONObject;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
+import javax.net.ssl.SSLHandshakeException;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -30,9 +39,10 @@ import java.util.Locale;
 /**
  * Lightweight, read-only compatibility diagnostic for a future Android gateway.
  *
- * No INTERNET, SCREEN_CAPTURE, RECORD_AUDIO or filesystem permissions.
- * No PSN, Remote Play session, background service, streaming or input control.
- * The user must explicitly copy the text; it never leaves the phone itself.
+ * On-demand HTTPS /health request uses INTERNET (normal permission) only.
+ * Never sends a device identifier, PSN token, Remote Play key or private data.
+ * No background service, screen/audio capture, game streaming or input control.
+ * Hardware report remains local unless explicitly copied by the user.
  */
 public final class MainActivity extends Activity {
     private static final int RED = Color.rgb(239, 54, 83);
@@ -49,6 +59,13 @@ public final class MainActivity extends Activity {
     private Button copyButton;
     private TextView copyStatus;
     private static final String STATE_REPORT = "bx_diagnostic_report";
+    private static final String HEALTH_URL =
+        "https://bx-remote-link.4rt949zpj8.workers.dev/health";
+    private TextView networkStatus;
+    private Button networkButton;
+    private volatile boolean checkingNetwork;
+    private volatile boolean destroyed;
+    private Thread networkThread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,29 +78,60 @@ public final class MainActivity extends Activity {
         scroll.setBackgroundColor(BACKGROUND);
         rootLayout = new LinearLayout(this);
         rootLayout.setOrientation(LinearLayout.VERTICAL);
-        rootLayout.setPadding(dp(16), dp(22), dp(16), dp(35));
+        rootLayout.setPadding(dp(15), dp(16), dp(15), dp(30));
         layout = rootLayout;
         scroll.addView(rootLayout);
         setContentView(scroll);
 
-        label("BX LAB  /  MOBILE SYSTEMS", 12, RED, Typeface.BOLD, 8);
-        label("ANDROID GATEWAY", 27, WHITE, Typeface.BOLD, 7);
-        label("Central de compatibilidade", 16, MUTED, Typeface.NORMAL, 14);
+        LinearLayout hero = new LinearLayout(this);
+        hero.setOrientation(LinearLayout.VERTICAL);
+        hero.setPadding(dp(18), dp(20), dp(18), dp(18));
+        GradientDrawable heroBackground = new GradientDrawable(
+            GradientDrawable.Orientation.TL_BR,
+            new int[] {Color.rgb(95, 28, 53), Color.rgb(34, 23, 36),
+                Color.rgb(18, 20, 29)});
+        heroBackground.setCornerRadius(dp(23));
+        heroBackground.setStroke(dp(1), Color.rgb(154, 68, 93));
+        hero.setBackground(heroBackground);
+        LinearLayout.LayoutParams heroParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT);
+        heroParams.bottomMargin = dp(16);
+        rootLayout.addView(hero, heroParams);
+        layout = hero;
+        label("BX   /   MOBILE SYSTEMS", 12, Color.rgb(255, 170, 190),
+            Typeface.BOLD, 9);
+        label("ANDROID GATEWAY", 29, WHITE, Typeface.BOLD, 8);
+        label("Painel de diagnóstico   •   versão 0.4",
+            14, Color.rgb(234, 208, 222), Typeface.NORMAL, 18);
+        label("Seu Android. Sua rede. Uma futura ponte para o PS4.",
+            15, WHITE, Typeface.BOLD, 9);
+        label("Testes locais e HTTPS. O gateway de vídeo, áudio e controles " +
+            "ainda não está implementado.", 12, Color.rgb(219, 189, 204),
+            Typeface.NORMAL, 0);
+        layout = rootLayout;
 
-        startCard("01  ·  DIAGNÓSTICO LOCAL");
-        label("Avalie este Android antes dos testes de Remote Play.",
-              15, WHITE, Typeface.BOLD, 8);
-        label("Bateria, memória, temperatura e codecs são medidos somente quando você solicita. " +
-            "Nenhum resultado comprova transmissão PS4 → iPhone.", 13, MUTED, Typeface.NORMAL, 11);
-        readinessBanner = label("NÃO ANALISADO  ·  toque em Analisar aparelho",
-              12, Color.rgb(255, 199, 211), Typeface.BOLD, 15);
-        readinessBanner.setBackground(roundRect(Color.rgb(72, 34, 51), Color.rgb(139, 72, 92), 10));
-        readinessBanner.setPadding(dp(12), dp(11), dp(12), dp(11));
-
-        Button inspect = button("Analisar aparelho", true);
+        startCard("01   /   SISTEMA E DESEMPENHO");
+        label("Compatibilidade do dispositivo", 19, WHITE, Typeface.BOLD, 10);
+        label("Analise memória, H.264, bateria e temperatura. " +
+            "Nenhuma captura de vídeo é iniciada.", 13, MUTED, Typeface.NORMAL, 11);
+        readinessBanner = label("PRONTO PARA ANALISAR   •   execução local",
+            12, Color.rgb(255, 204, 215), Typeface.BOLD, 14);
+        readinessBanner.setBackground(roundRect(Color.rgb(66, 34, 47),
+            Color.rgb(147, 74, 100), 11));
+        readinessBanner.setPadding(dp(12), dp(12), dp(12), dp(12));
+        Button inspect = button("Analisar dispositivo", true);
         inspect.setOnClickListener(v -> inspectDevice());
+        diagnostics = label("As informações técnicas aparecerão aqui.",
+            13, WHITE, Typeface.NORMAL, 13);
+        diagnostics.setTextIsSelectable(true);
+        diagnostics.setTypeface(Typeface.MONOSPACE);
+        diagnostics.setBackground(roundRect(Color.rgb(13, 16, 23),
+            Color.rgb(65, 54, 68), 13));
+        diagnostics.setPadding(dp(13), dp(14), dp(13), dp(14));
         copyButton = button("Copiar relatório local", false);
         copyButton.setEnabled(false);
+        copyStatus = label("", 12, MUTED, Typeface.NORMAL, 2);
         copyButton.setOnClickListener(v -> {
             if (report.isEmpty()) {
                 copyStatus.setText("Execute a análise antes de copiar.");
@@ -92,38 +140,45 @@ public final class MainActivity extends Activity {
             ClipboardManager cb = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
             if (cb != null) {
                 cb.setPrimaryClip(ClipData.newPlainText("BX Gateway compatibility", report));
-                copyStatus.setText("Relatório copiado. Você decide se deseja compartilhá-lo.");
+                copyStatus.setText("Relatório copiado. Revise antes de compartilhar.");
             }
         });
-        diagnostics = label("Os resultados técnicos aparecerão aqui.",
-            13, WHITE, Typeface.NORMAL, 12);
-        diagnostics.setTextIsSelectable(true);
-        diagnostics.setTypeface(Typeface.MONOSPACE);
-        diagnostics.setBackground(roundRect(Color.rgb(13, 14, 20), Color.rgb(75, 58, 72), 11));
-        diagnostics.setPadding(dp(12), dp(14), dp(12), dp(14));
-        copyStatus = label("", 13, MUTED, Typeface.NORMAL, 7);
         endCard();
 
-        startCard("02  ·  CENTRAL BX");
-        label("Preparar o celular antigo como gateway", 16, WHITE, Typeface.BOLD, 7);
-        label("A central web orienta o processo e permite compartilhar o link com seu iPhone. " +
-            "O app atual é apenas diagnóstico e ainda não captura jogos.", 13, MUTED, Typeface.NORMAL, 13);
-        Button web = button("Abrir central BX no navegador", false);
+        startCard("02   /   CONECTIVIDADE HTTPS");
+        label("Verificar servidor BX", 19, WHITE, Typeface.BOLD, 8);
+        label("Teste pontual de internet até o endpoint HTTPS público do BX. " +
+            "Não acessa o PS4, não usa token e não fica monitorando em segundo plano.",
+            13, MUTED, Typeface.NORMAL, 12);
+        networkStatus = label("NÃO VERIFICADO  •  toque para testar",
+            13, Color.rgb(255, 207, 216), Typeface.BOLD, 13);
+        networkStatus.setBackground(roundRect(Color.rgb(39, 34, 47),
+            Color.rgb(116, 82, 104), 11));
+        networkStatus.setPadding(dp(12), dp(12), dp(12), dp(12));
+        networkButton = button("Testar conexão HTTPS", true);
+        networkButton.setOnClickListener(v -> checkPublicServer());
+        endCard();
+
+        startCard("03   /   PRÓXIMOS PASSOS");
+        label("Preparar a ponte Android", 19, WHITE, Typeface.BOLD, 8);
+        label("Use a central web para acompanhar a integração. " +
+            "A resposta do servidor prova apenas alcance HTTPS, não transmissão de jogos.",
+            13, MUTED, Typeface.NORMAL, 13);
+        Button web = button("Abrir BX Command Center", false);
         web.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_VIEW,
-                Uri.parse("https://ct7-bx.github.io/BX-REMOTE-PLAY/remote/gateway.html"));
+                Uri.parse("https://ct7-bx.github.io/BX-REMOTE-PLAY/remote/#bxCommandCenter"));
             try { startActivity(intent); }
             catch (Exception error) {
-                copyStatus.setText("Não foi possível abrir um navegador neste aparelho.");
+                copyStatus.setText("Não foi possível abrir o navegador.");
             }
         });
-        endCard();
-
-        startCard("03  ·  SEGURANÇA E LIMITES");
-        label("A bateria e a temperatura são leituras pontuais, não um sistema de " +
-            "monitoramento 24 horas. Evite usar aparelhos quentes ou danificados.", 13, MUTED, Typeface.NORMAL, 12);
-        label("Sem internet, câmera, microfone ou captura de tela: o APK não solicita " +
-            "permissões e não coleta PINs nem contas PlayStation.", 13, MUTED, Typeface.NORMAL, 10);
+        label("SEGURANÇA   /   leituras pontuais, sem serviço permanente",
+            11, RED, Typeface.BOLD, 8);
+        label("Não deixe um celular antigo superaquecendo ou carregando sem " +
+            "supervisão por períodos prolongados. " +
+            "A conexão HTTP de teste é encerrada após cada tentativa.",
+            12, MUTED, Typeface.NORMAL, 3);
         endCard();
 
         if (savedInstanceState != null) {
@@ -132,9 +187,80 @@ public final class MainActivity extends Activity {
                 report = restored;
                 diagnostics.setText(report);
                 copyButton.setEnabled(true);
-                readinessBanner.setText("ANÁLISE LOCAL  ·  relatório restaurado");
+                readinessBanner.setText("ANÁLISE LOCAL  •  relatório restaurado");
             }
         }
+    }
+
+    private void checkPublicServer() {
+        if (checkingNetwork || destroyed) return;
+        checkingNetwork = true;
+        networkButton.setEnabled(false);
+        networkStatus.setText("VERIFICANDO...  •  HTTPS público, sem credenciais");
+        networkThread = new Thread(() -> {
+            HttpURLConnection connection = null;
+            String outcome = "Falha no diagnóstico de rede.";
+            long start = SystemClock.elapsedRealtime();
+            try {
+                connection = (HttpURLConnection) new URL(HEALTH_URL).openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
+                connection.setUseCaches(false);
+                connection.setInstanceFollowRedirects(false);
+                connection.setRequestProperty("Accept", "application/json");
+                int code = connection.getResponseCode();
+                if (code == 200) {
+                    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                    try (InputStream input = connection.getInputStream()) {
+                        byte[] block = new byte[512];
+                        int n;
+                        while ((n = input.read(block)) != -1) {
+                            if (bytes.size() + n > 4096)
+                                throw new IOException("health response too large");
+                            bytes.write(block, 0, n);
+                        }
+                    }
+                    JSONObject json = new JSONObject(
+                        bytes.toString("UTF-8"));
+                    if ("ok".equals(json.optString("status")) &&
+                        "control-prototype".equals(json.optString("mode")) &&
+                        json.optBoolean("pairing", false)) {
+                        long elapsed = SystemClock.elapsedRealtime() - start;
+                        outcome = "HTTPS RESPONDEU   •   " + elapsed +
+                            " ms (apenas servidor)\n" +
+                            (json.optBoolean("configured", false)
+                            ? "Serviço de vínculo público configurado."
+                            : "Servidor respondeu, mas vínculo não está configurado.") +
+                            "\nO PS4 NÃO foi testado por este botão.";
+                    } else outcome = "HTTPS respondeu, mas o status não é reconhecido.";
+                } else outcome = "Falha HTTP " + code +
+                    ". Verifique rede e estado do servidor.";
+            } catch (SSLHandshakeException exception) {
+                outcome = "Falha TLS. Confira data/hora e atualizações do Android.";
+            } catch (SocketTimeoutException exception) {
+                outcome = "Tempo esgotado. Verifique Wi-Fi, DNS e sinal da rede.";
+            } catch (Exception exception) {
+                outcome = "Não foi possível alcançar o servidor HTTPS público.";
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+            final String result = outcome;
+            runOnUiThread(() -> {
+                if (destroyed) return;
+                checkingNetwork = false;
+                networkButton.setEnabled(true);
+                networkStatus.setText(result);
+            });
+        }, "bx-public-health-once");
+        networkThread.start();
+    }
+
+    @Override
+    protected void onDestroy() {
+        destroyed = true;
+        if (networkThread != null) networkThread.interrupt();
+        super.onDestroy();
     }
 
     private GradientDrawable roundRect(int background, int border, int radius) {
@@ -171,7 +297,7 @@ public final class MainActivity extends Activity {
     private void inspectDevice() {
         copyStatus.setText("");
         StringBuilder result = new StringBuilder(600);
-        result.append("BX Android Gateway — diagnóstico v0.3.0\n");
+        result.append("BX Android Gateway — diagnóstico v0.4.0\n");
         result.append("Sistema: Android ").append(Build.VERSION.RELEASE).append("\n");
         result.append("API: ").append(Build.VERSION.SDK_INT).append("\n");
         result.append("Modelo (relatório local): ").append(Build.MANUFACTURER).append(" ")
@@ -296,7 +422,7 @@ public final class MainActivity extends Activity {
         result.append("Orientação: ").append(profile).append("\n");
         result.append("Nota: bateria, memória e estado térmico são leituras pontuais, não monitoramento contínuo.\n");
         result.append("Streaming PS4 integrado ao BX: NÃO IMPLEMENTADO\n");
-        result.append("Dados enviados ao BX: NENHUM\n");
+        result.append("Dados enviados no teste de hardware: NENHUM; teste HTTPS apenas GET público sob pedido\n");
 
         report = result.toString();
         diagnostics.setText(report);

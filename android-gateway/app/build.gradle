@@ -8,8 +8,8 @@ android {
         applicationId 'com.ct7bx.gateway'
         minSdk 24
         targetSdk 35
-        versionCode 3
-        versionName '0.3.0-diagnostic'
+        versionCode 4
+        versionName '0.4.0-diagnostic'
     }
     buildTypes {
         debug {

@@ -1,12 +1,16 @@
-# BX Android Gateway — diagnóstico experimental v0.3
+# BX Android Gateway — diagnóstico experimental v0.4
 
 Este subprojeto Android nativo é o **primeiro teste de compatibilidade para aparelhos antigos**, preparado para Android 7 (API 24) ou superior. **Não é ainda um cliente Remote Play, um gateway WebRTC, nem um aplicativo que transmita jogos.** O BX atual continua sem o transporte PS4 → Android → iPhone.
 
-## Interface v0.3 — três áreas nativas
+## Interface v0.4 — três áreas nativas
 
-O aplicativo apresenta três cartões: **Diagnóstico local**, **Central BX** e **Segurança e limites**. A análise usa um indicador de prontidão com descrição conservadora, separa os dados técnicos numa área de texto selecionável, permite copiar o relatório apenas após o usuário iniciar a verificação e mantém o resultado ao girar a tela. O esquema preto/vermelho usa componentes Android nativos e não solicita permissões extras.
+O aplicativo apresenta três cartões: **Diagnóstico local**, **Central BX** e **Segurança e limites**. A análise usa um indicador de prontidão com descrição conservadora, separa os dados técnicos numa área de texto selecionável, permite copiar o relatório apenas após o usuário iniciar a verificação e mantém o resultado ao girar a tela. O esquema preto/vermelho usa componentes Android nativos e usa somente a permissão normal INTERNET para uma verificação HTTPS iniciada manualmente.
 
 A nova interface não torna o APK um cliente Remote Play. A temperatura medida é uma leitura pontual, não um monitor automático de segurança para uso por 24 horas.
+
+## Novo painel e conexão v0.4
+
+A abertura tem cabeçalho gradiente, três cartões com ações de diagnóstico, conectividade e central BX. O teste HTTPS roda fora da thread de interface, tem tamanho máximo de resposta, bloqueia múltiplas tentativas simultâneas e cancela o resultado quando a tela é destruída. A falha de conexão não impede o relatório local; um servidor público disponível não comprova conexão com o PS4. O app não mantém conexões permanentemente nem representa uma sessão real Remote Play.
 
 ## O que a versão faz
 
@@ -18,13 +22,13 @@ A nova interface não torna o APK um cliente Remote Play. A temperatura medida �
 - Distingue a API de captura de áudio Android 10+ da compatibilidade real com outro aplicativo — alguns apps proíbem sua captura.
 - Abre a página de compatibilidade do BX e copia um relatório local **apenas após ação explícita do usuário**.
 
-O aplicativo **não pede nenhuma permissão**, não contém `INTERNET` ou `RECORD_AUDIO`, não usa dados PSN, não acessa FTP, não roda em segundo plano e não envia informações ao GitHub ou à Cloudflare.
+O aplicativo declara somente `android.permission.INTERNET` para o botão **Testar conexão HTTPS**: faz um GET ao endpoint público `https://bx-remote-link.4rt949zpj8.workers.dev/health`, sem PIN, token, dados do dispositivo ou credenciais PSN, com limites de 5 segundos de conexão/leitura. A consulta pode ser vista pelo servidor como qualquer acesso HTTP (por exemplo, IP público). Não há rastreamento contínuo nem verificação de sessão de jogo. O relatório de hardware continua local e só sai do aparelho se você copiá-lo. Não há `RECORD_AUDIO`, câmera, captura de tela ou acesso FTP.
 
 ## Instalação e teste
 
-A versão APK experimental é compilada pela workflow [BX Android Gateway — diagnóstico experimental](../.github/workflows/android-gateway-build.yml). Abra a execução concluída com sucesso, baixe o artefato `BX-Android-Gateway-Diagnostic-v0.3` e confira seu SHA-256. O APK contido é **debug**; não há distribuição estável nem função de Remote Play neste estágio.
+A versão APK experimental é compilada pela workflow [BX Android Gateway — diagnóstico experimental](../.github/workflows/android-gateway-build.yml). Abra a execução concluída com sucesso, baixe o artefato `BX-Android-Gateway-Diagnostic-v0.4` e confira seu SHA-256. O APK contido é **debug**; não há distribuição estável nem função de Remote Play neste estágio.
 
-O botão **Analisar aparelho** mostra os dados localmente. Use **Copiar relatório local** se quiser compartilhá-los de forma voluntária, revisando antes o modelo do celular incluído no texto.
+O botão **Analisar dispositivo** mostra os dados localmente. Use **Copiar relatório local** se quiser compartilhá-los de forma voluntária, revisando antes o modelo do celular incluído no texto.
 
 ## Desenvolvimento
 

@@ -1,3 +1,13 @@
+# BX-REMOTE-PLAY — PKG PS4 v0.24 (experimental)
+
+## v0.24 — interface nativa e reconexão
+
+O aplicativo nativo ganhou um painel VideoOut redesenhado (degradê, cartões arredondados, código em destaque, progresso de configuração/rede/vínculo e dicas de recuperação) preservando o Title ID e o fluxo de autorização.
+
+A estabilidade do **serviço ELF opcional** melhorou: se o HTTPS não iniciar ao ligar, faz novas tentativas com backoff sem exigir reinstalação; após falhas fecha o contexto inválido e recria bibliotecas de rede. Respeita a parada local e registra transições em vez de gravar cada heartbeat idêntico. Leituras com erro ou corpo truncado não são aceitas. O pareamento no PKG tolera duas falhas transitórias nas consultas, mas falha imediatamente para 401/403, e aplica timeout de recebimento. O comando de criação do código não é repetido automaticamente.
+
+Atualização do ELF: finalize a instância anterior, abra o PKG v0.24, pressione TRIÂNGULO e inicie o novo ELF manualmente pelo GoldHEN LaunchPad. A versão 0.24 **não** transmite vídeo, áudio ou controles de jogos PS4 ao iPhone ou Android. A validação no console físico continua pendente; o CI verifica compilação e testes de contrato.
+
 # BX-REMOTE-PLAY — PKG nativo PS4 (v0.23 experimental)
 
 ## Novidades da v0.23 — VideoOut e diagnóstico útil

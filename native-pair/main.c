@@ -1,5 +1,5 @@
 /*
- * BX-REMOTE-PLAY PS4 Pairing Proof v0.23
+ * BX-REMOTE-PLAY PS4 Pairing Proof v0.24
  *
  * NEW, SEPARATE PKG. Not the existing HTTPS diagnostic.
  * Foreground-only console-side HTTP pairing test, with local DualShock consent.
@@ -40,13 +40,14 @@
 #define SSL_POOL_BYTES (128 * 1024)
 #define HTTP_MEMORY_BYTES (128 * 1024)
 #define POLL_ROUNDS 60
+#define MAX_POLL_NETWORK_RETRIES 2
 #define APPROVAL_POLL_TICKS 80
 #define APPROVED_HOLD_TICKS 1200 /* at most two minutes; user can exit earlier */
 #define CONFIG_RETRY_TICKS 1200 /* two minutes; safe first-run window */
 #define CONFIG_AUTO_RECHECK_TICKS 50 /* re-read .cfg every five seconds */
 #define UPDATE_MANIFEST_URL "https://ct7-bx.github.io/BX-REMOTE-PLAY/remote/update.txt"
 #define CURRENT_UPDATE_MAJOR 0u
-#define CURRENT_UPDATE_MINOR 23u
+#define CURRENT_UPDATE_MINOR 24u
 
 typedef struct HttpContext {
     int initialized_net;
@@ -80,7 +81,7 @@ static void report(const char *stage, int code, int status) {
         f=fopen(location,"w");
         if (!f) return;
     }
-    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.23\n");
+    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.24\n");
     fprintf(f, "stage=%s\n", stage ? stage : "unknown");
     fprintf(f, "result_code=%d\nhttp_status=%d\n", code, status);
     fprintf(f, "recovery=%s\n", bx_diag_hint(stage, status));
@@ -143,7 +144,7 @@ static int open_http(HttpContext *ctx) {
     if (ctx->ssl < 0) return 0;
     ctx->http = sceHttpInit(ctx->pool, ctx->ssl, HTTP_MEMORY_BYTES);
     if (ctx->http < 0) return 0;
-    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.23",
+    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.24",
         ORBIS_HTTP_VERSION_1_1, 1);
     return ctx->tmpl >= 0;
 }
@@ -184,6 +185,7 @@ static int call_api(
         sceHttpSetSendTimeOut(request, 6000000) < 0) {
         ok = -13; goto done;
     }
+    sceHttpSetRecvTimeOut(request,6000000);
     ok = sceHttpSendRequest(request,
         json_post ? (const void *)json_post : NULL,
         json_post ? strlen(json_post) : 0);
@@ -235,6 +237,7 @@ static int check_public_update(const HttpContext *ctx, BXUpdateManifest *availab
     if (sceHttpSetConnectTimeOut(request, 2500000) < 0 ||
         sceHttpSetResolveTimeOut(request, 2500000) < 0 ||
         sceHttpSetSendTimeOut(request, 2500000) < 0) goto cleanup;
+    sceHttpSetRecvTimeOut(request,2500000);
     if (sceHttpSendRequest(request, NULL, 0) < 0) goto cleanup;
     if (sceHttpGetStatusCode(request, &status) < 0 || status != 200) goto cleanup;
     for (;;) {
@@ -367,13 +370,13 @@ static void offer_resident_setup(int pad, uint32_t *last_buttons) {
     if(marker) {
         size_t read=fread(version,1,sizeof(version)-1,marker);
         fclose(marker);
-        if(read==5 && memcmp(version,"0.23\n",5)==0
+        if(read==5 && memcmp(version,"0.24\n",5)==0
           && stat("/data/payloads/bx-remote-service.elf",&installed)==0) {
             /* Already installed the current resident, skip repeat prompt. */
             return;
         }
     }
-    notice("BX-REMOTE: TRIANGULO ATUALIZA servico ELF 0.23; X segue.");
+    notice("BX-REMOTE: TRIANGULO ATUALIZA servico ELF 0.24; X segue.");
     for (tick=0; tick<140; ++tick) {
         OrbisPadData state;
         uint32_t fresh;
@@ -425,6 +428,7 @@ int main(void) {
     char message[180];
     uint32_t last_buttons = 0;
     int pad = -1, user_initialized = 0, status = 0, result = -1, accepted = 0, round, i;
+    int poll_network_failures = 0;
     const char *stage = "config";
     const char *final = "not_started";
 
@@ -526,9 +530,28 @@ int main(void) {
     /* Two-minute proof only; no service, no background process, no AutoRun. */
     for (round = 0; round < POLL_ROUNDS; ++round) {
         result = call_api(&http, &config, "/v1/pair/heartbeat", "{}", response, &status);
-        if (result != 1) { final = "heartbeat_lost"; break; }
+        if (result != 1) {
+            if (status != 401 && status != 403 &&
+                ++poll_network_failures <= MAX_POLL_NETWORK_RETRIES) {
+                notice("BX-REMOTE: Conexao oscilou. Repetindo verificacao HTTPS...");
+                usleep(400000);
+                --round; /* Do not shorten the 2-minute pairing window. */
+                continue;
+            }
+            final = "heartbeat_lost"; break;
+        }
         result = call_api(&http, &config, "/v1/pair/pending", NULL, response, &status);
-        if (result != 1) { final = "pending_http_failed"; break; }
+        if (result != 1) {
+            if (status != 401 && status != 403 &&
+                ++poll_network_failures <= MAX_POLL_NETWORK_RETRIES) {
+                notice("BX-REMOTE: Falha temporaria no vinculo. Tentando novamente...");
+                usleep(400000);
+                --round;
+                continue;
+            }
+            final = "pending_http_failed"; break;
+        }
+        poll_network_failures = 0; /* Successful pair check restores tolerance. */
         if (!bx_pair_status(response, state_name)) {
             final = "pending_response_invalid";
             result = -17;

@@ -1,5 +1,5 @@
 /*
- * BX-REMOTE-SERVICE v0.23 - experimental independent GoldHEN ELF process.
+ * BX-REMOTE-SERVICE v0.24 - experimental independent GoldHEN ELF process.
  * No video/audio/control: outbound HTTPS and explicit owner-approved 9295 probe only.
  * Does not persist a player authorization or expose local ports.
  * Must be explicitly enabled by the user through BX Pair Test.
@@ -30,8 +30,14 @@ typedef struct BXServiceHTTP {
 } BXServiceHTTP;
 
 static void log_status(const char *phase, int result, int status) {
-    FILE *f=fopen(REPORT_PATH,"a+");
+    static char previous_phase[64]={0};
+    static int previous_result=0, previous_status=0;
+    FILE *f;
     long size=0;
+    /* Avoid writing the same 30-second heartbeat to flash storage all day. */
+    if(phase && strcmp(previous_phase,phase)==0 &&
+       previous_result==result && previous_status==status) return;
+    f=fopen(REPORT_PATH,"a+");
     if (!f) return;
     if (fseek(f,0,SEEK_END)==0) size=ftell(f);
     if (size>32768) {
@@ -39,9 +45,14 @@ static void log_status(const char *phase, int result, int status) {
         f=fopen(REPORT_PATH,"w");
         if(!f)return;
     }
-    fprintf(f,"BX-REMOTE-SERVICE v0.22 | state=%s | result=%d | http=%d\n",
-            phase, result, status);
+    fprintf(f,"BX-REMOTE-SERVICE v0.24 | state=%s | result=%d | http=%d\n",
+            phase ? phase : "unknown", result, status);
     fclose(f);
+    if(phase) {
+        snprintf(previous_phase,sizeof(previous_phase),"%s",phase);
+        previous_result=result;
+        previous_status=status;
+    }
 }
 static int exists(const char *path) {
     struct stat st;
@@ -83,7 +94,7 @@ static int http_open(BXServiceHTTP *h) {
     if(h->ssl<0)return 0;
     h->http=sceHttpInit(h->pool,h->ssl,128*1024);
     if(h->http<0)return 0;
-    h->tmpl=sceHttpCreateTemplate(h->http,"BX-REMOTE-SERVICE/0.23",
+    h->tmpl=sceHttpCreateTemplate(h->http,"BX-REMOTE-SERVICE/0.24",
                                 ORBIS_HTTP_VERSION_1_1,1);
     return h->tmpl>=0;
 }
@@ -115,6 +126,9 @@ static int heartbeat(BXServiceHTTP *h, BXPairConfig *cfg, int *status, int rp_tc
        sceHttpSetConnectTimeOut(request,5000000)<0 ||
        sceHttpSetResolveTimeOut(request,5000000)<0 ||
        sceHttpSetSendTimeOut(request,5000000)<0){result=-12;goto done;}
+    /* OpenOrbis exposes the receive timeout as void; it still prevents
+       stale connections from blocking the resident loop indefinitely. */
+    sceHttpSetRecvTimeOut(request,5000000);
     result=sceHttpSendRequest(request,body,(size_t)body_len);
     if(result<0)goto done;
     result=sceHttpGetStatusCode(request,status);
@@ -123,9 +137,12 @@ static int heartbeat(BXServiceHTTP *h, BXPairConfig *cfg, int *status, int rp_tc
         while(received < (int)sizeof(response)-1) {
             n=sceHttpReadData(request,response+received,
                               (uint32_t)(sizeof(response)-1-received));
-            if(n<=0)break;
+            if(n<0){result=n;goto done;}
+            if(n==0)break;
             received+=n;
         }
+        /* A truncated JSON body must not look like successful delivery. */
+        if(received >= (int)sizeof(response)-1){result=-15;goto done;}
         response[received]='\0';
         if(received>0) {
             char candidate[65]={0};
@@ -174,6 +191,7 @@ static int post_bridge_result(BXServiceHTTP *h, BXPairConfig *cfg,
        sceHttpSetConnectTimeOut(request,5000000)<0 ||
        sceHttpSetResolveTimeOut(request,5000000)<0 ||
        sceHttpSetSendTimeOut(request,5000000)<0){result=-24;goto done;}
+    sceHttpSetRecvTimeOut(request,5000000);
     result=sceHttpSendRequest(request,body,(size_t)length);
     if(result<0)goto done;
     result=sceHttpGetStatusCode(request,&status);
@@ -199,23 +217,33 @@ int main(void) {
     if (!enabled()) {log_status("not_enabled",0,0);return 0;}
     if (!config_read(&config)) {log_status("config_invalid",-1,0);return 0;}
     bx_agent_start(&agent);
-    if(!http_open(&http)){
-        log_status("network_init_failed",-2,0);
-        http_close(&http);
-        memset(&config,0,sizeof(config));
-        return 0;
-    }
+    /* Open on demand, rather than exiting forever if Wi-Fi is temporarily
+     * missing when GoldHEN starts the service. The owner-controlled STOP
+     * flag is checked while sleeping, so reconnection can be cancelled.
+     */
+    memset(&http,0,sizeof(http));
+    http.pool=http.ssl=http.http=http.tmpl=-1;
     log_status("started",0,0);
     /* No incoming network listener or automatic remote control.
      * Run independently of the foreground PKG, after manual GoldHEN launch.
      */
     while(enabled() && agent.enabled) {
+        if(http.tmpl<0) {
+            if(!http_open(&http)) {
+                log_status("network_init_retry",-2,0);
+                http_close(&http);
+                bx_agent_on_failure(&agent);
+                pause_checked(agent.retry_ms/1000);
+                bx_agent_retry(&agent);
+                continue;
+            }
+            log_status("https_reconnected",0,0);
+        }
         remoteplay_port=bx_remoteplay_probe_loopback();
         result=heartbeat(&http,&config,&status,remoteplay_port,
                          bridge_probe_id);
         if(result==1) {
             bx_agent_on_connected(&agent);
-            log_status("heartbeat_ok",result,status);
             if(bridge_probe_id[0]) {
                 /* Only a bounded allowlisted local check, never game actions. */
                 int fresh=bx_remoteplay_probe_loopback();
@@ -223,14 +251,19 @@ int main(void) {
                 log_status(report_result==1?"bridge_result_accepted":
                            "bridge_result_failed",report_result,0);
                 memset(bridge_probe_id,0,sizeof(bridge_probe_id));
+                /* A failed one-shot response is not queued indefinitely. */
             }
             log_status(remoteplay_port==1?"remoteplay_tcp_open":
                 remoteplay_port==0?"remoteplay_tcp_unreachable":
                 "remoteplay_probe_failed",remoteplay_port,0);
             pause_checked(30);
         } else {
+            /* Tear down SSL/HTTP objects after failure instead of repeatedly
+             * reusing a stale network context. Next iteration reinitializes. */
+            memset(bridge_probe_id,0,sizeof(bridge_probe_id));
             bx_agent_on_failure(&agent);
             log_status("heartbeat_retry",result,status);
+            http_close(&http);
             pause_checked(agent.retry_ms/1000);
             bx_agent_retry(&agent);
         }

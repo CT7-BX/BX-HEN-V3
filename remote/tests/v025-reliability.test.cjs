@@ -79,23 +79,23 @@ test("user cancellation aborts both network requests without exposing response d
   assert.equal(result.find(x=>x.key==="update").state,"attention");
 });
 
-test("Android v0.2 reads only on demand and keeps report through rotation",()=>{
+test("Android v0.4 reads hardware on demand and keeps report through rotation",()=>{
   const java=source("android-gateway/app/src/main/java/com/ct7bx/gateway/MainActivity.java");
   const manifest=source("android-gateway/app/src/main/AndroidManifest.xml");
   const build=source("android-gateway/app/build.gradle");
   const workflow=source(".github/workflows/android-gateway-build.yml");
-  assert.match(build,/versionCode 3/);
-  assert.match(build,/versionName '0\.3\.0-diagnostic'/);
-  assert.match(workflow,/BX-Android-Gateway-Diagnostic-v0\.3/);
+  assert.match(build,/versionCode 4/);
+  assert.match(build,/versionName '0\.4\.0-diagnostic'/);
+  assert.match(workflow,/BX-Android-Gateway-Diagnostic-v0\.4/);
   for (const marker of [
     "ACTION_BATTERY_CHANGED","BatteryManager.EXTRA_TEMPERATURE",
     "BatteryManager.EXTRA_LEVEL","memory.availMem","memory.lowMemory",
     "getCurrentThermalStatus()","onSaveInstanceState(Bundle outState)",
     "STATE_REPORT","copyButton.setEnabled(false)","copyButton.setEnabled(true)"
   ]) assert.ok(java.includes(marker),marker);
-  assert.equal(/<uses-permission\b/.test(manifest),false);
+  assert.match(manifest,/android.permission.INTERNET/);
   assert.equal(/startForegroundService|createVirtualDisplay\(/.test(java),false);
-  assert.equal(/INTERNET|RECORD_AUDIO/.test(manifest),false);
+  assert.doesNotMatch(manifest,/android.permission.RECORD_AUDIO|android.permission.CAMERA/);
 });
 
 test("iPhone can share the exact public Android page without any pairing data",()=>{

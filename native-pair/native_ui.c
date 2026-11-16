@@ -1,5 +1,5 @@
 /*
- * BX-REMOTE-PLAY native PS4 dashboard v0.23.
+ * BX-REMOTE-PLAY native PS4 dashboard v0.24.
  * Real RGB CPU framebuffer via OpenOrbis VideoOut, not the website, a
  * notification overlay, or a screenshot. No external fonts/graphics assets.
  * Fail open: pairing remains usable when the display cannot initialize.
@@ -143,81 +143,130 @@ static void panel(uint32_t *dst, int x, int y, int w, int h, uint32_t bg,
     fill(dst,x,y,w,h,bg);
     fill(dst,x,y,7,h,accent);
 }
+/* Pixel-only rounded geometry. No external assets, GPU, heap allocation or
+ * font dependency: the OpenOrbis VideoOut fallback remains unchanged. */
+static void rounded(uint32_t *dst,int x,int y,int w,int h,int radius,uint32_t shade) {
+    int row,col,cut;
+    if(!dst || w<=0 || h<=0)return;
+    if(radius<0)radius=0;
+    if(radius>w/2)radius=w/2;
+    if(radius>h/2)radius=h/2;
+    for(row=0;row<h;++row) {
+        cut=0;
+        if(radius>0 && (row<radius || row>=h-radius)) {
+            int dy=row<radius ? radius-1-row : row-(h-radius);
+            for(col=0;col<radius;++col) {
+                int dx=radius-1-col;
+                if(dx*dx+dy*dy<=radius*radius)break;
+            }
+            cut=col;
+        }
+        fill(dst,x+cut,y+row,w-2*cut,1,shade);
+    }
+}
+static void background_gradient(uint32_t *dst) {
+    int y;
+    for(y=0;y<UI_H;++y) {
+        int r=10 + y*5/UI_H;
+        int g=11 + y*2/UI_H;
+        int b=18 + y*8/UI_H;
+        fill(dst,0,y,UI_W,1,color((uint8_t)r,(uint8_t)g,(uint8_t)b));
+    }
+}
+static void stroke_card(uint32_t *dst,int x,int y,int w,int h,
+                        uint32_t bg,uint32_t border,int radius) {
+    rounded(dst,x,y,w,h,radius,border);
+    rounded(dst,x+2,y+2,w-4,h-4,radius>2?radius-2:0,bg);
+}
 static void draw_frame(uint32_t *dst) {
-    const uint32_t bg=color(9,10,14), card=color(24,24,33),
-                   dim=color(176,175,190), white=color(247,245,248),
-                   red=color(243,53,82), teal=color(107,222,155),
-                   danger=color(230,103,126);
-    const char *phase = ui.stage[0] ? ui.stage : "INICIALIZANDO";
-    const char *status = ui.status[0] ? ui.status : "ABRA O BX REMOTE PLAY NO PS4";
-    fill(dst,0,0,UI_W,UI_H,bg);
-    fill(dst,0,0,UI_W,138,color(25,19,29));
-    fill(dst,0,0,UI_W,8,red);
-    fill(dst,70,43,22,52,red);
-    text(dst,116,45,"BX REMOTE PLAY",6,white,19);
-    fill(dst,1440,44,385,62,color(55,26,42));
-    fill(dst,1440,44,5,62,red);
-    text(dst,1484,58,"VERSAO 0.23 BETA",3,white,18);
+    const uint32_t canvas=color(12,13,21), card=color(24,25,36),
+        raised=color(35,28,42), surface=color(17,20,30),
+        border=color(81,59,78), muted=color(177,169,188),
+        white=color(249,244,248), red=color(239,55,86),
+        rose=color(255,154,179), teal=color(100,225,170),
+        danger=color(238,105,128);
+    const char *phase=ui.stage[0]?ui.stage:"INICIALIZANDO";
+    const char *status=ui.status[0]?ui.status:"AGUARDANDO REDE";
+    const uint32_t stateColor=ui.level==BX_DIAG_FAILURE?danger:
+         ui.level==BX_DIAG_GOOD?teal:rose;
+    const char *markers[4]={"CONFIG","REDE","VINCULO","FIM"};
+    int i;
+    background_gradient(dst);
 
-    text(dst,83,170,"CENTRAL DO PS4",4,white,25);
-    text(dst,83,213,"VINCULO  /  SERVICO  /  ATUALIZACAO  /  DIAGNOSTICO",2,dim,60);
-    panel(dst,82,239,395,129,card,red);
-    text(dst,108,265,"01 VINCULO",4,white,21);
-    text(dst,108,320,"AUTORIZAR DISPOSITIVO",2,dim,30);
+    /* Branding in a slim header, with a live but honest local state. */
+    fill(dst,0,0,UI_W,7,red);
+    rounded(dst,71,41,66,66,17,red);
+    text(dst,82,56,"BX",4,white,2);
+    text(dst,159,43,"BX REMOTE PLAY",6,white,19);
+    text(dst,161,97,"PS4 CONNECTION LAB   /   NATIVE DASHBOARD",2,muted,50);
+    stroke_card(dst,1453,47,390,57,raised,border,18);
+    text(dst,1482,63,"VERSION 0.24   BETA",3,rose,20);
+    fill(dst,70,146,1773,2,border);
 
-    panel(dst,82,385,395,129,card,teal);
-    text(dst,108,410,"02 SERVICO",4,white,21);
-    text(dst,108,465,"EXECUTA SEM PKG ABERTO",2,dim,30);
+    text(dst,79,187,"CENTRAL DO CONSOLE",5,white,28);
+    text(dst,80,238,"CONECTIVIDADE, VINCULO E DIAGNOSTICO",2,muted,46);
 
-    panel(dst,82,531,395,129,card,red);
-    text(dst,108,556,"03 ATUALIZAR",4,white,21);
-    text(dst,108,611,"VERSAO OFICIAL",2,dim,30);
-
-    panel(dst,82,678,395,129,card,danger);
-    text(dst,108,702,"04 DIAGNOSTICO",3,white,25);
-    text(dst,108,758,"REMOTE PLAY EM TESTES",2,dim,29);
-
-    panel(dst,527,236,1310,572,card,red);
-    text(dst,565,279,"STATUS DA SESSAO",3,dim,45);
-    text(dst,566,333,phase,4,
-         ui.level==BX_DIAG_FAILURE ? danger :
-         ui.level==BX_DIAG_GOOD ? teal : white,47);
-    /* Four segmented checkpoints are based on the last stage actually
-     * observed by the local PS4, not on server/media assumptions.
-     * Unknown stages remain at zero. Never claim PS4 video or controls.
-     */
-    {
-        const char *markers[4] = {"CONFIG", "REDE", "VINCULO", "FIM"};
-        int i;
-        for (i=0;i<4;++i) {
-            int left=565+i*310;
-            uint32_t shade=ui.progress >= (unsigned)(i+1)
-                ? (ui.level==BX_DIAG_FAILURE ? danger : teal)
-                : color(65,54,67);
-            fill(dst,left,386,291,7,shade);
-            text(dst,left,402,markers[i],2,dim,14);
+    /* Four concise status cards; labels are not interactive menu buttons. */
+    for(i=0;i<4;++i) {
+        static const char *titles[4]={"01  CONFIG","02  REDE","03  VINCULO","04  ENCERRAR"};
+        static const char *sub[4]={
+            "ARQUIVO LOCAL PRIVADO","CONEXAO HTTPS SEGURA",
+            "APROVACAO PELO CONTROLE","FECHAR PELO MENU PS"};
+        const int y=279+i*132;
+        const uint32_t accent=ui.progress >= (unsigned)(i+1)
+            ? (ui.level==BX_DIAG_FAILURE?danger:teal):red;
+        stroke_card(dst,76,y,494,116,card,border,20);
+        rounded(dst,94,y+17,5,81,2,accent);
+        text(dst,119,y+22,titles[i],4,white,23);
+        text(dst,121,y+77,sub[i],2,muted,34);
+        if(ui.progress >= (unsigned)(i+1)) {
+            rounded(dst,507,y+29,43,44,12,color(25,66,51));
+            text(dst,519,y+40,"OK",2,teal,2);
         }
     }
-    fill(dst,565,438,1235,2,color(66,52,67));
-    fill(dst,565,453,6,202,red);
-    text(dst,592,471,"CODIGO DE PAREAMENTO",3,dim,41);
-    if(ui.code[0]) {
-        fill(dst,589,529,535,110,color(22,43,39));
-        text(dst,610,543,ui.code,10,teal,9);
-    } else text(dst,592,539,"AGUARDANDO CODIGO",4,dim,27);
-    fill(dst,565,667,1235,2,color(66,52,67));
-    text(dst,565,681,"STATUS DO APLICATIVO",2,dim,55);
-    text(dst,565,716,status,2,white,96);
-    fill(dst,565,770,6,31,
-         ui.level==BX_DIAG_FAILURE ? danger : teal);
-    text(dst,587,781,ui.hint[0]?ui.hint:"CONSULTE O RELATORIO LOCAL",
-         2,ui.level==BX_DIAG_FAILURE ? danger : dim,77);
 
-    fill(dst,82,856,1755,120,color(21,20,29));
-    fill(dst,82,856,1755,5,red);
-    text(dst,110,885,"X APROVAR / SEGUIR     O RECUSAR     TRIANGULO SERVICO",3,white,80);
-    text(dst,110,940,"OPTIONS ENCERRAR   -   STREAMING DIRETO AINDA INDISPONIVEL",2,dim,100);
-    text(dst,84,1025,"BX REMOTE PLAY   -   PKG DE VINCULO E DIAGNOSTICO",2,dim,94);
+    /* Session focus panel: clear phase, progression, and owner pairing code. */
+    stroke_card(dst,598,278,1244,529,card,border,23);
+    rounded(dst,626,306,321,43,13,color(75,34,52));
+    text(dst,649,318,"ESTADO DA CONEXAO",2,rose,27);
+    text(dst,628,375,phase,5,stateColor,39);
+    text(dst,629,445,"PROGRESSO LOCAL DO VINCULO",2,muted,43);
+    for(i=0;i<4;++i) {
+        const int x=629+i*291;
+        const uint32_t accent=ui.progress >= (unsigned)(i+1)
+            ? (ui.level==BX_DIAG_FAILURE?danger:teal):color(74,61,78);
+        rounded(dst,x,482,271,10,4,accent);
+        text(dst,x,510,markers[i],2,muted,13);
+    }
+    fill(dst,628,558,1182,2,border);
+    text(dst,630,582,"CODIGO TEMPORARIO",3,muted,26);
+    if(ui.code[0]) {
+        rounded(dst,628,628,616,115,18,color(18,55,43));
+        text(dst,652,645,ui.code,10,teal,8);
+        text(dst,1298,666,"DIGITE NO IPHONE",3,rose,23);
+    } else {
+        rounded(dst,628,628,616,115,18,surface);
+        text(dst,654,662,"AGUARDANDO CODIGO",4,muted,22);
+        text(dst,1292,667,"VINCULE PELO SITE",2,muted,24);
+    }
+
+    /* Recovery guidance always comes from a bounded local stage mapping. */
+    stroke_card(dst,598,827,1244,113,surface,border,18);
+    rounded(dst,616,848,6,69,3,stateColor);
+    text(dst,645,849,"PROXIMO PASSO",2,rose,27);
+    text(dst,645,885,ui.hint[0]?ui.hint:"CONSULTE O RELATORIO LOCAL",
+         3,white,58);
+
+    stroke_card(dst,76,827,493,113,raised,border,18);
+    text(dst,101,851,"STATUS DO APLICATIVO",2,rose,28);
+    text(dst,101,892,status,2,white,34);
+
+    stroke_card(dst,75,961,1767,85,color(25,23,33),border,17);
+    text(dst,102,981,"X  APROVAR/SEGUIR     O  RECUSAR     TRIANGULO  SERVICO",
+         3,white,86);
+    text(dst,106,1020,"OPTIONS ENCERRAR   /   STREAMING DIRETO AINDA INDISPONIVEL",
+         2,muted,89);
+    (void)canvas;
 }
 static void draw(void) {
     OrbisVideoOutFlipStatus s;
