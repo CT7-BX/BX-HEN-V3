@@ -1,6 +1,6 @@
-# BX-REMOTE-PLAY — prova de vínculo NATIVA para PS4 (v0.15 experimental)
+# BX-REMOTE-PLAY — prova de vínculo NATIVA para PS4 (v0.16 experimental)
 
-**Estado: usuário testou fisicamente as versões anteriores e confirmou que a v0.13 permanece aberta e responde ao botão X com configuração ausente/inválida. A v0.14 ainda não foi testada no PS4 físico.** Este pacote não oferece Remote Play, streaming de vídeo/áudio, virtualização de controle, agente residente nem início automático.
+**Estado: o usuário confirmou pareamento HTTPS na v0.15, mas relatou CE-34878-0 alguns segundos depois, quando o app encerrava. A v0.16 altera esse fluxo e ainda exige teste físico.** Este pacote não oferece Remote Play, streaming de vídeo/áudio, virtualização de controle, agente residente nem início automático.
 
 ## Por que outro PKG?
 
@@ -14,7 +14,7 @@ O pacote existente `ps4-agent/` v0.21 permanece intacto como diagnóstico HTTPS.
 4. No navegador, o usuário abre **Vincular console (laboratório)** e insere o código e o endereço WSS do mesmo relay.
 5. O PKG verifica solicitações por HTTPS e exige um aperto **novo** em X para aprovar ou O para negar. OPTIONS cancela.
 6. Após a aprovação, o site confirma que o vínculo HTTP foi autorizado, mas **não inicia controles nem vídeo**, pois este aplicativo ainda não estabelece um WebSocket de console.
-7. O aplicativo revoga o vínculo de teste e sai. Sem AutoRun e sem listener público no PS4.
+7. Depois da aprovação, o aplicativo permanece aberto por até dois minutos, ou até OPTIONS. Então revoga o vínculo, limpa os recursos e entra em estado ocioso, sem retornar de `main()`. Feche o aplicativo pelo menu do botão PS. Não há AutoRun, agente residente, mídia ou listener público. O relatório de diagnóstico local registra a última etapa do encerramento caso o CE-34878-0 persista.
 
 ## Gerador automático de configuração privada (novo)
 

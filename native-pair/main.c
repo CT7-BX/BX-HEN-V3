@@ -1,5 +1,5 @@
 /*
- * BX-REMOTE-PLAY PS4 Pairing Proof v0.15
+ * BX-REMOTE-PLAY PS4 Pairing Proof v0.16
  *
  * NEW, SEPARATE PKG. Not the existing v0.21 HTTPS diagnostic.
  * Foreground-only console-side HTTP pairing test, with local DualShock consent.
@@ -35,12 +35,12 @@
 #define HTTP_MEMORY_BYTES (128 * 1024)
 #define POLL_ROUNDS 60
 #define APPROVAL_POLL_TICKS 80
-#define APPROVED_NOTICE_SECONDS 20
+#define APPROVED_HOLD_TICKS 1200 /* at most two minutes; user can exit earlier */
 #define CONFIG_RETRY_TICKS 1200 /* two minutes; safe first-run window */
 #define CONFIG_AUTO_RECHECK_TICKS 50 /* re-read .cfg every five seconds */
 #define UPDATE_MANIFEST_URL "https://ct7-bx.github.io/BX-REMOTE-PLAY/remote/update.txt"
 #define CURRENT_UPDATE_MAJOR 0u
-#define CURRENT_UPDATE_MINOR 15u
+#define CURRENT_UPDATE_MINOR 16u
 
 typedef struct HttpContext {
     int initialized_net;
@@ -58,7 +58,7 @@ static void report(const char *stage, int code, int status) {
     FILE *f = fopen(REPORT_PATH, "w");
     if (!f) f = fopen("/user/data/bx-remote-pairing-report.txt", "w");
     if (!f) return;
-    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.15\n");
+    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.16\n");
     fprintf(f, "stage=%s\n", stage ? stage : "unknown");
     fprintf(f, "result_code=%d\nhttp_status=%d\n", code, status);
     fprintf(f, "streaming=NOT_IMPLEMENTED\n");
@@ -67,12 +67,45 @@ static void report(const char *stage, int code, int status) {
     fclose(f);
 }
 
+/* OpenOrbis' libc exit path has caused CE-34878-0 on physical PS4s.
+ * A finished foreground proof must therefore remain idle until the user
+ * closes the application from the PS button menu. No background agent.
+ */
+static void idle_until_ps4_close(void) __attribute__((noreturn));
+static void idle_until_ps4_close(void) {
+    report("idle_ready_for_ps4_close", 0, 0);
+    notice("BX-REMOTE: Teste encerrado. Feche o app pelo menu PS.");
+    for (;;) sleep(1);
+}
+
 static void close_http(HttpContext *ctx) {
-    if (ctx->tmpl >= 0) sceHttpDeleteTemplate(ctx->tmpl);
-    if (ctx->http >= 0) sceHttpTerm(ctx->http);
-    if (ctx->ssl >= 0) sceSslTerm(ctx->ssl);
-    if (ctx->pool >= 0) sceNetPoolDestroy(ctx->pool);
-    if (ctx->initialized_net) sceNetTerm();
+    /* These checkpoints isolate the failing native teardown API on hardware.
+     * The associated PS4 error happens after an otherwise approved link. */
+    if (ctx->tmpl >= 0) {
+        report("cleanup_http_template", 0, 0);
+        sceHttpDeleteTemplate(ctx->tmpl);
+        ctx->tmpl = -1;
+    }
+    if (ctx->http >= 0) {
+        report("cleanup_http_library", 0, 0);
+        sceHttpTerm(ctx->http);
+        ctx->http = -1;
+    }
+    if (ctx->ssl >= 0) {
+        report("cleanup_http_ssl", 0, 0);
+        sceSslTerm(ctx->ssl);
+        ctx->ssl = -1;
+    }
+    if (ctx->pool >= 0) {
+        report("cleanup_http_pool", 0, 0);
+        sceNetPoolDestroy(ctx->pool);
+        ctx->pool = -1;
+    }
+    if (ctx->initialized_net) {
+        report("cleanup_http_net", 0, 0);
+        sceNetTerm();
+        ctx->initialized_net = 0;
+    }
 }
 
 static int open_http(HttpContext *ctx) {
@@ -86,7 +119,7 @@ static int open_http(HttpContext *ctx) {
     if (ctx->ssl < 0) return 0;
     ctx->http = sceHttpInit(ctx->pool, ctx->ssl, HTTP_MEMORY_BYTES);
     if (ctx->http < 0) return 0;
-    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.15",
+    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.16",
         ORBIS_HTTP_VERSION_1_1, 1);
     return ctx->tmpl >= 0;
 }
@@ -314,7 +347,7 @@ int main(void) {
                 if (pad >= 0) scePadClose(pad);
                 if (user_initialized) sceUserServiceTerminate();
                 memset(&config, 0, sizeof(config));
-                return 0;
+                idle_until_ps4_close();
             }
         }
     }
@@ -326,7 +359,7 @@ int main(void) {
         if (user_initialized) sceUserServiceTerminate();
         memset(&config, 0, sizeof(config));
         sleep(5);
-        return 0; /* Expected network failure: report it, do not crash PS4 shell. */
+        idle_until_ps4_close(); /* Do not return through OpenOrbis libc _exit. */
     }
     /* Best effort only: if GitHub Pages is offline, pairing still starts. */
     check_public_update(&http);
@@ -411,9 +444,16 @@ finish:
      * to -1. The log is safe to share after checking for local information. */
     report(stage, accepted ? 0 : (result < 0 ? result : -1), status);
     if (accepted) {
-        notice("BX-REMOTE: Vinculo aprovado (HTTP). SEM VIDEO OU CONTROLE.");
-        /* Allow the paired browser to fetch approval before revocation. */
-        sleep(APPROVED_NOTICE_SECONDS);
+        /* Never vanish shortly after success: keep this foreground-only proof
+         * open while the user checks the browser. No resident agent is started.
+         * OPTIONS revokes the temporary link; a bounded timeout is a fail-safe.
+         */
+        report("approved_waiting_exit", 0, status);
+        notice("BX-REMOTE: Vinculo OK (sem video/audio). OPTIONS encerra o teste.");
+        for (i = 0; i < APPROVED_HOLD_TICKS; ++i) {
+            if (poll_decision(pad, &last_buttons) == -2) break;
+            usleep(100000);
+        }
     } else {
         if (status == 401) {
             notice("BX-REMOTE: Token recusado (401). Confira chave no PS4 e Cloudflare.");
@@ -429,13 +469,26 @@ finish:
         }
         sleep(5);
     }
-    /* Revoke short-lived proof. Do not leave an unattended controller session. */
+    /* Record the last reached cleanup phase so a physical CE-34878-0
+     * can be correlated with revoke, pad or network teardown. */
+    report("cleanup_revoke_begin", accepted ? 0 : -1, status);
     if (http.tmpl >= 0) {
-        call_api(&http, &config, "/v1/pair/revoke", "{}", response, &status);
+        int revoke_status = 0;
+        int revoke_result = call_api(&http, &config, "/v1/pair/revoke",
+                                     "{}", response, &revoke_status);
+        report("cleanup_revoke_done", revoke_result, revoke_status);
     }
+    report("cleanup_pad_begin", 0, 0);
     if (pad >= 0) scePadClose(pad);
-    if (user_initialized) sceUserServiceTerminate();
+    report("cleanup_pad_done", 0, 0);
+    report("cleanup_http_begin", 0, 0);
     close_http(&http);
+    report("cleanup_http_done", 0, 0);
+    if (user_initialized) {
+        report("cleanup_user_service_begin", 0, 0);
+        sceUserServiceTerminate();
+    }
+    report("cleanup_complete", 0, 0);
     memset(&config, 0, sizeof(config));
-    return 0; /* All expected test outcomes are logged, not process errors. */
+    idle_until_ps4_close(); /* Never return through OpenOrbis libc _exit. */
 }
