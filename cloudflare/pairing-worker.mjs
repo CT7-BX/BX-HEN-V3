@@ -11,6 +11,7 @@ const APPROVAL_MS = 120000;
 const PRESENCE_MS = 12000;
 const RATE_MS = 60000;
 const MAX_ATTEMPTS = 8;
+const MAX_CODE_ATTEMPTS = 32; // across all IPs for one short-lived PIN
 const REQUEST_BYTES = 1024;
 const routes = new Set([
   "POST /v1/pair/heartbeat", "POST /v1/pair/start",
@@ -154,6 +155,7 @@ export class BXPairingRoom {
         await this.ctx.storage.put(key, {
           codeHash: await digest(code), requestId,
           status: "waiting", expiresAt: now + CODE_MS,
+          failedCodeAttempts: 0,
           claimId: null, claimHash: null
         });
         return reply({ code, requestId, expiresInSeconds: CODE_MS / 1000 }, 200, origin);
@@ -182,9 +184,17 @@ export class BXPairingRoom {
         rates[ipHash] = rate;
         await this.ctx.storage.put(rateKey, rates);
         if (rate.attempts > MAX_ATTEMPTS) return problem("RATE_LIMITED", 429, origin);
+        if (entry?.status === "waiting" &&
+            entry.failedCodeAttempts >= MAX_CODE_ATTEMPTS) {
+          return problem("RATE_LIMITED", 429, origin);
+        }
         if (typeof input.code !== "string" || !/^\d{8}$/.test(input.code)
             || !entry || entry.status !== "waiting"
             || !ctEqual(await digest(input.code), entry.codeHash)) {
+          if (entry?.status === "waiting") {
+            entry.failedCodeAttempts = (entry.failedCodeAttempts || 0) + 1;
+            await this.ctx.storage.put(key, entry);
+          }
           return problem("INVALID_CODE", 400, origin);
         }
         const claimToken = randomToken();
