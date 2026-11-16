@@ -144,6 +144,13 @@ body:not(.bridge-page) .virtual-pad button:focus-visible{outline:3px solid #ffc0
 .bx-flag.warning{color:#ffe1b0;border-color:#795635;background:#2d251b}
 .bx-toolgroup{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:10px 0}
 .bx-toolgroup .action{flex:1 1 175px}
+.bx-input-test{
+  margin:15px 0;padding:14px;border:1px solid #6c4c5d;border-radius:13px;
+  background:linear-gradient(135deg,#261c27,#171720);
+}
+.bx-input-test .field-note{line-height:1.55}
+#p2pInputStatus{min-height:2.4em;padding:11px 12px;background:#181821;
+  border:1px solid #563c4a;border-radius:10px;color:#ead5df;font-size:.76rem;line-height:1.5}
 .bx-diag-results{display:grid;gap:8px;margin:12px 0}
 .bx-diag-row{
   display:grid;gap:4px;border:1px solid #4a404d;
