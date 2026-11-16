@@ -4,6 +4,12 @@ Esta pasta implementa um **backend HTTPS de vínculo com código temporário**, 
 
 **Não é ainda Remote Play:** este serviço não recebe vídeo, áudio ou comandos de controle e não abre portas no PS4. Mesmo quando o código for aprovado, o site apresentará **vínculo HTTP autorizado, sem streaming**.
 
+## Comando independente PS4 ↔ navegador (v0.21)
+
+Depois do vínculo temporário **aprovado** no console, o navegador pode enviar apenas `POST /v1/bridge/probe` com corpo JSON vazio e bearer de reivindicação. O Worker enfileira uma tarefa fixa, sem endereço, shell ou payload arbitrário. O console obtém `bridgeProbeId` via heartbeat autenticado (token privado de console), verifica `127.0.0.1:9295` localmente e devolve `POST /v1/bridge/probe-result` com `id` de 64 dígitos hexadecimais e `tcp9295:true|false|null`. O navegador lê `GET /v1/bridge/probe`, restrito ao mesmo vínculo.
+
+A fila limita-se a uma tarefa ativa e expira em 90 segundos ou ao revogar/iniciar novo vínculo. Essa API não é uma conexão TCP/UDP, gateway de mídia, vídeo ou controle de jogos. Segurança validada por testes offline do Durable Object. Detalhes: [NATIVE-BRIDGE-RESEARCH.md](../docs/NATIVE-BRIDGE-RESEARCH.md).
+
 ## Resultado nativo restrito Remote Play — v0.20
 
 O ELF residente v0.20 envia o campo opcional `remotePlayTcp9295` com `true`, `false` ou `null` em `POST /v1/pair/heartbeat`. A requisição exige o token privado de console já configurado. O Worker guarda apenas o resultado da tentativa local `127.0.0.1:9295` e timestamp, sem número IP, credenciais, imagens ou mídia. `GET /v1/pair/status` acrescenta `remotePlayProbe.loopbackTcp9295` **somente ao navegador de vínculo temporário aprovado**, e somente enquanto o resultado tiver menos de 90 segundos. `/health` não revela o teste nem indica transmissão. `controlAvailable:false` e `video:false` continuam corretos. Veja [o plano de arquitetura PS4 sem computador](../docs/PS4-ONLY-VIDEO-BRIDGE.md).
