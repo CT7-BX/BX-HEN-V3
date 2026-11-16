@@ -1,4 +1,4 @@
-# BX-REMOTE-PLAY — tela de jogo experimental 0.7
+# BX-REMOTE-PLAY — tela de jogo experimental 0.8
 
 A página principal em [index.html](index.html) prioriza a tela e o controle físico. Sem controle conectado no iPhone, o modo automático mostra um DualShock virtual **sobre a área de vídeo**.
 
@@ -68,3 +68,9 @@ O site preenche automaticamente `wss://bx-remote-link.4rt949zpj8.workers.dev/v1/
 O campo do site agora aceita diretamente `https://bx-remote-link.4rt949zpj8.workers.dev`. Isso é mais preciso: o serviço Cloudflare oferece uma **API HTTPS de vínculo**, não WebSocket de controle. Endereços legados `wss://.../v1/link` do simulador continuam aceitos e são convertidos em base HTTPS para os pedidos de código. `http://` sem TLS continua aceito apenas em localhost para teste local.
 
 O botão **Testar servidor** diferencia serviço online sem chave secreta, serviço preparado, endereço inválido e rede indisponível. O navegador interrompe uma verificação antiga ao alterar o servidor, evitando status incorreto. A aprovação via PKG real continua a significar **somente vínculo HTTP**, sem vídeo/áudio ou controles do jogo.
+
+## Pareamento guiado no celular — v0.8
+
+Ao expandir **Vincular PS4 — conexão experimental**, o site verifica o servidor HTTPS uma vez sem enviar token ou código. O formulário inclui três passos para o teste com PKG v0.12: abrir o aplicativo no console, digitar os oito dígitos exibidos na TV, depois confirmar com X ou recusar com O. É possível colar códigos com espaço/hífen. O navegador exibe a contagem regressiva enquanto aguarda a resposta, e a solicitação cancelada não pode retomar a espera caso uma resposta antiga chegue atrasada.
+
+O diagnóstico exportável distingue `unconfigured` (Worker online, sem chave) dos estados de rede falha, inválida e preparada; **não registra credenciais**. A aprovação HTTP não inicia vídeo, áudio ou controle do PS4.
