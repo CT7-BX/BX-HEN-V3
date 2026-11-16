@@ -13,13 +13,38 @@
   const status = $("mediaBridgeStatus");
   const video = $("streamVideo");
   const resume = $("mediaResume");
-  if (!core || !connect || !disconnect || !endpoint || !secret || !status || !video || !resume) return;
+  const stats = $("mediaHealth");
+  if (!core || !connect || !disconnect || !endpoint || !secret || !status || !video || !resume || !stats) return;
 
   let current = null;
   let generation = 0;
   const setStatus = (state, message) => {
     status.dataset.state = state;
     status.textContent = message;
+  };
+  const updateStats = metrics => {
+    if (!metrics) {
+      stats.textContent = "Sem dados reais recebidos. Nenhuma fonte de vídeo ou áudio foi confirmada.";
+      return;
+    }
+    const frames = Math.max(0, Math.trunc(metrics.videoFramesDecoded || 0));
+    const audioBytes = Math.max(0, Math.trunc(metrics.audioBytesReceived || 0));
+    const videoBytes = Math.max(0, Math.trunc(metrics.videoBytesReceived || 0));
+    const resolution = metrics.videoWidth && metrics.videoHeight
+      ? " • " + metrics.videoWidth + "×" + metrics.videoHeight : "";
+    const videoState = frames > 0
+      ? "Vídeo: " + frames + " quadros decodificados" + resolution
+      : metrics.videoTrack ? "Vídeo: trilha detectada, sem quadros decodificados"
+        : "Vídeo: nenhuma trilha confirmada";
+    const audioState = audioBytes > 0
+      ? "Áudio: " + Math.floor(audioBytes / 1024) + " KiB recebidos"
+      : metrics.audioTrack ? "Áudio: trilha detectada, sem dados recebidos"
+        : "Áudio: nenhuma trilha confirmada";
+    stats.textContent = videoState + " • " + audioState +
+      " • Origem PS4 não verificada pelo navegador.";
+    stats.dataset.video = frames > 0 ? "yes" : "no";
+    stats.dataset.audio = audioBytes > 0 ? "yes" : "no";
+    stats.dataset.bytes = videoBytes > 0 ? "yes" : "no";
   };
   const clearStream = () => {
     if (window.BXRemotePlayer && typeof window.BXRemotePlayer.attachMediaStream === "function") {
@@ -35,6 +60,7 @@
     connect.disabled = false;
     disconnect.disabled = true;
     resume.disabled = true;
+    updateStats(null);
     setStatus("idle", message);
   };
   connect.addEventListener("click", async () => {
@@ -67,6 +93,9 @@
         },
         onStatus: message => {
           if (request === generation) setStatus("connecting", message);
+        },
+        onMetrics: metrics => {
+          if (request === generation) updateStats(metrics);
         }
       });
       current = receiver;
@@ -75,7 +104,7 @@
       setStatus("connecting", "Negociando WebRTC com o gateway...");
       await receiver.start();
       if (request !== generation) return;
-      setStatus("connecting", "WebRTC negociado; aguardando quadros de vídeo.");
+      setStatus("connecting", "WebRTC negociado; aguardando quadros de vídeo. Confira as métricas abaixo.");
     } catch (error) {
       if (request !== generation) return;
       const messages = {
