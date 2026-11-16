@@ -429,13 +429,26 @@ finish:
         }
         sleep(5);
     }
-    /* Revoke short-lived proof. Do not leave an unattended controller session. */
+    /* Record the last reached cleanup phase so a physical CE-34878-0
+     * can be correlated with revoke, pad or network teardown. */
+    report("cleanup_revoke_begin", accepted ? 0 : -1, status);
     if (http.tmpl >= 0) {
-        call_api(&http, &config, "/v1/pair/revoke", "{}", response, &status);
+        int revoke_status = 0;
+        int revoke_result = call_api(&http, &config, "/v1/pair/revoke",
+                                     "{}", response, &revoke_status);
+        report("cleanup_revoke_done", revoke_result, revoke_status);
     }
+    report("cleanup_pad_begin", 0, 0);
     if (pad >= 0) scePadClose(pad);
-    if (user_initialized) sceUserServiceTerminate();
+    report("cleanup_pad_done", 0, 0);
+    report("cleanup_http_begin", 0, 0);
     close_http(&http);
+    report("cleanup_http_done", 0, 0);
+    if (user_initialized) {
+        report("cleanup_user_service_begin", 0, 0);
+        sceUserServiceTerminate();
+    }
+    report("cleanup_complete", 0, 0);
     memset(&config, 0, sizeof(config));
-    return 0; /* All expected test outcomes are logged, not process errors. */
+    return 0; /* Expected completion; unexpected termination is traceable. */
 }
