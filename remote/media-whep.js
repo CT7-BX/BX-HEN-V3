@@ -64,6 +64,7 @@
     const createStream = options.createStream || (() => new MediaStream());
     const onStream = options.onStream || (() => {});
     const onStatus = options.onStatus || (() => {});
+    const onMetrics = options.onMetrics || (() => {});
     const token = options.token || "";
     if (typeof token !== "string" || token.length > 2048 || /[\r\n]/.test(token)) {
       throw new Error("invalid_token");
@@ -76,11 +77,54 @@
     let session = null;
     const media = createStream();
     let started = false;
+    let metricsTimer = null;
+    let metricsInFlight = false;
+    const observed = { videoTrack: false, audioTrack: false };
+
+    async function sampleMetrics(current) {
+      if (!active || current !== peer || metricsInFlight ||
+          typeof current.getStats !== "function") return;
+      metricsInFlight = true;
+      try {
+        const report = await current.getStats();
+        if (!active || current !== peer) return;
+        const snapshot = {
+          videoTrack: observed.videoTrack, audioTrack: observed.audioTrack,
+          videoFramesDecoded: 0, videoBytesReceived: 0,
+          audioBytesReceived: 0, audioPacketsReceived: 0,
+          videoWidth: 0, videoHeight: 0, packetsLost: 0
+        };
+        if (report && typeof report.forEach === "function") report.forEach(item => {
+          if (!item || item.type !== "inbound-rtp" || item.isRemote === true) return;
+          const kind = item.kind || item.mediaType;
+          const positive = value => Number.isFinite(value) && value >= 0 ? value : 0;
+          if (kind === "video") {
+            snapshot.videoBytesReceived += positive(item.bytesReceived);
+            snapshot.videoFramesDecoded += positive(item.framesDecoded);
+            snapshot.videoWidth = Math.max(snapshot.videoWidth, positive(item.frameWidth));
+            snapshot.videoHeight = Math.max(snapshot.videoHeight, positive(item.frameHeight));
+          } else if (kind === "audio") {
+            snapshot.audioBytesReceived += positive(item.bytesReceived);
+            snapshot.audioPacketsReceived += positive(item.packetsReceived);
+          }
+          snapshot.packetsLost += positive(item.packetsLost);
+        });
+        onMetrics(snapshot);
+      } catch {
+        /* Stats unavailable is not a connection failure. No fake success. */
+      } finally {
+        metricsInFlight = false;
+      }
+    }
 
     function stop() {
       if (!active) return;
       active = false;
       controller.abort();
+      if (metricsTimer !== null) {
+        clearInterval(metricsTimer);
+        metricsTimer = null;
+      }
       if (peer) {
         peer.ontrack = null;
         peer.onconnectionstatechange = null;
@@ -110,6 +154,8 @@
         const current = peer;
         current.ontrack = (event) => {
           if (!active || current !== peer || !event.track) return;
+          if (event.track.kind === "video") observed.videoTrack = true;
+          if (event.track.kind === "audio") observed.audioTrack = true;
           if (!media.getTracks().some(track => track.id === event.track.id)) {
             media.addTrack(event.track);
           }
@@ -147,6 +193,10 @@
         await current.setRemoteDescription({ type: "answer", sdp: answer });
         if (!active) throw new Error("cancelled");
         onStatus("Sessão WebRTC criada. Aguardando vídeo e áudio do gateway.");
+        await sampleMetrics(current);
+        if (active && current === peer) {
+          metricsTimer = setInterval(() => { void sampleMetrics(current); }, 2000);
+        }
         return true;
       } catch (error) {
         stop();

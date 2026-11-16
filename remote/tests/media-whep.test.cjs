@@ -111,12 +111,43 @@ test("rejects fake media HTTP responses instead of reporting a PS4 video stream"
   assert.deepEqual(streams, [null]);
 });
 
+test("real WebRTC stats distinguish decoded video and received audio without proving PS4 origin", async () => {
+  const measurements = [], peer = new FakePeer();
+  peer.getStats = async () => new Map([
+    ["video", { type: "inbound-rtp", isRemote: false, kind: "video",
+      bytesReceived: 192000, framesDecoded: 42, frameWidth: 1280, frameHeight: 720, packetsLost: 2 }],
+    ["audio", { type: "inbound-rtp", isRemote: false, kind: "audio",
+      bytesReceived: 20480, packetsReceived: 30, packetsLost: 1 }],
+    ["sender", { type: "outbound-rtp", kind: "video", bytesSent: 1234567 }]
+  ]);
+  const receiver = createReceiver({
+    endpoint: base, createPeer: () => peer, createStream: () => new FakeStream(),
+    fetcher: async (url, options) => options.method === "POST" ? goodResponse() : { status: 200 },
+    onMetrics: metric => measurements.push(metric)
+  });
+  assert.equal(await receiver.start(), true);
+  assert.equal(measurements.length, 1);
+  assert.equal(measurements[0].videoFramesDecoded, 42);
+  assert.equal(measurements[0].videoBytesReceived, 192000);
+  assert.equal(measurements[0].audioBytesReceived, 20480);
+  assert.equal(measurements[0].audioPacketsReceived, 30);
+  assert.equal(measurements[0].videoWidth, 1280);
+  assert.equal(measurements[0].videoHeight, 720);
+  assert.equal(measurements[0].packetsLost, 3);
+  assert.equal("ps4Verified" in measurements[0], false);
+  receiver.stop();
+});
+
 test("main screen exposes WHEP controls separately from HTTP pairing and WSS simulator", () => {
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   assert.match(html, /id="mediaSection"/);
   assert.match(html, /id="mediaEndpoint"/);
   assert.match(html, /id="mediaToken"[^>]+type="password"|id="mediaToken"/);
   assert.match(html, /id="mediaDisconnect"/);
+  assert.match(html, /id="realAvTest"/);
+  assert.match(html, /id="mediaHealth"/);
+  assert.match(html, /não é o código de oito dígitos/);
+  assert.match(html, /Chiaki-NG-Web/);
   assert.match(html, /src="\.\/media-whep\.js"/);
   assert.match(html, /src="\.\/media-controls\.js"/);
   assert.match(html, /o Worker BX-REMOTE-LINK não é um servidor WHEP/);

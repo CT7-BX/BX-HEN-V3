@@ -14,10 +14,14 @@ A página principal em [index.html](index.html) prioriza a tela e o controle fí
 - Arquivo manifest e ícone SVG para uso como web app.
 - Três perfis de resolução e frame rate como **metas** (540p30, 720p60 e 1080p60). Não afetam um encoder ainda inexistente.
 - Seleção de rota local, remota ou automática como **planejamento visual**; não muda o transporte real.
-- Receptor WebRTC/WHEP funcional para trilhas reais de vídeo e áudio fornecidas por um gateway HTTPS compatível (não fornece por si só mídia do PS4). Sem frames artificiais.
+- Receptor WebRTC/WHEP funcional para trilhas reais de vídeo e áudio fornecidas por um gateway HTTPS compatível (não fornece por si só mídia do PS4). Sem frames artificiais. O painel mostra contadores reais de quadros decodificados e bytes de áudio recebidos via `RTCPeerConnection.getStats()` quando há um gateway.
 - Integração opcional com relay WSS para teste com **console simulado**, com token de jogador informado manualmente, sem armazenamento local de credenciais.
 - Indicador RTT do navegador até o relay; **não** é ping do PS4 ou latência real do jogo.
 - Liberação de comandos de toque quando termina a pressão ou quando a página perde foco.
+
+## Teste físico de vídeo e áudio sem manter o PKG aberto
+
+O painel **Testar imagem e áudio reais do PS4 — primeira etapa** orienta a validar o serviço Remote Play nativo com um cliente Chiaki local. A aprovação HTTPS do BX v0.19, o PIN do Remote Play e o fluxo WHEP são mecanismos **distintos**. Para uma primeira prova física, siga [o plano de teste real de vídeo e áudio](../docs/REAL-AV-TEST-PLAN.md). Os contadores WHEP do site servem para verificar mídia de um gateway, mas não verificam a identidade da origem PS4.
 
 ## O que ainda não funciona
 
@@ -90,10 +94,10 @@ Quando o botão **Testar servidor HTTPS** é clicado em **Vincular PS4 — conex
 ## Estado de integração (novembro de 2026)
 
 - Controles virtuais, Gamepad API, diagnósticos e verificações de navegador: implementados no frontend; dependem das permissões e capacidades do navegador.
-- Worker HTTPS e PKG Pair Test v0.17: vínculo experimental com confirmação local no PS4; **não** é transporte de jogos.
+- Worker HTTPS e PKG Dashboard v0.19: vínculo experimental com confirmação local no PS4; **não** é transporte de jogos.
 - WSS `/v1/link`: relay separado para simulador, não é oferecido pelo Worker HTTPS.
 - Perfis de qualidade e rota: metas visuais, sem encoder, servidor de mídia ou seleção efetiva de transporte.
-- Receptor de mídia WHEP/WebRTC: **implementado no navegador**, sujeito a fonte externa; vídeo/áudio do PS4, comandos reais, gateway Chiaki→WHEP e serviço residente: **não implementados**.
-- A v0.17 tenta baixar atualizações verificadas e oferece instalação no console com X; atualização interna ainda sem confirmação em hardware PS4.
+- Receptor de mídia WHEP/WebRTC: **implementado no navegador**, sujeito a fonte externa; vídeo/áudio do PS4, comandos reais, gateway Chiaki→WHEP e serviço residente capaz de transmitir mídia: **não implementados**. O ELF existente é apenas um serviço experimental de heartbeat HTTPS.
+- A v0.19 preserva a atualização experimental do PKG e inclui interface nativa exibida no PS4, confirmada pelo usuário. Isso ainda não representa streaming de jogos.
 
 Para um teste físico, valide separadamente a saúde do Worker, a configuração privada do console, a exibição do código, a confirmação local e o resultado do vínculo. Nunca publique tokens ou arquivos `.cfg` privados.
