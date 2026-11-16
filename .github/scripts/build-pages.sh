@@ -30,6 +30,7 @@ assets=(
   touch-layout.css
   relay-lab.html
   ps4-probe.txt
+  update.txt
   icon.svg
   manifest.webmanifest
 )

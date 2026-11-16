@@ -30,10 +30,22 @@ class FirstRunFlowTests(unittest.TestCase):
         self.assertIn("#define CONFIG_RETRY_TICKS 1200", SOURCE)
         self.assertNotIn('fprintf(f, "console_token=', SOURCE)
 
+    def test_update_check_uses_public_http_without_console_secret(self):
+        updater = SOURCE[SOURCE.index("static void check_public_update("):
+                         SOURCE.index("static int read_config(")]
+        self.assertIn("UPDATE_MANIFEST_URL", updater)
+        self.assertIn("bx_update_parse(body, &update)", updater)
+        self.assertIn("bx_update_is_newer(&update,", updater)
+        self.assertNotIn("Authorization", updater.split("*/", 1)[-1])
+        self.assertNotIn("console_token", updater.split("*/", 1)[-1])
+        self.assertNotIn("sceAppInstUtil", updater)
+        self.assertNotIn("pkg_install", updater)
+        self.assertIn("check_public_update(&http);", SOURCE)
+
     def test_version_labels_incremented(self):
-        self.assertIn("Pairing Proof v0.14", SOURCE)
-        self.assertIn("native pairing test 0.14", SOURCE)
-        self.assertIn("BX-REMOTE-PLAY-PS4-Pair/0.14", SOURCE)
+        self.assertIn("Pairing Proof v0.15", SOURCE)
+        self.assertIn("native pairing test 0.15", SOURCE)
+        self.assertIn("BX-REMOTE-PLAY-PS4-Pair/0.15", SOURCE)
 
 if __name__ == "__main__":
     unittest.main()

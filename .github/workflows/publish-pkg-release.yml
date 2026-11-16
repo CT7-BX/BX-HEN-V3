@@ -1,4 +1,4 @@
-name: BX-REMOTE-PLAY — Publicar PKG experimental v0.14
+name: BX-REMOTE-PLAY — Publicar PKG experimental v0.15
 
 # This job only promotes an already-tested, SHA-256-pinned build from GitHub
 # Actions into a public release; it never rebuilds nor overwrites the package.
@@ -14,7 +14,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: bx-remote-pair-v014-release
+  group: bx-remote-pair-v015-release
   cancel-in-progress: false
 
 jobs:
@@ -33,16 +33,16 @@ jobs:
           set -euo pipefail
           mkdir -p staging public
           # Fixed, previously completed OpenOrbis workflow run.
-          gh run download 43866813712 --name bx-remote-play-native-pairing-untested --dir staging
+          gh run download 43869195733 --name bx-remote-play-native-pairing-untested --dir staging
           test -s staging/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg
           test -f staging/pkg.sha256
           actual="$(sha256sum staging/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg | cut -d ' ' -f 1)"
-          expected="108a6b92fc0aeffdb23e17d79e259a9f7b354b666cfab5c7116b1a22d27d8092"
+          expected="a028998c8cd196fcb711fe68f4bdf324169da62d86d8cd85364ba0783654ecd5"
           test "$actual" = "$expected" || { echo "Package SHA-256 mismatch"; exit 1; }
           grep -q "^$expected " staging/pkg.sha256 || { echo "Build hash manifest mismatch"; exit 1; }
-          cp staging/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg public/BX-REMOTE-PLAY-Pair-Test-v0.14.pkg
-          printf '%s  %s\n' "$expected" "BX-REMOTE-PLAY-Pair-Test-v0.14.pkg" > public/SHA256SUMS
-          test "$(stat -c '%s' public/BX-REMOTE-PLAY-Pair-Test-v0.14.pkg)" = "6619136"
+          cp staging/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg public/BX-REMOTE-PLAY-Pair-Test-v0.15.pkg
+          printf '%s  %s\n' "$expected" "BX-REMOTE-PLAY-Pair-Test-v0.15.pkg" > public/SHA256SUMS
+          test "$(stat -c '%s' public/BX-REMOTE-PLAY-Pair-Test-v0.15.pkg)" = "6619136"
 
       - name: Publish permanent public pre-release link
         env:
@@ -51,16 +51,47 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tag="pair-test-v0.14"
+          tag="pair-test-v0.15"
           if gh release view "$tag" --json tagName >/dev/null 2>&1; then
             echo "Release already exists. Not overwriting published assets."
             exit 0
           fi
           gh release create "$tag" \
-            public/BX-REMOTE-PLAY-Pair-Test-v0.14.pkg \
+            public/BX-REMOTE-PLAY-Pair-Test-v0.15.pkg \
             public/SHA256SUMS \
             --target "$GITHUB_SHA" \
-            --title "BX-REMOTE-PLAY — PS4 Pair Test v0.14 (experimental)" \
+            --title "BX-REMOTE-PLAY — PS4 Pair Test v0.15 (experimental)" \
             --prerelease \
-            --notes "PS4 Pair Test v0.14: automatically rechecks private config copied via FTP every 5 seconds, X retries and OPTIONS exits; distinguishes missing vs invalid config, handles UTF-8 BOM/Windows CRLF, explains HTTP 401/403/503, and safely finalizes partially initialized UserService. Experimental HTTPS pairing only. Built and structurally validated using OpenOrbis in GitHub Actions run 43866813712. The PKG has NOT been physically tested on a PS4. Requires a separately configured private HTTPS pairing server and matching PS4 token. It does NOT stream games, audio, video or real PS4 controls. SHA-256 is provided as a release asset."
+            --notes "PS4 Pair Test v0.15 automatically checks the official HTTPS release manifest after valid private config has been loaded. If a newer version exists it only shows a TV notification; installation remains MANUAL until a privileged, hash-verifying updater has been tested on real PS4 hardware. This is an experimental HTTPS pairing-only package. Built and structurally validated using OpenOrbis in GitHub Actions run 43869195733. The PKG has NOT been physically tested on a PS4. Requires a separately configured private HTTPS pairing server and matching PS4 token. It does NOT stream games, audio, video or real PS4 controls. SHA-256 is provided as a release asset."
           gh release view "$tag" --json url,assets --jq '{url: .url, assets: [.assets[].name]}'
+
+      - name: Verify public release asset and publish safe version manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="a028998c8cd196fcb711fe68f4bdf324169da62d86d8cd85364ba0783654ecd5"
+          filename="BX-REMOTE-PLAY-Pair-Test-v0.15.pkg"
+          mkdir -p release-check
+          gh release download pair-test-v0.15 --pattern "$filename" --dir release-check
+          echo "$expected  release-check/$filename" | sha256sum -c -
+          test "$(stat -c '%s' "release-check/$filename")" = "6619136"
+          # The public TXT file is an informational channel, NOT an installer.
+          # Refuse to downgrade metadata on a rerun or concurrent release.
+          sha="$(gh api "repos/$GH_REPO/contents/remote/update.txt" --jq '.sha')"
+          previous="$(gh api "repos/$GH_REPO/contents/remote/update.txt" --jq '.content' | base64 -d | sed -n 's/^version=//p')"
+          if [[ "$previous" == "0.15" ]]; then
+            echo "Version manifest already updated."
+            exit 0
+          fi
+          test "$previous" = "0.14" || { echo "Unexpected version channel; refusing update"; exit 1; }
+          manifest="$(printf 'title_id=BRPM00001\\nversion=0.15\\nsha256=%s\\npkg_url=https://github.com/%s/releases/download/pair-test-v0.15/%s\\n' "$expected" "$GH_REPO" "$filename")"
+          # printf above uses escaped newline expansion via %b for portability.
+          manifest="$(printf '%b' "$manifest")"
+          payload="$(printf '%s\n' "$manifest" | base64 -w0)"
+          gh api -X PUT "repos/$GH_REPO/contents/remote/update.txt" \
+            -f message="chore(release): point PS4 update manifest to verified v0.15" \
+            -f content="$payload" -f sha="$sha" -f branch=main >/dev/null
+          echo "Public version manifest published without private credentials."

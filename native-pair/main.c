@@ -1,5 +1,5 @@
 /*
- * BX-REMOTE-PLAY PS4 Pairing Proof v0.14
+ * BX-REMOTE-PLAY PS4 Pairing Proof v0.15
  *
  * NEW, SEPARATE PKG. Not the existing v0.21 HTTPS diagnostic.
  * Foreground-only console-side HTTP pairing test, with local DualShock consent.
@@ -24,6 +24,7 @@
 
 #include "pair_config.h"
 #include "pair_protocol.h"
+#include "update_manifest.h"
 
 #define REPORT_PATH "/data/bx-remote-pairing-report.txt"
 #define CONFIG_PATH "/user/data/bx-remote-pair.cfg"
@@ -37,6 +38,9 @@
 #define APPROVED_NOTICE_SECONDS 20
 #define CONFIG_RETRY_TICKS 1200 /* two minutes; safe first-run window */
 #define CONFIG_AUTO_RECHECK_TICKS 50 /* re-read .cfg every five seconds */
+#define UPDATE_MANIFEST_URL "https://ct7-bx.github.io/BX-REMOTE-PLAY/remote/update.txt"
+#define CURRENT_UPDATE_MAJOR 0u
+#define CURRENT_UPDATE_MINOR 15u
 
 typedef struct HttpContext {
     int initialized_net;
@@ -54,7 +58,7 @@ static void report(const char *stage, int code, int status) {
     FILE *f = fopen(REPORT_PATH, "w");
     if (!f) f = fopen("/user/data/bx-remote-pairing-report.txt", "w");
     if (!f) return;
-    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.14\n");
+    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.15\n");
     fprintf(f, "stage=%s\n", stage ? stage : "unknown");
     fprintf(f, "result_code=%d\nhttp_status=%d\n", code, status);
     fprintf(f, "streaming=NOT_IMPLEMENTED\n");
@@ -82,7 +86,7 @@ static int open_http(HttpContext *ctx) {
     if (ctx->ssl < 0) return 0;
     ctx->http = sceHttpInit(ctx->pool, ctx->ssl, HTTP_MEMORY_BYTES);
     if (ctx->http < 0) return 0;
-    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.14",
+    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.15",
         ORBIS_HTTP_VERSION_1_1, 1);
     return ctx->tmpl >= 0;
 }
@@ -152,6 +156,50 @@ done:
 /* Return 1 for valid private config, 0 for file missing, -1 for invalid.
  * Avoid treating a malformed file as if it were missing; never log its text.
  */
+/* One public update probe per app launch, after HTTPS libraries initialize.
+ * This deliberately does not use call_api(): that function includes the
+ * console's PRIVATE Authorization token, which must never reach GitHub Pages.
+ * The manifest can trigger a notice only. NO download, install, or self-modify.
+ */
+static void check_public_update(const HttpContext *ctx) {
+    int connection = -1, request = -1, status = 0;
+    char body[950];
+    char message[150];
+    BXUpdateManifest update = {0};
+    size_t total = 0;
+    int n;
+    connection = sceHttpCreateConnectionWithURL(ctx->tmpl, UPDATE_MANIFEST_URL, false);
+    if (connection < 0) goto cleanup;
+    request = sceHttpCreateRequestWithURL(connection, ORBIS_METHOD_GET,
+                                        UPDATE_MANIFEST_URL, 0);
+    if (request < 0) goto cleanup;
+    if (sceHttpSetConnectTimeOut(request, 2500000) < 0 ||
+        sceHttpSetResolveTimeOut(request, 2500000) < 0 ||
+        sceHttpSetSendTimeOut(request, 2500000) < 0) goto cleanup;
+    if (sceHttpSendRequest(request, NULL, 0) < 0) goto cleanup;
+    if (sceHttpGetStatusCode(request, &status) < 0 || status != 200) goto cleanup;
+    for (;;) {
+        if (total >= sizeof(body) - 1) goto cleanup;
+        n = sceHttpReadData(request, body + total, (uint32_t)(sizeof(body) - 1 - total));
+        if (n < 0) goto cleanup;
+        if (n == 0) break;
+        total += (size_t)n;
+    }
+    body[total] = '\0';
+    if (!bx_update_parse(body, &update)) goto cleanup;
+    if (bx_update_is_newer(&update, CURRENT_UPDATE_MAJOR, CURRENT_UPDATE_MINOR)) {
+        snprintf(message, sizeof(message),
+            "BX-REMOTE: Nova versao v%s no GitHub Releases. Atualize o PKG.",
+            update.version);
+        notice(message);
+    }
+cleanup:
+    if (request >= 0) sceHttpDeleteRequest(request);
+    if (connection >= 0) sceHttpDeleteConnection(connection);
+    memset(&update, 0, sizeof(update));
+    memset(body, 0, sizeof(body));
+}
+
 static int read_config(BXPairConfig *config) {
     FILE *f;
     size_t length;
@@ -280,6 +328,8 @@ int main(void) {
         sleep(5);
         return 0; /* Expected network failure: report it, do not crash PS4 shell. */
     }
+    /* Best effort only: if GitHub Pages is offline, pairing still starts. */
+    check_public_update(&http);
     if (pad < 0) pad = pad_open(&user_initialized);
     if (pad < 0) {
         notice("BX-REMOTE: Controle nao encontrado; vinculo cancelado.");

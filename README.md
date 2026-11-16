@@ -107,3 +107,7 @@ O painel de vínculo agora oferece um guia de três passos, consulta o servidor 
 ### Correção da primeira abertura — Pair Test v0.13
 
 A v0.12 mostrou a notificação de falta de arquivo no PS4 físico e depois fechou com erro. O código encerrava com status não-zero em falhas esperadas. Na v0.13, a falta de configuração oferece 2 minutos para copiar o `.cfg` por FTP, **X para tentar novamente e OPTIONS para sair**; erros de configuração/rede registram o estágio sem término não-zero. Não habilita transmissão de jogos. Veja [guia do PKG](native-pair/README.md).
+
+### Verificação automática de novas versões no PKG (v0.15)
+
+Ao iniciar com uma configuração HTTPS válida, o app PS4 verifica uma vez o canal público de versão `remote/update.txt` e mostra na TV um aviso de atualização quando houver uma versão mais recente. O manifesto é publicado junto com o lançamento validado no GitHub Releases, sem token privado. **Não há instalação automática silenciosa:** atualizar o PKG ainda exige a instalação do novo arquivo pelo usuário; BGFT/AppInstUtil e atualização do app durante sua execução não foram validados em hardware. Consulte [native-pair/README.md](native-pair/README.md).

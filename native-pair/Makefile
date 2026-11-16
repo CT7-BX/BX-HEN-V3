@@ -7,9 +7,9 @@ PS4_LD ?= ld.lld
 
 PS4_ID := BRPM00001
 CONTENT_ID := IV0000-BRPM00001_00-BXREMOTEPAIR0001
-VERSION := 0.14
+VERSION := 0.15
 OUT := build
-OBJECTS := $(OUT)/main.o $(OUT)/pair_protocol.o $(OUT)/pair_config.o
+OBJECTS := $(OUT)/main.o $(OUT)/pair_protocol.o $(OUT)/pair_config.o $(OUT)/update_manifest.o
 LIBS := -lc -lkernel -lSceNet -lSceSsl -lSceHttp -lSceSysmodule -lSceSysUtil -lScePad -lSceUserService
 
 CFLAGS := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables \
@@ -26,7 +26,7 @@ check-sdk:
 	  (echo "Configure OO_PS4_TOOLCHAIN com o OpenOrbis instalado." >&2; exit 1)
 	@command -v $(PS4_CC) >/dev/null && command -v $(PS4_LD) >/dev/null
 
-$(OUT)/%.o: %.c pair_protocol.h pair_config.h | check-sdk
+$(OUT)/%.o: %.c pair_protocol.h pair_config.h update_manifest.h | check-sdk
 	@mkdir -p $(OUT)
 	$(PS4_CC) $(CFLAGS) -o $@ $<
 

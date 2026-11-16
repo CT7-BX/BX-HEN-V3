@@ -1,3 +1,11 @@
+## 2026-11-16 — Pair Test v0.15: verificação automática de atualizações
+
+- PKG inicia uma consulta HTTPS de versão ao entrar no fluxo de pareamento com configuração privada válida; consulta pública não transporta o token do PS4.
+- Novo manifesto de versão hospedado no GitHub Pages, com Title ID, versão numérica, SHA-256 e link fixado ao repositório oficial; publicação de Release passa a atualizar o manifesto.
+- Notificação na TV quando há versão maior; rede indisponível não impede o pareamento.
+- Testes nativos para comparações de versão e rejeição de campos duplicados, URL estranha e metadados malformados.
+- **Instalação automática ainda não implementada:** o app não baixa nem executa PKG sem validação física dos serviços de instalação.
+
 ## 2026-11-16 — Pair Test v0.14: estabilidade nativa e configuração FTP
 
 - O aplicativo PS4 testa automaticamente a presença do arquivo privado FTP a cada cinco segundos enquanto a tela de configuração está aberta. X revalida; OPTIONS sai.
