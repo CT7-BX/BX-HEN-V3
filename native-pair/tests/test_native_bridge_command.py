@@ -21,7 +21,6 @@ class NativeCommandBridgeChecks(unittest.TestCase):
         self.assertIn('strlen(candidate)!=64', RESIDENT)
         self.assertIn('post_bridge_result(&http,&config,bridge_probe_id,fresh)', RESIDENT)
         self.assertIn('bx_remoteplay_probe_loopback();', RESIDENT)
-        self.assertIn('"/v1/bridge/probe-result"', RESIDENT)
         self.assertIn('"%s/v1/bridge/probe-result"', RESIDENT)
         self.assertIn('memset(auth,0,sizeof(auth))', RESIDENT)
         self.assertIn('memset(bridge_probe_id,0,sizeof(bridge_probe_id))', RESIDENT)
