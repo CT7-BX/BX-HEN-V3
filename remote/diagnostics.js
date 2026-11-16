@@ -12,7 +12,7 @@
   const PUBLIC_HEALTH = "https://bx-remote-link.4rt949zpj8.workers.dev/health";
   const VALID = new Set(["ok", "attention", "unavailable"]);
   function finding(key, state, message) {
-    if (!VALID.has(state) || !/^[a-z_-]{3,40}$/.test(key))
+    if (!VALID.has(state) || !/^[a-z][a-z0-9_-]{2,39}$/.test(key))
       throw new TypeError("Invalid diagnostic finding");
     return Object.freeze({ key, state, message });
   }
