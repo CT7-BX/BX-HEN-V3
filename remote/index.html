@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#101014">
+  <meta name="theme-color" content="#0b0c11">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="./icon.svg">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -152,18 +152,30 @@
     .pair-steps li::marker{color:#f36c88;font-weight:800}
   </style>
   <link rel="stylesheet" href="./touch-layout.css">
+  <link rel="stylesheet" href="./site-v2.css?v=0.22">
 </head>
 <body>
   <div class="shell">
     <header class="topbar">
       <div class="wordmark">BX-<strong>REMOTE</strong>-PLAY</div>
-      <div class="beta">Interface 0.13 · P2P experimental</div>
+      <nav class="bx-toplinks" aria-label="Acessos rápidos">
+        <a href="#stage" aria-current="page">Player</a>
+        <a href="#pairSection">Vincular</a>
+        <a href="#pkgUpdatesSection">Atualizações</a>
+      </nav>
+      <div class="beta">Interface 0.22 · Beta</div>
     </header>
     <main>
       <div class="intro">
-        <h1>Seu PS4. Sua tela.</h1>
-        <p>Controle físico em primeiro lugar; botões virtuais automáticos no celular. A imagem do PS4 exige um gateway de mídia real. O receptor WebRTC está disponível, mas a fonte do PS4 ainda precisa ser conectada.</p>
+        <p class="bx-eyebrow">BX LAB · Remote Play</p>
+        <h1>Seu PS4. Seu controle. <span style="color:#ff738a">Seu espaço.</span></h1>
+        <p>Um único painel para preparar o console, testar o vínculo e receber mídia quando houver uma fonte conectada. A transmissão direta dos jogos pelo BX ainda está em desenvolvimento — o player não simula imagens.</p>
       </div>
+      <nav class="bx-quicknav" aria-label="Escolha o que deseja fazer">
+        <a href="#noMacPlay"><span class="bx-quick-icon" aria-hidden="true">▶</span><span><strong>Jogar sem Mac</strong><small>Teste com aplicativo Remote Play no iPhone</small></span></a>
+        <a href="#pairSection"><span class="bx-quick-icon" aria-hidden="true">⌁</span><span><strong>Conectar PS4</strong><small>Vínculo HTTPS e diagnóstico independente</small></span></a>
+        <a href="#pkgUpdatesSection"><span class="bx-quick-icon" aria-hidden="true">↓</span><span><strong>Atualizar BX</strong><small>Consulte e baixe o PKG oficial</small></span></a>
+      </nav>
       <div class="workspace">
         <div class="display-box">
           <section class="stage" id="stage" aria-label="Tela de jogo e controles">
@@ -230,8 +242,9 @@
           <p class="mini-tip" id="fullscreenHint"></p>
           <pre id="gameLog" role="status" aria-live="polite">Modo de demonstração: nenhuma imagem ou comando do PS4 real disponível.</pre>
         </div>
-        <aside class="panel" aria-label="Configurações da sessão">
-          <h2>Preferências de jogo</h2>
+        <aside class="panel" id="sessionPanel" aria-label="Configurações da sessão">
+          <h2>Central de controle</h2>
+          <span class="bx-panel-note">Escolha uma função abaixo. O vínculo e os testes não iniciam automaticamente uma transmissão dos jogos.</span>
           <details class="relay-config pkg-updates" id="pkgUpdatesSection">
             <summary>Atualizar PKG do PS4 — versão oficial</summary>
             <p class="field-note">Consulte o último pacote publicado no GitHub. O site pode indicar a versão e abrir o download, mas <strong>não pode instalar remotamente no PS4</strong> nem saber qual versão está instalada.</p>
@@ -286,7 +299,7 @@
           </select>
           <p class="field-note" id="routeNote">A escolha orienta os próximos testes; ainda não muda o caminho de vídeo.</p>
           <div class="callout">O servidor atual apenas testa controles com um <strong>console simulado</strong>. Para imagem e áudio do PS4 precisamos integrar o Remote Play nativo ao gateway.</div>
-          <details class="relay-config" id="realAvTest" open>
+          <details class="relay-config" id="realAvTest">
             <summary>Testar imagem e áudio reais do PS4 — primeira etapa</summary>
             <p class="field-note">A confirmação do vínculo BX v0.19 não inicia uma sessão Remote Play. Para testar vídeo e som dos jogos, use primeiro o Remote Play nativo do PS4 com um cliente compatível na mesma rede.</p>
             <ol class="pair-steps" aria-label="Teste de vídeo e áudio do PS4">
@@ -299,6 +312,7 @@
             <p class="field-note">O cliente externo tem sua própria sessão e políticas de dados. Prefira instalação local para não compartilhar informações do console com terceiros.</p>
           </details>
           <section class="media-config" id="noMacPlay" aria-labelledby="noMacHeading">
+            <span class="bx-flag ready">CLIENTE EXTERNO · SEM MAC</span>
             <h3 id="noMacHeading">Jogar no iPhone sem Mac — teste do Remote Play real</h3>
             <p class="field-note">A opção para jogar agora usando só PS4 e iPhone é um <strong>cliente Remote Play nativo no celular</strong>. Ela testa imagem, áudio e controle reais sem Mac. O BX ainda não é esse cliente; o vídeo aparecerá no aplicativo externo, não neste site.</p>
             <p class="field-note">No PS4: ative <strong>Configurações → Configurações de conexão do Uso remoto → Habilitar Uso remoto</strong>. No iPhone e no PS4, use inicialmente a mesma rede Wi-Fi. Não compartilhe PIN, conta ou chaves de registro conosco.</p>
@@ -310,6 +324,7 @@
             <p class="field-note">Se um desses clientes conseguir transmitir o jogo, saberemos que o PS4 oferece Remote Play real. A integração da mesma sessão ao BX precisa de um cliente e transporte de mídia próprios, ainda em desenvolvimento.</p>
           </section>
           <section class="media-config" aria-labelledby="p2pHeading" id="p2pSection">
+            <span class="bx-flag warning">TESTE EXPERIMENTAL · REQUER MAC</span>
             <h3 id="p2pHeading">Receber imagem do Mac — teste P2P real</h3>
             <p class="field-note"><strong>Primeiro caminho para testar imagem real no BX:</strong> abra o Chiaki em um Mac conectado ao PS4, escolha a janela para compartilhar com sua autorização e receba o vídeo aqui, pelo WebRTC. O Mac precisa permanecer ligado durante este teste; o PKG v0.21 não envia imagem sozinho.</p>
             <p class="field-note"><a class="action plain" href="./bridge.html" target="_blank" rel="noopener noreferrer">Abrir transmissor no Mac</a></p>
@@ -325,6 +340,7 @@
             <p class="field-note"><strong>Importante:</strong> os controles virtuais do BX não controlam o Chiaki nesta etapa; somente a imagem e o áudio capturados podem chegar aqui.</p>
           </section>
           <section class="media-config" aria-labelledby="mediaHeading" id="mediaSection">
+            <span class="bx-flag warning">REQUER SERVIDOR DE MÍDIA</span>
             <h3 id="mediaHeading">Vídeo e áudio reais — gateway (beta)</h3>
             <p class="field-note">O BX pode reproduzir um fluxo WebRTC/WHEP de um gateway <strong>já ligado a uma fonte real</strong>. O vínculo HTTPS do PKG não transmite mídia, e o Worker BX-REMOTE-LINK não é um servidor WHEP.</p>
             <label class="field" for="mediaConnectionMode">Como deseja testar?</label>
@@ -431,7 +447,7 @@
         </aside>
       </div>
     </main>
-    <footer class="foot">BX-REMOTE-PLAY · CT7-BX · Interface experimental · Sem conexão com o PS4 real</footer>
+    <footer class="foot">BX-REMOTE-PLAY · CT7-BX · Layout 0.22 · Interface experimental — o streaming direto dos jogos ainda está em desenvolvimento.</footer>
   </div>
   <!-- Self-contained HTTPS health check: must work even if the controller
        bundle, game-core, or pairing script fails to load in a mobile browser. -->
