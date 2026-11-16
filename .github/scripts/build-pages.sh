@@ -30,6 +30,8 @@ assets=(
   media-source-core.js
   diagnostics.js
   bridge.html
+  gateway.html
+  android-readiness.js
   bridge-p2p.js
   p2p-sender.js
   p2p-viewer.js
