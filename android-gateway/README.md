@@ -1,4 +1,4 @@
-# BX Android Gateway — diagnóstico experimental v0.1
+# BX Android Gateway — diagnóstico experimental v0.2
 
 Este subprojeto Android nativo é o **primeiro teste de compatibilidade para aparelhos antigos**, preparado para Android 7 (API 24) ou superior. **Não é ainda um cliente Remote Play, um gateway WebRTC, nem um aplicativo que transmita jogos.** O BX atual continua sem o transporte PS4 → Android → iPhone.
 
@@ -6,6 +6,8 @@ Este subprojeto Android nativo é o **primeiro teste de compatibilidade para apa
 
 - Exibe Android e modelo localmente, RAM aproximada e sinalização de baixa memória.
 - Conta codecs H.264/AVC disponíveis; em Android 10+ consulta o que o fabricante declara como aceleração por hardware.
+- Mostra RAM livre e pressão de memória no momento, nível e temperatura informada da bateria e, no Android 10+, estado térmico. As medições são **pontuais**, não um monitor que garante operação segura 24h.
+- Preserva o relatório ao girar a tela, sem salvar arquivos, e só permite copiá-lo depois que a análise terminar.
 - Identifica existência da API MediaProjection, mas **não pede permissão de gravação** nem inicia captura.
 - Distingue a API de captura de áudio Android 10+ da compatibilidade real com outro aplicativo — alguns apps proíbem sua captura.
 - Abre a página de compatibilidade do BX e copia um relatório local **apenas após ação explícita do usuário**.
@@ -14,7 +16,7 @@ O aplicativo **não pede nenhuma permissão**, não contém `INTERNET` ou `RECOR
 
 ## Instalação e teste
 
-A versão APK experimental é compilada pela workflow [BX Android Gateway — diagnóstico experimental](../.github/workflows/android-gateway-build.yml). Abra a execução concluída com sucesso, baixe o artefato `BX-Android-Gateway-Diagnostic-v0.1` e confira seu SHA-256. O APK contido é **debug**; não há distribuição estável nem função de Remote Play neste estágio.
+A versão APK experimental é compilada pela workflow [BX Android Gateway — diagnóstico experimental](../.github/workflows/android-gateway-build.yml). Abra a execução concluída com sucesso, baixe o artefato `BX-Android-Gateway-Diagnostic-v0.2` e confira seu SHA-256. O APK contido é **debug**; não há distribuição estável nem função de Remote Play neste estágio.
 
 O botão **Analisar aparelho** mostra os dados localmente. Use **Copiar relatório local** se quiser compartilhá-los de forma voluntária, revisando antes o modelo do celular incluído no texto.
 
