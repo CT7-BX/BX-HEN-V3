@@ -1,4 +1,21 @@
-# BX-REMOTE-PLAY — PKG nativo com painel grafico para PS4 (v0.22 experimental)nativo com painel grafico para PS4 (v0.21 experimental)
+# BX-REMOTE-PLAY — PKG nativo PS4 (v0.23 experimental)
+
+## Novidades da v0.23 — VideoOut e diagnóstico útil
+
+A nova versão mantém o PKG nativo (OpenOrbis, **Title ID BRPM00001**) e o serviço ELF opcional. O site web v0.27 não passa a transmitir jogos para o PKG nesta atualização: o modo PS4 Native continua **vínculo HTTPS e diagnóstico**, não vídeo/áudio ou controle de jogos.
+
+**Melhorias desta versão:**
+
+- Interface VideoOut 1920×1080 com progresso das quatro etapas locais **Config → Rede → Vínculo → Encerramento**, código temporário destacado e cores distintas para situação normal, confirmada ou erro. O progresso mostra o que o PS4 realmente alcançou — não significa streaming funcionando.
+- Tradução de checkpoints técnicos para mensagens úteis diretamente na TV. Ex.: configuração ausente, token HTTPS recusado (HTTP 401), acesso proibido (403), serviço indisponível (503), falha no download OTA e retorno à instalação manual.
+- Registro local de uma **dica segura de recuperação** ao lado do código HTTP: sem escrever PIN, token de console, endereço local ou dados de jogo. O relatório mantém os checkpoints do encerramento para análise de crashes.
+- Menos chamadas ao VideoOut: mudanças idênticas de etapa, status ou código não redesenham o quadro; o código só é aceito quando contém exatamente oito dígitos.
+- ELF de diagnóstico v0.23 identificado separadamente, sem AutoRun, sem serviço de entrada e sem captura de áudio/vídeo. Continua dependendo de execução manual e autorização do usuário.
+- Teste unitário C portátil de diagnósticos, testes Python regressivos, compilação e validação do PKG no CI. Uma vez compilada na branch principal, a build é publicada como *prerelease experimental*, com arquivo SHA-256.
+
+**Instalação e limites:** para atualizar o ELF, encerre primeiro qualquer instância antiga, execute o novo PKG v0.23, use TRIÂNGULO para preparar a cópia e inicie manualmente em GoldHEN LaunchPad. O PKG continua devendo ser fechado pelo menu PS do console por precaução com o encerramento OpenOrbis. Nem o PKG nem o ELF possuem streaming direto do PS4 para o iPhone. A compilação automatizada não substitui testes em hardware real.
+
+
 
 ## PKG v0.22 — interface gráfica revisada
 
