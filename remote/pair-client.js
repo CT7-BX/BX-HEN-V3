@@ -13,11 +13,36 @@
   let activeClaimController = null;
   let healthRequestId = 0;
   let activeHealthController = null;
+  let bridgeToken = null;
+  let bridgeBase = null;
+  let bridgeDeadline = 0;
+  let bridgeController = null;
+  let bridgeSerial = 0;
+  let bridgeTimer = null;
+  let bridgeBusy = false;
+
+  function cancelBridgeRequest() {
+    bridgeSerial++;
+    if (bridgeController) bridgeController.abort();
+    bridgeController = null;
+    bridgeBusy = false;
+    if ($("bridgeProbeRequest")) $("bridgeProbeRequest").textContent = "Testar comunicação PS4 ↔ celular";
+  }
+  function resetBridge() {
+    cancelBridgeRequest();
+    bridgeToken = null;
+    bridgeBase = null;
+    bridgeDeadline = 0;
+    if (bridgeTimer !== null) clearTimeout(bridgeTimer);
+    bridgeTimer = null;
+    if ($("bridgeProbeRequest")) $("bridgeProbeRequest").disabled = true;
+  }
 
   function cancelActiveClaim() {
     requestId++;
     if (activeClaimController) activeClaimController.abort();
     activeClaimController = null;
+    resetBridge();
   }
   const report = message => {
     $("pairStatus").textContent = message;
@@ -86,6 +111,78 @@
       clearTimeout(timer);
       signal?.removeEventListener("abort", forwardAbort);
     }
+  }
+
+  const bridgeButton = $("bridgeProbeRequest");
+  const bridgeStatus = $("bridgeProbeStatus");
+  if (bridgeButton && bridgeStatus) {
+    bridgeButton.disabled = true;
+    bridgeButton.addEventListener("click", async () => {
+      if (bridgeBusy) {
+        cancelBridgeRequest();
+        bridgeStatus.textContent = "Teste interrompido neste navegador. A tarefa pendente expira automaticamente.";
+        bridgeButton.disabled = false;
+        return;
+      }
+      if (!bridgeToken || !bridgeBase || Date.now() >= bridgeDeadline) {
+        resetBridge();
+        bridgeStatus.textContent = "Sua autorização expirou. Faça um novo vínculo e aprove no PS4.";
+        return;
+      }
+      bridgeBusy = true;
+      const current = ++bridgeSerial;
+      bridgeButton.textContent = "Cancelar teste";
+      bridgeController = new AbortController();
+      const signal = bridgeController.signal;
+      bridgeStatus.textContent = "Solicitando teste ao serviço residente no PS4...";
+      try {
+        await jsonRequest(bridgeBase, "/v1/bridge/probe", {
+          data: {}, token: bridgeToken, signal
+        });
+        if (current !== bridgeSerial) return;
+        const stopAt = Math.min(Date.now() + 85000, bridgeDeadline);
+        while (current === bridgeSerial && Date.now() < stopAt) {
+          const result = await jsonRequest(bridgeBase, "/v1/bridge/probe", {
+            token: bridgeToken, signal
+          });
+          if (current !== bridgeSerial) return;
+          if (result.status === "done") {
+            bridgeStatus.textContent = result.tcp9295 === true
+              ? "PS4 respondeu ao pedido pelo serviço ELF: Remote Play TCP 9295 acessível. Falta transmitir vídeo, áudio e comandos."
+              : result.tcp9295 === false
+                ? "PS4 respondeu ao pedido, mas a porta TCP 9295 não aceitou a conexão local. Verifique Uso remoto."
+                : "PS4 respondeu ao pedido, mas não conseguiu criar o socket da verificação.";
+            return;
+          }
+          if (result.status !== "queued") {
+            bridgeStatus.textContent = "A solicitação expirou ou foi encerrada. Faça novo vínculo se necessário.";
+            return;
+          }
+          bridgeStatus.textContent = "Comando enviado. Aguardando o PS4 executar e responder (pode levar 30 segundos)...";
+          await new Promise(resolve => setTimeout(resolve, 1700));
+        }
+        if (current === bridgeSerial) {
+          bridgeStatus.textContent = "Sem resposta do ELF dentro do prazo. Verifique se o serviço residente está executando.";
+        }
+      } catch (error) {
+        if (current !== bridgeSerial || signal.aborted) return;
+        const known = {
+          INVALID_CLAIM: "Vínculo expirado ou revogado. Gere um novo código no console.",
+          COMMAND_BUSY: "Já existe uma verificação pendente. Aguarde até 90 segundos antes de tentar novamente.",
+          BACKEND_UNAVAILABLE: "Serviço de comunicação temporariamente indisponível.",
+          BAD_COMMAND: "Servidor recusou o comando. Atualize a página do BX."
+        };
+        bridgeStatus.textContent = known[error?.message] ||
+          "Não foi possível executar a verificação. Confira o serviço e a rede.";
+      } finally {
+        if (current === bridgeSerial) {
+          bridgeBusy = false;
+          bridgeController = null;
+          bridgeButton.textContent = "Testar comunicação PS4 ↔ celular";
+          bridgeButton.disabled = !bridgeToken || Date.now() >= bridgeDeadline;
+        }
+      }
+    });
   }
 
   $("pairEndpoint").addEventListener("input", () => {
@@ -207,6 +304,17 @@
           if (state.controlAvailable === false) {
             report("Vínculo aprovado com o PS4 (HTTP). " +
               describeNativeRemotePlayProbe(state));
+            bridgeToken = claimantToken;
+            bridgeBase = base;
+            bridgeDeadline = Date.now() + 110000;
+            if (bridgeTimer !== null) clearTimeout(bridgeTimer);
+            bridgeTimer = setTimeout(() => {
+              resetBridge();
+              if (bridgeStatus) bridgeStatus.textContent = "Autorização temporária encerrada. Vincule novamente para testar.";
+            }, 110000);
+            if (bridgeButton) bridgeButton.disabled = false;
+            if (bridgeStatus)
+              bridgeStatus.textContent = "PS4 vinculado. Toque no botão para solicitar uma verificação diretamente ao serviço ELF, sem Mac.";
             claimantToken = null;
             return;
           }
