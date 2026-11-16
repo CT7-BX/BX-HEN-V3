@@ -1,4 +1,4 @@
-# BX-REMOTE-PLAY — prova de vínculo NATIVA para PS4 (v0.14 experimental)
+# BX-REMOTE-PLAY — prova de vínculo NATIVA para PS4 (v0.15 experimental)
 
 **Estado: usuário testou fisicamente as versões anteriores e confirmou que a v0.13 permanece aberta e responde ao botão X com configuração ausente/inválida. A v0.14 ainda não foi testada no PS4 físico.** Este pacote não oferece Remote Play, streaming de vídeo/áudio, virtualização de controle, agente residente nem início automático.
 
@@ -112,3 +112,17 @@ O novo guia [FIRST-HARDWARE-TESTS.md](../docs/FIRST-HARDWARE-TESTS.md) descreve 
 - O PKG usa o mesmo Title ID `BRPM00001` das versões anteriores, atualizando o teste existente. A compilação e a validação estrutural não substituem teste no console físico.
 
 Após copiar a configuração, aguarde a notificação **Config OK. Conectando HTTPS...**, ou aperte X. Para vincular, o site usa **Servidor HTTPS de vinculação**, não **Servidor WSS** (este pertence ao simulador). Se houver falha, informe o texto da notificação e o estágio do relatório; **nunca envie o `console_token`**.
+
+## Atualizações automáticas: primeira etapa (v0.15)
+
+Ao abrir o **Pair Test v0.15**, depois de ler a configuração privada e iniciar as bibliotecas HTTPS, o aplicativo consulta automaticamente **uma vez**:
+
+`https://ct7-bx.github.io/BX-REMOTE-PLAY/remote/update.txt`
+
+O arquivo público de versões tem um identificador de título fixo (`BRPM00001`), versão numérica e o SHA-256/URL de um PKG publicado na conta oficial. O app valida os campos e compara as versões numericamente (0.10 é posterior a 0.9). Quando existe uma versão maior, exibe uma notificação na TV indicando a versão e a página de *GitHub Releases*. A consulta não usa o token privado do console, não envia dados de pareamento e, se a internet estiver indisponível, **não bloqueia o teste de vínculo**.
+
+**Limite importante:** a v0.15 **detecta atualizações automaticamente, mas não baixa, substitui ou instala o PKG sozinha**. A instalação automática ainda exige um componente de instalação com permissões BGFT/AppInstUtil e testes físicos específicos antes de ser habilitada para evitar corromper instalações do PS4. Por enquanto, baixar e instalar o novo `.pkg` continua manual; a v0.14 não possui esse verificador, então precisa de uma última atualização manual para v0.15.
+
+A consulta ocorre **após** uma configuração privada válida, não quando o console está aguardando o arquivo `.cfg` pelo FTP. O manifesto é atualizado pela publicação de Releases verificados no GitHub, e não fica incorporado ao binário.
+
+O arquivo público é apenas aviso; mesmo com TLS e SHA-256 publicado, ele **não autoriza execução ou instalação automática**. Nunca inclua chaves privadas em `update.txt`.
