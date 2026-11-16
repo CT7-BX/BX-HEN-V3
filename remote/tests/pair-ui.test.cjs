@@ -19,7 +19,7 @@ test("main screen has honest pairing entry point with consent messaging", () => 
   assert.match(html, /id="pairServerStatus"/);
   assert.match(html, /value="https:\/\/bx-remote-link\.4rt949zpj8\.workers\.dev"/);
   assert.match(html, /Servidor HTTPS de vincula/);
-  assert.match(html, /src="\.\/pair-client\.js"/);
+  assert.match(html, /src="\.\/pair-client\.js(?:\?v=[\d.]+)?"/);
 });
 
 test("pairing uses expiring claimant bearer, never URL query or persistent storage", () => {
