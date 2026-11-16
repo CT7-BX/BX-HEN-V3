@@ -8,11 +8,64 @@
   const field = $("p2pRoomCode"), watch = $("p2pJoin"), leave = $("p2pLeave");
   const status = $("p2pStatus"), audio = $("p2pAudio");
   const video = $("streamVideo");
+  const inputBtn = $("p2pInputEnable"), inputStatus = $("p2pInputStatus");
+  const inputProtocol = window.BXInputTransport;
   if (!core || !field || !watch || !leave || !status || !audio || !video) return;
   let session = null;
   let serial = 0;
   let audioReady = false;
+  let inputEnabled = false, inputTimer = null, inputAck = 0;
+  let inputSignature = "", lastInputAt = 0;
   const report = message => { status.textContent = message; };
+  function inputMessage(message) {
+    if (inputStatus) inputStatus.textContent = message;
+  }
+  function stopInput(sendNeutral = true) {
+    if (inputTimer !== null) {
+      clearInterval(inputTimer);
+      inputTimer = null;
+    }
+    if (sendNeutral && session && inputProtocol) {
+      session.sendInput?.(inputProtocol.neutral());
+    }
+    inputEnabled = false;
+    inputSignature = "";
+    lastInputAt = 0;
+    if (inputBtn) {
+      inputBtn.textContent = "Iniciar teste de controles";
+      inputBtn.disabled = !session?.inputConnected?.();
+    }
+  }
+  function sendCurrentInput() {
+    if (!inputEnabled || !session?.inputConnected?.() ||
+        !window.BXRemotePlayer?.getInputSnapshot) return;
+    const input = document.hidden ? inputProtocol.neutral() :
+      window.BXRemotePlayer.getInputSnapshot();
+    const signature = JSON.stringify(input);
+    const time = performance.now();
+    if (signature === inputSignature && time - lastInputAt < 240) return;
+    if (session.sendInput(input)) {
+      inputSignature = signature;
+      lastInputAt = time;
+    }
+  }
+  if (inputBtn) {
+    inputBtn.disabled = true;
+    inputBtn.addEventListener("click", () => {
+      if (!session?.inputConnected?.() || !inputProtocol) return;
+      if (inputEnabled) {
+        stopInput();
+        inputMessage("Teste de botões interrompido. Estado neutro enviado ao Mac.");
+        return;
+      }
+      inputEnabled = true;
+      inputAck = 0;
+      inputBtn.textContent = "Parar teste de controles";
+      inputMessage("Enviando comandos do iPhone ao navegador Mac. Não controla PS4.");
+      sendCurrentInput();
+      inputTimer = setInterval(sendCurrentInput, 40);
+    });
+  }
   const setStream = stream => {
     if (!window.BXRemotePlayer?.attachMediaStream) {
       report("Player BX não carregou; atualize a página.");
@@ -25,7 +78,10 @@
   };
   function stop(message = "Recepção encerrada.") {
     serial++;
+    stopInput();
     if (session) { session.stop(); session = null; }
+    if (inputBtn) inputBtn.disabled = true;
+    inputMessage("Canal de controles P2P desconectado.");
     setStream(null);
     watch.disabled = false;
     leave.disabled = true;
@@ -47,7 +103,26 @@
     const id = ++serial;
     const receiver = core.createViewer({
       onStream: stream => { if (id === serial) setStream(stream); },
-      onStatus: message => { if (id === serial) report(message); }
+      onStatus: message => { if (id === serial) report(message); },
+      onInputStatus: state => {
+        if (id !== serial) return;
+        const connected = state === "channel_open";
+        if (inputBtn) inputBtn.disabled = !connected;
+        if (!connected) {
+          stopInput(false);
+          inputMessage("Canal de controles ainda indisponível ou encerrado.");
+        } else {
+          inputMessage("Canal de botões pronto. Toque em Iniciar teste de controles.");
+        }
+      },
+      onInputAck: seq => {
+        if (id !== serial || !inputEnabled) return;
+        if (seq > inputAck) {
+          inputAck = seq;
+          inputMessage("Quadro de controle " + seq +
+            " recebido e confirmado pelo navegador Mac. Ainda sem injeção no Chiaki/PS4.");
+        }
+      }
     });
     session = receiver;
     watch.disabled = true;
