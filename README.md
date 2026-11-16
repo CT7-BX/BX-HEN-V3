@@ -14,7 +14,7 @@ Permitir futuramente jogar e controlar um PS4 em casa por meio de um iPhone ou M
 
 **O PKG PS4 de diagnóstico foi aprimorado na v0.21**, com notificação de resultado, ícone próprio, tratamento de erros de rede temporários e testes adicionais de metadados e integridade. Continua sem validação em console físico e não transmite jogos.
 
-**Prova nativa de vínculo PS4 v0.12:** há agora código OpenOrbis para um PKG **separado** em [native-pair/](native-pair/) que realiza vínculo por HTTPS, mostra código no console e pede autorização pelo DualShock 4. As versões anteriores compilaram no OpenOrbis; a v0.12 aumenta o tempo para confirmação e registra erros HTTP/nativos mais específicos. A execução física ainda não foi comprovada. O app não transmite vídeo ou comandos e não tem AutoRun.
+**Prova nativa de vínculo PS4 v0.13:** há agora código OpenOrbis para um PKG **separado** em [native-pair/](native-pair/) que realiza vínculo por HTTPS, mostra código no console e pede autorização pelo DualShock 4. As versões anteriores compilaram no OpenOrbis; a v0.12 foi aberta no PS4 físico e mostrou a notificação de configuração faltando, mas depois fechou com erro. A v0.13 mantém o app aberto para instalar a configuração via FTP e sai de forma graciosa em erros esperados. A versão corrigida ainda depende de teste físico. O app não transmite vídeo ou comandos e não tem AutoRun.
 
 **Vínculo em desenvolvimento:** a interface e o relay têm agora solicitação de código de oito dígitos, aprovação por console **simulado** e credencial temporária. Esse fluxo NÃO vincula o PS4 físico, nem substitui o registro do protocolo Remote Play. [Documentação do teste de vínculo](docs/PAIRING-AND-REAL-PS4.md).
 
@@ -103,3 +103,7 @@ O formulário **Vincular PS4 — conexão experimental** agora já sugere a URL 
 ### Melhorias no primeiro pareamento (interface 0.8)
 
 O painel de vínculo agora oferece um guia de três passos, consulta o servidor automaticamente uma vez quando aberto, aceita colar um PIN de oito dígitos com espaços ou hífens e mostra o tempo restante para a aprovação. A tela diferencia claramente servidor ainda sem segredo, código inválido e confirmação apenas HTTP. O backend limita também tentativas erradas distribuídas entre vários endereços. **Ainda não há serviço residente nem vídeo/áudio ou controle remoto real do PS4.**
+
+### Correção da primeira abertura — Pair Test v0.13
+
+A v0.12 mostrou a notificação de falta de arquivo no PS4 físico e depois fechou com erro. O código encerrava com status não-zero em falhas esperadas. Na v0.13, a falta de configuração oferece 2 minutos para copiar o `.cfg` por FTP, **X para tentar novamente e OPTIONS para sair**; erros de configuração/rede registram o estágio sem término não-zero. Não habilita transmissão de jogos. Veja [guia do PKG](native-pair/README.md).
