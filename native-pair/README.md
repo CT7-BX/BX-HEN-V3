@@ -1,6 +1,6 @@
-# BX-REMOTE-PLAY — prova de vínculo NATIVA para PS4 (v0.16 experimental)
+# BX-REMOTE-PLAY — prova de vínculo NATIVA para PS4 (v0.17 experimental)
 
-**Estado: o usuário confirmou pareamento HTTPS na v0.15, mas relatou CE-34878-0 alguns segundos depois, quando o app encerrava. A v0.16 altera esse fluxo e ainda exige teste físico.** Este pacote não oferece Remote Play, streaming de vídeo/áudio, virtualização de controle, agente residente nem início automático.
+**Estado: pareamento HTTPS confirmado pelo usuário na v0.15, seguido de CE-34878-0 após alguns segundos. A v0.16 contornou o retorno de main; a v0.17 adiciona atualizações OTA experimentais e ainda exige testes no PS4 físico.** Este pacote não oferece Remote Play, streaming de vídeo/áudio, virtualização de controle, agente residente nem início automático.
 
 ## Por que outro PKG?
 
@@ -14,7 +14,17 @@ O pacote existente `ps4-agent/` v0.21 permanece intacto como diagnóstico HTTPS.
 4. No navegador, o usuário abre **Vincular console (laboratório)** e insere o código e o endereço WSS do mesmo relay.
 5. O PKG verifica solicitações por HTTPS e exige um aperto **novo** em X para aprovar ou O para negar. OPTIONS cancela.
 6. Após a aprovação, o site confirma que o vínculo HTTP foi autorizado, mas **não inicia controles nem vídeo**, pois este aplicativo ainda não estabelece um WebSocket de console.
-7. Depois da aprovação, o aplicativo permanece aberto por até dois minutos, ou até OPTIONS. Então revoga o vínculo, limpa os recursos e entra em estado ocioso, sem retornar de `main()`. Feche o aplicativo pelo menu do botão PS. Não há AutoRun, agente residente, mídia ou listener público. O relatório de diagnóstico local registra a última etapa do encerramento caso o CE-34878-0 persista.
+7. Depois da aprovação, o aplicativo permanece aberto por até dois minutos, ou até OPTIONS. Então revoga o vínculo, limpa os recursos e entra em estado ocioso, sem retornar de `main()`. Feche o aplicativo pelo menu do botão PS. Não há AutoRun, agente residente, mídia ou listener público. O relatório de diagnóstico local registra etapas da execução caso o CE-34878-0 persista.
+
+## Atualização OTA experimental (v0.17)
+
+Depois de instalar esta versão **manualmente uma vez**, o PKG verifica o manifesto público em cada inicialização com configuração privada válida e internet. Quando há versão nova, ele tenta baixar automaticamente o pacote de GitHub Releases para `/data/pkg/`, limitando o tamanho a 64 MiB, seguindo somente URLs HTTPS de ativos oficiais do GitHub e calculando SHA-256 durante a transferência. Um download incompleto ou com hash divergente é descartado. O segredo do console NÃO é enviado ao GitHub.
+
+Depois de verificar a integridade, a notificação da TV solicita **X para instalar** ou **O/OPTIONS para ignorar**. A instalação não ocorre sem um novo pressionamento de X; o usuário tem até 30 segundos para decidir. O programa valida o Title ID `BRPM00001` usando `sceAppInstUtilGetTitleIdFromPkg`, tenta preparar a substituição e só então solicita a instalação. Caso o console recuse, a versão instalada permanece e o PKG verificado continua em `/data/pkg/` para uso com o Package Installer do GoldHEN.
+
+**Limitações importantes:** o instalador autônomo ainda não foi validado em PS4 físico e pode exigir permissões adicionais que o aplicativo não tem; instalações sobre o próprio aplicativo podem falhar ou gerar problemas em determinados firmwares. Não faz escalonamento de privilégios nem contorna falhas de autorização. Esta função é experimental e exige confirmação. Não equivale a uma instalação silenciosa garantida. Se ocorrer falha, utilize o Package Installer para recuperar a versão estável. O arquivo `/data/bx-remote-pairing-report.txt` registra as etapas de atualização e encerramento, sem chaves secretas.
+
+A automação de GitHub Actions publica o PKG somente depois de build e validação bem-sucedidos, gera o hash SHA-256 e atualiza o canal público somente após a criação do release. A v0.16 não sabe baixar/instalar atualizações; ela precisa ser substituída manualmente pela v0.17 para ativar esse fluxo nas próximas versões.
 
 ## Gerador automático de configuração privada (novo)
 
