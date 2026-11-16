@@ -28,6 +28,9 @@ jobs:
           cc -std=c11 -Wall -Wextra -Werror -pedantic \
             native-pair/pair_protocol.c native-pair/pair_config.c native-pair/tests/config_test.c -o /tmp/bx-pair-config
           /tmp/bx-pair-config
+          cc -std=c11 -Wall -Wextra -Werror -pedantic \
+            native-pair/update_manifest.c native-pair/tests/update_manifest_test.c -o /tmp/bx-update-manifest
+          /tmp/bx-update-manifest
           node --check native-pair/tools/generate_setup.mjs
           node --test native-pair/tests/generate_setup.test.mjs
           python3 -m unittest discover -s ps4-agent/tests -p 'test_*.py' -v
