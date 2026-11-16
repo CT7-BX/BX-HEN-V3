@@ -18,7 +18,7 @@ class ResidentPrototypeTests(unittest.TestCase):
         self.assertIn("while(enabled() && agent.enabled)", SERVICE)
 
     def test_service_https_only_and_no_remote_game_control(self):
-        self.assertIn('"/v1/pair/heartbeat"', SERVICE)
+        self.assertIn('"%s/v1/pair/heartbeat"', SERVICE)
         self.assertIn('sceHttpAddRequestHeader(request,"Authorization",auth,0)', SERVICE)
         self.assertIn('memset(auth,0,sizeof(auth))', SERVICE)
         self.assertNotIn("scePadVirtualDevice", SERVICE)
