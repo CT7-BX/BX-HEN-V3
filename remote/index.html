@@ -258,6 +258,18 @@
           </select>
           <p class="field-note" id="routeNote">A escolha orienta os próximos testes; ainda não muda o caminho de vídeo.</p>
           <div class="callout">O servidor atual apenas testa controles com um <strong>console simulado</strong>. Para imagem e áudio do PS4 precisamos integrar o Remote Play nativo ao gateway.</div>
+          <details class="relay-config" id="realAvTest" open>
+            <summary>Testar imagem e áudio reais do PS4 — primeira etapa</summary>
+            <p class="field-note">A confirmação do vínculo BX v0.19 não inicia uma sessão Remote Play. Para testar vídeo e som dos jogos, use primeiro o Remote Play nativo do PS4 com um cliente compatível na mesma rede.</p>
+            <ol class="pair-steps" aria-label="Teste de vídeo e áudio do PS4">
+              <li>Feche o PKG BX-REMOTE-PLAY usando o menu PS e deixe o PS4 ligado. Em <strong>Configurações → Configurações de conexão do Uso remoto</strong>, habilite o Uso remoto. Confira o recurso Remote Play Enabler do GoldHEN, se necessário.</li>
+              <li>Em <strong>Adicionar dispositivo</strong>, obtenha o PIN temporário do Remote Play. <strong>Ele não é o código de oito dígitos do vínculo BX.</strong> Nunca envie esse PIN ou sua conta aqui.</li>
+              <li>No Mac ou computador <strong>na mesma rede local do PS4</strong>, abra um cliente Chiaki compatível e registre o console usando esse PIN. A versão Chiaki-NG-Web precisa de um proxy Node local que acesse o console por TCP/UDP; um site público distante não alcança automaticamente o IP privado do seu PS4.</li>
+              <li>Abra um jogo com o PKG BX fechado. Verifique se o Chiaki mostra <strong>imagem em movimento e som</strong>. Esse é o teste real inicial; o transporte ainda não está integrado ao player BX.</li>
+            </ol>
+            <p class="field-note"><a href="https://github.com/CSystem77/Chiaki-NG-Web" target="_blank" rel="noopener noreferrer">Cliente Chiaki-NG-Web (código e instalação)</a> · <a href="https://chiaki-ng.github.io/chiaki-ng/setup/configuration/" target="_blank" rel="noopener noreferrer">Configuração do Remote Play no PS4</a> · <a href="https://github.com/CT7-BX/BX-REMOTE-PLAY/blob/main/docs/REAL-AV-TEST-PLAN.md" target="_blank" rel="noopener noreferrer">Plano de teste BX</a></p>
+            <p class="field-note">O cliente externo tem sua própria sessão e políticas de dados. Prefira instalação local para não compartilhar informações do console com terceiros.</p>
+          </details>
           <section class="media-config" aria-labelledby="mediaHeading" id="mediaSection">
             <h3 id="mediaHeading">Vídeo e áudio reais — gateway (beta)</h3>
             <p class="field-note">O BX agora aceita uma sessão <strong>WebRTC/WHEP real</strong>. É necessário um gateway WHEP HTTPS que já receba a mídia do PS4. O vínculo HTTPS do PKG não transmite mídia, e o Worker BX-REMOTE-LINK não é um servidor WHEP.</p>
@@ -273,6 +285,8 @@
               <button class="action plain" id="mediaResume" type="button" disabled>Ativar áudio</button>
             </div>
             <p class="field-note" id="mediaBridgeStatus" role="status" aria-live="polite" data-state="idle">Nenhuma fonte de mídia conectada. O gateway precisa estar configurado antes de usar Conectar vídeo.</p>
+            <p class="field-note" id="mediaHealth" role="status" aria-live="polite" data-video="no" data-audio="no">Sem dados reais recebidos. Nenhuma fonte de vídeo ou áudio foi confirmada.</p>
+            <p class="field-note">O contador acima informa quadros realmente decodificados e bytes de áudio WebRTC recebidos. Não prova que a fonte seja um PS4 nem que o som esteja audível.</p>
             <p class="field-note">Sem gateway próprio? <a href="https://chiaki.csphere.fr/" target="_blank" rel="noopener noreferrer">Abrir Chiaki-NG-Web</a> (cliente externo de terceiros, em outra aba). Ele utiliza seu próprio proxy de Remote Play e não fornece automaticamente uma URL WHEP para o BX.</p>
             <p class="field-note"><a href="https://github.com/CT7-BX/BX-REMOTE-PLAY/blob/main/docs/REAL-MEDIA-GATEWAY.md" target="_blank" rel="noopener noreferrer">Entenda como conectar o vídeo real e o que falta</a>.</p>
           </section>
@@ -287,7 +301,7 @@
             <summary>Primeiros testes — checklist e diagnóstico</summary>
             <p class="field-note">Preparação para testes no PS4 físico. O vídeo real depende de gateway; o PKG precisa de novos testes físicos. Os itens abaixo são marcados por você e não significam validação automática.</p>
             <div class="first-tests-steps">
-              <label><input type="checkbox" data-test-step> PS4 com GoldHEN ativo e Pair Test v0.17 instalado</label>
+              <label><input type="checkbox" data-test-step> PS4 com GoldHEN ativo e BX Dashboard v0.19 instalado</label>
               <label><input type="checkbox" data-test-step> Servidor HTTPS/WSS protegido configurado, com tokens privados</label>
               <label><input type="checkbox" data-test-step> Arquivo privado de configuração copiado para o PS4</label>
               <label><input type="checkbox" data-test-step> Código de oito dígitos exibido pelo Pair Test no PS4</label>
