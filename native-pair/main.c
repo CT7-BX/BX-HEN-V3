@@ -57,9 +57,22 @@ static void notice(const char *message) {
 }
 
 static void report(const char *stage, int code, int status) {
-    FILE *f = fopen(REPORT_PATH, "w");
-    if (!f) f = fopen("/user/data/bx-remote-pairing-report.txt", "w");
+    /* Keep the entire finite cleanup / OTA timeline instead of overwriting
+     * every previous checkpoint. Cap the diagnostic file to 64 KiB. */
+    const char *location = REPORT_PATH;
+    FILE *f = fopen(location, "a+");
+    long size = 0;
+    if (!f) {
+        location = "/user/data/bx-remote-pairing-report.txt";
+        f = fopen(location, "a+");
+    }
     if (!f) return;
+    if (fseek(f,0,SEEK_END)==0) size=ftell(f);
+    if (size>65536) {
+        fclose(f);
+        f=fopen(location,"w");
+        if (!f) return;
+    }
     fprintf(f, "BX-REMOTE-PLAY native pairing test 0.17\n");
     fprintf(f, "stage=%s\n", stage ? stage : "unknown");
     fprintf(f, "result_code=%d\nhttp_status=%d\n", code, status);
