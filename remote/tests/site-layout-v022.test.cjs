@@ -13,7 +13,7 @@ const native = fs.readFileSync(path.resolve(ROOT, "../native-pair/native_ui.c"),
 
 test("same branded theme is applied to player and Mac source page", () => {
   assert.match(html, /href="\.\/site-v2\.css\?v=0\.26"/);
-  assert.match(bridge, /href="\.\/site-v2\.css\?v=0\.22"/);
+  assert.match(bridge, /href="\.\/site-v2\.css\?v=0\.26"/);
   assert.match(bridge, /<body class="bridge-page">/);
   assert.match(html, /Interface 0\.26/);
   assert.match(bridge, /Imagem real/);
