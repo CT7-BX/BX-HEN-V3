@@ -1,5 +1,15 @@
 # BX-REMOTE-PLAY — interface, pareamento PS4 e mídia WHEP experimental
 
+## Web v0.25 + Android Gateway v0.2 — diagnóstico mais robusto
+
+A central Android agora permite **compartilhar o endereço público com o celular antigo** pelo menu de compartilhamento do iPhone, pela área de transferência ou por um endereço selecionável. Não inclui PINs, token, conta ou endereço do PS4. Os testes de compatibilidade continuam locais e voluntários.
+
+O APK diagnóstico v0.2, para Android 7+, acrescenta **RAM livre e sinalização de pressão de memória, nível/temperatura da bateria** e, em Android 10+, estado térmico declarado pelo sistema. Mantém o relatório ao girar o celular, habilita a cópia apenas após a análise e não exige novas permissões. As medições são instantâneas e **não autorizam uso desassistido de 24 horas**. Continua sem conexão com jogos ou transmissão real.
+
+O autodiagnóstico da página principal agora verifica `/health` e `update.txt` **simultaneamente, com prazos de resposta independentes**. Se o Worker travar, a versão oficial do PKG ainda poderá ser consultada; se o manifesto falhar, o estado HTTPS ainda poderá ser mostrado. Os testes automatizados validam timeout, cancelamento, ordem das respostas e ausência de credenciais.
+
+**O PKG do PS4 permanece v0.22.** Não há mudança nativa no PS4 nem alegação de streaming direto de jogos nesta atualização.
+
 ## Android Gateway v0.24 — compatibilidade de aparelhos antigos
 
 O BX passa a ter uma [central Android](gateway.html), integrada por um quarto atalho no player principal. A página verifica localmente (sem enviar dados) versão Android detectável, RAM estimada pelo navegador, CPU declarada, APIs WebRTC e suporte à captura de tela do navegador. Os resultados são apenas estimativas e vêm acompanhados de alertas sobre Android antigo, restrições de áudio e ausência de captura web no Chrome Android.
