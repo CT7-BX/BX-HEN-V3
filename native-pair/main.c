@@ -1,5 +1,5 @@
 /*
- * BX-REMOTE-PLAY PS4 Pairing Proof v0.17
+ * BX-REMOTE-PLAY PS4 Pairing Proof v0.18
  *
  * NEW, SEPARATE PKG. Not the existing v0.21 HTTPS diagnostic.
  * Foreground-only console-side HTTP pairing test, with local DualShock consent.
@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include <orbis/Net.h>
 #include <orbis/Ssl.h>
@@ -27,6 +28,7 @@
 #include "update_manifest.h"
 #include "ota_download.h"
 #include "ota_install.h"
+#include "resident_install.h"
 
 #define REPORT_PATH "/data/bx-remote-pairing-report.txt"
 #define CONFIG_PATH "/user/data/bx-remote-pair.cfg"
@@ -42,7 +44,7 @@
 #define CONFIG_AUTO_RECHECK_TICKS 50 /* re-read .cfg every five seconds */
 #define UPDATE_MANIFEST_URL "https://ct7-bx.github.io/BX-REMOTE-PLAY/remote/update.txt"
 #define CURRENT_UPDATE_MAJOR 0u
-#define CURRENT_UPDATE_MINOR 17u
+#define CURRENT_UPDATE_MINOR 18u
 
 typedef struct HttpContext {
     int initialized_net;
@@ -73,7 +75,7 @@ static void report(const char *stage, int code, int status) {
         f=fopen(location,"w");
         if (!f) return;
     }
-    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.17\n");
+    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.18\n");
     fprintf(f, "stage=%s\n", stage ? stage : "unknown");
     fprintf(f, "result_code=%d\nhttp_status=%d\n", code, status);
     fprintf(f, "streaming=NOT_IMPLEMENTED\n");
@@ -134,7 +136,7 @@ static int open_http(HttpContext *ctx) {
     if (ctx->ssl < 0) return 0;
     ctx->http = sceHttpInit(ctx->pool, ctx->ssl, HTTP_MEMORY_BYTES);
     if (ctx->http < 0) return 0;
-    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.17",
+    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.18",
         ORBIS_HTTP_VERSION_1_1, 1);
     return ctx->tmpl >= 0;
 }
@@ -346,6 +348,46 @@ static void offer_update(const HttpContext *http, const BXUpdateManifest *update
     report("ota_install_timeout",0,0);
 }
 
+/* Foreground PKG manager: installs a separate resident ELF only after a NEW
+ * Triangle press. It never launches the ELF or enables GoldHEN AutoRun.
+ * The ELF itself has no game control, video or player authorization yet.
+ */
+static void offer_resident_setup(int pad, uint32_t *last_buttons) {
+    int tick;
+    struct stat installed;
+    if (stat("/data/payloads/bx-remote-service.elf", &installed) == 0) {
+        /* Subsequent pairing launches must not delay for setup again. */
+        return;
+    }
+    notice("BX-REMOTE: TRIANGULO prepara servico ELF; X segue vinculacao.");
+    for (tick=0; tick<140; ++tick) {
+        OrbisPadData state;
+        uint32_t fresh;
+        if (scePadReadState(pad, &state) < 0) {
+            usleep(100000);
+            continue;
+        }
+        fresh = state.buttons & ~(*last_buttons);
+        *last_buttons = state.buttons;
+        if (fresh & ORBIS_PAD_BUTTON_TRIANGLE) {
+            int result=bx_resident_prepare();
+            report(result==1?"resident_elf_prepared":"resident_elf_prepare_failed",result,0);
+            if(result==1) {
+                notice("BX-REMOTE: ELF em /data/payloads/. Inicie no GoldHEN LaunchPad.");
+                sleep(3);
+                notice("BX-REMOTE: AutoRun DESLIGADO. Servico HTTPS sem video/controle.");
+            } else {
+                notice("BX-REMOTE: Falha copiando ELF. Veja log e use FTP.");
+            }
+            break;
+        }
+        if (fresh & (ORBIS_PAD_BUTTON_CROSS |
+                     ORBIS_PAD_BUTTON_CIRCLE |
+                     ORBIS_PAD_BUTTON_OPTIONS)) break;
+        usleep(100000);
+    }
+}
+
 static void show_code(const char *code) {
     char message[180];
     snprintf(message, sizeof(message),
@@ -438,6 +480,7 @@ int main(void) {
     }
     if (has_update) offer_update(&http, &available_update, pad, &last_buttons);
     memset(&available_update, 0, sizeof(available_update));
+    offer_resident_setup(pad, &last_buttons);
 
     /* Only authenticated HTTPS originating from this PS4 homebrew can initiate. */
     stage = "heartbeat";

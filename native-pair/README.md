@@ -1,6 +1,6 @@
-# BX-REMOTE-PLAY — prova de vínculo NATIVA para PS4 (v0.17 experimental)
+# BX-REMOTE-PLAY — prova de vínculo NATIVA para PS4 (v0.18 experimental)
 
-**Estado: pareamento HTTPS confirmado pelo usuário na v0.15, seguido de CE-34878-0 após alguns segundos. A v0.16 contornou o retorno de main; a v0.17 adiciona atualizações OTA experimentais e ainda exige testes no PS4 físico.** Este pacote não oferece Remote Play, streaming de vídeo/áudio, virtualização de controle, agente residente nem início automático.
+**Estado: pareamento HTTPS confirmado pelo usuário na v0.15, seguido de CE-34878-0 após alguns segundos. A v0.16 contornou o retorno de main; a v0.17 adicionou OTA experimental e a v0.18 inclui um ELF residente de diagnóstico, com execução e estabilidade ainda não verificadas em PS4 físico.** Este pacote não oferece Remote Play, streaming de vídeo/áudio, virtualização de controle, agente residente nem início automático.
 
 ## Por que outro PKG?
 
@@ -15,6 +15,16 @@ O pacote existente `ps4-agent/` v0.21 permanece intacto como diagnóstico HTTPS.
 5. O PKG verifica solicitações por HTTPS e exige um aperto **novo** em X para aprovar ou O para negar. OPTIONS cancela.
 6. Após a aprovação, o site confirma que o vínculo HTTP foi autorizado, mas **não inicia controles nem vídeo**, pois este aplicativo ainda não estabelece um WebSocket de console.
 7. Depois da aprovação, o aplicativo permanece aberto por até dois minutos, ou até OPTIONS. Então revoga o vínculo, limpa os recursos e entra em estado ocioso, sem retornar de `main()`. Feche o aplicativo pelo menu do botão PS. Não há AutoRun, agente residente, mídia ou listener público. O relatório de diagnóstico local registra etapas da execução caso o CE-34878-0 persista.
+
+## Novo serviço independente em segundo plano — v0.18 experimental
+
+A versão v0.18 agora **embute um ELF separado dentro do PKG**: `bx-remote-service.elf`. Após abrir o app e validar a configuração privada, pressione **TRIÂNGULO** quando aparecer a notificação de preparação para copiar o serviço para `/data/payloads/bx-remote-service.elf`. X/O/OPTIONS ignoram a instalação.
+
+**Atenção: preparar não é executar.** A cópia cria um arquivo local `/data/bx-remote-service.enabled`, mas **não** inicia o processo nem altera o AutoRun do GoldHEN. Para o primeiro teste, abra o menu do GoldHEN e use **Utilities → Payloader LaunchPad → bx-remote-service.elf**. Não ative o AutoRun antes de comprovar a estabilidade, o encerramento e o comportamento durante jogos na versão exata do seu console.
+
+O ELF é executado fora do aplicativo e, se o GoldHEN realmente mantiver o processo, envia **somente heartbeats HTTPS** ao relay configurado, a cada 30 segundos após uma resposta bem-sucedida. Erros de rede produzem backoff de 1 a 60 segundos; não abre porta pública, não acessa jogos, não captura vídeo ou áudio, não injeta controles e **não mantém autorização permanente de jogador**. O relatório sem tokens fica em `/data/bx-remote-service-report.txt`. O serviço relê seu estado de ativação local e encerra quando um arquivo `/data/bx-remote-service.stop` existe, ou o arquivo `/data/bx-remote-service.enabled` deixa de existir. Desative o AutoRun, se você o ativou manualmente, antes de remover o ELF.
+
+**Não está comprovado em hardware:** a compilação como ELF não valida sua execução pelo LaunchPad ou continuidade em segundo plano; essa etapa precisa de teste real. O serviço ainda não é uma implementação do protocolo Remote Play. A autorização de um dispositivo "uma vez para sempre" também depende de armazenamento e revogação seguros no backend, que ainda não existem. O PKG continua sendo necessário para obter um código na primeira ligação; o ELF não substitui o vínculo HTTPS atual.
 
 ## Atualização OTA experimental (v0.17)
 

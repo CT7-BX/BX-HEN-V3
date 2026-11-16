@@ -72,11 +72,14 @@ class FirstRunFlowTests(unittest.TestCase):
         self.assertIn("__attribute__((noreturn))", SOURCE)
         self.assertIn("bx_ota_fetch_verified", SOURCE)
         self.assertIn("bx_ota_install_with_consent", SOURCE)
+        self.assertIn("offer_resident_setup(pad, &last_buttons);", SOURCE)
+        self.assertIn("bx_resident_prepare()", SOURCE)
+        self.assertIn("ORBIS_PAD_BUTTON_TRIANGLE", SOURCE)
 
     def test_version_labels_incremented(self):
-        self.assertIn("Pairing Proof v0.17", SOURCE)
-        self.assertIn("native pairing test 0.17", SOURCE)
-        self.assertIn("BX-REMOTE-PLAY-PS4-Pair/0.17", SOURCE)
+        self.assertIn("Pairing Proof v0.18", SOURCE)
+        self.assertIn("native pairing test 0.18", SOURCE)
+        self.assertIn("BX-REMOTE-PLAY-PS4-Pair/0.18", SOURCE)
 
 if __name__ == "__main__":
     unittest.main()
