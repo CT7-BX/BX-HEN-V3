@@ -535,6 +535,9 @@
   window.BXRemotePlayer = Object.freeze({
     attachMediaStream: attachMediaStream,
     activeMediaSource: () => mediaSwitcher?.currentOwner() || null,
+    // Read existing physical and touch state without connecting the relay.
+    // The P2P control experiment uses this explicit snapshot only on opt-in.
+    getInputSnapshot: () => game.input(getGamepad(), touch, mode.value, coarse),
     getPreferences: () => Object.freeze({
       quality: quality.value, route: route.value, touch: mode.value,
       touchOpacity: Number(touchOpacity.value), touchSize: Number(touchSize.value)
