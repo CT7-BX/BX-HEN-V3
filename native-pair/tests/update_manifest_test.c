@@ -10,6 +10,11 @@ int main(void) {
         "sha256=108a6b92fc0aeffdb23e17d79e259a9f7b354b666cfab5c7116b1a22d27d8092\n"
         "pkg_url=https://github.com/CT7-BX/BX-REMOTE-PLAY/releases/download/pair-test-v0.15/BX-REMOTE-PLAY-Pair-Test-v0.15.pkg\n";
     BXUpdateManifest m = {0};
+    /* The parser accepts arbitrary key order but never a mismatched URL. */
+    assert(bx_update_parse(
+        "pkg_url=https://github.com/CT7-BX/BX-REMOTE-PLAY/releases/download/pair-test-v0.15/BX-REMOTE-PLAY-Pair-Test-v0.15.pkg\n"
+        "sha256=108a6b92fc0aeffdb23e17d79e259a9f7b354b666cfab5c7116b1a22d27d8092\n"
+        "title_id=BRPM00001\nversion=0.15\n", &m));
     assert(bx_update_parse(good, &m));
     assert(!strcmp(m.version, "0.15"));
     assert(m.major == 0 && m.minor == 15);
