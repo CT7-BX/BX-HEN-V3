@@ -29,7 +29,7 @@
       description:"Avalie o Android antigo com o site e o APK local. A ponte de vídeo, áudio e comandos ainda não foi desenvolvida.",
       steps:Object.freeze([
         "Abrir a central BX no Android antigo para verificar compatibilidade básica.",
-        "Executar o APK de diagnóstico v0.2, com RAM, bateria, temperatura e codecs.",
+        "Executar o APK de diagnóstico v0.4, com RAM, bateria, temperatura e codecs.",
         "Confirmar se o aparelho aguenta executar um cliente Remote Play.",
         "Depois de implementado o gateway, testar streaming e comandos com supervisão."
       ]),action:"Avaliar Android",target:"./gateway.html",
