@@ -41,7 +41,7 @@ test("receiver rejects replays and neutralizes held buttons when packets stop",(
   const receiver=protocol.createReceiver({
     onInput:(frame,info)=>input.push({frame,info}),
     onStatus:state=>messages.push(state),
-    setTimeoutFn:fn=>{const key=++count;timers.set(key,fn);return key;},
+    setTimeoutFn:fn=>{const key=++count;timers.set(key,()=>{timers.delete(key);fn();});return key;},
     clearTimeoutFn:id=>timers.delete(id)
   });
   const pressed={buttons:[0,7],axes:[0.4,0,0,0],triggers:[0,1]};
