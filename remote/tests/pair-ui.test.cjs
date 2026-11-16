@@ -14,7 +14,7 @@ test("main screen has honest pairing entry point with consent messaging", () => 
   assert.match(html, /id="pairCode"/);
   assert.match(html, /id="pairClaim"/);
   assert.match(html, /id="pairCancel"/);
-  assert.match(html, /BX Dashboard v0\.22 no PS4/);
+  assert.match(html, /BX Dashboard v0\.23 no PS4/);
   assert.match(html, /id="pairCheck"/);
   assert.match(html, /id="pairServerStatus"/);
   assert.match(html, /value="https:\/\/bx-remote-link\.4rt949zpj8\.workers\.dev"/);
