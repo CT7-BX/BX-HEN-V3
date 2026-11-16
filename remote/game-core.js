@@ -77,6 +77,35 @@
     return url.href;
   }
 
+  // The HTTP pairing backend is NOT a WebSocket media/control transport.
+  // Accept an honest HTTPS origin as well as legacy WSS relay URLs; normalize
+  // to HTTPS API + an optional future WebSocket control endpoint.
+  function validPairingServer(raw) {
+    if (typeof raw !== "string" || raw.length > 240) return null;
+    let url;
+    try { url = new URL(raw.trim()); } catch { return null; }
+    if (url.search || url.hash || url.username || url.password) return null;
+    if (url.pathname !== "/" && url.pathname !== "/v1/link") return null;
+    const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+    let ws;
+    if (url.protocol === "https:" || (local && url.protocol === "http:")) {
+      const originalProtocol = url.protocol;
+      url.protocol = originalProtocol === "https:" ? "wss:" : "ws:";
+      url.pathname = "/v1/link";
+      ws = validRelayEndpoint(url.href);
+    } else {
+      ws = validRelayEndpoint(url.href);
+    }
+    if (!ws) return null;
+    const api = new URL(ws);
+    api.protocol = api.protocol === "wss:" ? "https:" : "http:";
+    api.pathname = "/";
+    return Object.freeze({
+      apiBase: api.origin,
+      controlEndpoint: ws
+    });
+  }
+
   function median(values) {
     if (!values.length) return null;
     const sorted = values.filter(v => Number.isFinite(v) && v >= 0).sort((a, b) => a - b);
@@ -88,7 +117,7 @@
   const api = Object.freeze({
     qualityTargets: QUALITY_TARGETS,
     joystick, showTouch, touchState, fromTouch, fromGamepad,
-    neutral, input, validRelayEndpoint, median
+    neutral, input, validRelayEndpoint, validPairingServer, median
   });
   root.BXRemoteGame = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;

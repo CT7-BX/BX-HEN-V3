@@ -275,12 +275,13 @@
           <details class="relay-config" id="pairSection">
             <summary>Vincular PS4 — conexão experimental</summary>
             <p class="field-note">Pode testar um PS4 com o PKG Pair Test (ainda sem validação física), ou um console simulado. A aprovação do vínculo não habilita vídeo, áudio ou controle real.</p>
-            <label class="field" for="pairEndpoint">Servidor WSS do laboratório</label>
-            <input id="pairEndpoint" type="url" inputmode="url" autocomplete="off" spellcheck="false" value="wss://bx-remote-link.4rt949zpj8.workers.dev/v1/link" aria-describedby="pairServerStatus">
+            <label class="field" for="pairEndpoint">Servidor HTTPS de vinculação</label>
+            <input id="pairEndpoint" type="url" inputmode="url" autocomplete="off" spellcheck="false" value="https://bx-remote-link.4rt949zpj8.workers.dev" aria-describedby="pairServerStatus">
             <div class="toolbar-left" style="margin-top:9px">
               <button class="action plain" type="button" id="pairCheck">Testar servidor</button>
             </div>
-            <p class="field-note" id="pairServerStatus" role="status" aria-live="polite">BX-REMOTE-LINK: servidor experimental criado no Cloudflare. Clique em Testar servidor para conferir o estado; uma credencial privada ainda precisa ser configurada no PS4 e no Worker.</p>
+            <p class="field-note" id="pairServerStatus" role="status" aria-live="polite">O BX-REMOTE-LINK é um serviço HTTPS experimental. Clique em Testar servidor; para vincular o PS4, é preciso configurar a mesma chave privada no Worker e no console.</p>
+            <p class="field-note"><a href="https://github.com/CT7-BX/BX-REMOTE-PLAY/blob/main/cloudflare/README.md" target="_blank" rel="noopener noreferrer">Como configurar o vínculo de teste</a> · O serviço ainda não transmite vídeo ou controles.</p>
             <label class="field" for="pairCode">Código de 8 números exibido pelo aplicativo PS4 ou simulador</label>
             <input id="pairCode" type="text" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" autocomplete="off" placeholder="00000000">
             <div class="toolbar-left" style="margin-top:11px">

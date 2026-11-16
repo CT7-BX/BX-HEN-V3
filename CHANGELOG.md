@@ -1,5 +1,14 @@
 # Histórico de atualizações — BX-REMOTE-PLAY
 
+## 2026-11-15 — Pareamento HTTPS: correção de fluxo e tratamento de erros
+
+- Corrigida a exigência enganosa de WSS no site: o backend Cloudflare vincula por HTTPS e ainda não tem WebSocket de controle.
+- Normalizador seguro aceita URLs HTTPS de vínculo, URLs WSS legadas do simulador e HTTP/WS apenas em localhost, recusando caminhos adicionais, query e credenciais na URL.
+- Página indica claramente quando o Worker está online mas não possui a chave privada de console; traduz erros do servidor e cancela consultas de saúde antigas quando o endereço muda.
+- Worker recusa HTTP em texto claro e retorna HTTP 503 sem segredo em vez de tratar toda tentativa de código como um código inválido.
+- Testes de integração simulam a própria página consumindo respostas HTTPS, inclusive aprovação HTTP sem sessão de controle e compatibilidade com relay de laboratório.
+- **Nenhuma imagem, áudio ou controle real do PS4 foi implantado nesta atualização.**
+
 ## 2026-11-15 — BX-REMOTE-LINK: backend de vínculo HTTP no Cloudflare
 
 - Novo Worker separado `bx-remote-link`, com Durable Object SQLite persistente e endpoints de código temporário, aprovação, recusa, estado e revogação.

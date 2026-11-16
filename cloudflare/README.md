@@ -16,7 +16,7 @@ Esta pasta implementa um **backend HTTPS de vínculo com código temporário**, 
 
 1. O PS4 inicia o `Pair Test` com arquivo privado em `/user/data/bx-remote-pair.cfg`, contendo `relay_base` e `console_token` (ambos precisam corresponder ao backend).
 2. O aplicativo chama `/v1/pair/heartbeat`, depois `/v1/pair/start`. O Worker gera oito dígitos e só devolve o código **ao console autenticado**, válido por 120 segundos.
-3. O usuário abre o site, informa `wss://.../v1/link` no formulário para derivar o endpoint HTTPS, digita o código e faz a solicitação.
+3. O usuário abre o site, informa diretamente `https://bx-remote-link.4rt949zpj8.workers.dev` no formulário, digita o código e faz a solicitação.
 4. O aplicativo consulta `/v1/pair/pending` e o dono escolhe X para aprovar ou O para negar na TV.
 5. O navegador consulta `/v1/pair/status`, recebe `approved` e `controlAvailable:false`. Isso significa somente que o PS4 aprovou o vínculo HTTP; **não existe canal de comandos**.
 6. O aplicativo encerra e faz `POST /v1/pair/revoke`, invalidando a solicitação. Não existe AutoRun.
@@ -53,7 +53,7 @@ Uma instância separada do projeto BX-HEN foi publicada pelo conector Cloudflare
 
 - Worker: `bx-remote-link`
 - Endpoint HTTPS planejado: `https://bx-remote-link.4rt949zpj8.workers.dev`
-- URL a informar na interface: `wss://bx-remote-link.4rt949zpj8.workers.dev/v1/link` (o navegador usa esse endereço para localizar a API HTTPS; **não existe WebSocket /v1/link nesse Worker**)
+- URL a informar na interface: `https://bx-remote-link.4rt949zpj8.workers.dev`. Endereços WSS legados do simulador ainda são reconhecidos, mas **não existe WebSocket /v1/link nesse Worker**.
 - Armazenamento: binding `PAIRING_ROOM` para Durable Object SQLite `BXPairingRoom`.
 - A instalação do Worker e o subdomínio foram confirmados pela API do Cloudflare. **A URL pública não pôde ser testada externamente com sucesso nesta sessão**, por isso não afirmar que respondeu ao navegador.
 - **A configuração secreta do console ainda precisa ser realizada.** O endpoint de saúde permite descobrir isso com `configured: false`.
@@ -74,3 +74,7 @@ A configuração da chave secreta através da conexão Cloudflare foi bloqueada.
 5. Após o primeiro teste, revogue/rotacione a chave pelo painel se houver suspeita de exposição. O arquivo `relay-private.env` gerado no computador serve apenas ao **antigo relay Node**; não precisa ser enviado ao Cloudflare nem ao PS4.
 
 **Não há login PSN, persistência de console vinculado, transmissão do jogo ou suporte multiusuário nesta versão.** O segredo é específico desta instância de prova, e o vínculo HTTP é revogado quando o aplicativo de teste PS4 encerra.
+
+### Melhorias de validação e estado
+
+O frontend agora utiliza diretamente HTTPS para o pareamento, sem apresentar o endpoint WebSocket inexistente como requisito. O Worker recusa pedidos HTTP em texto claro e devolve `BACKEND_NOT_CONFIGURED` (HTTP 503) quando tentam solicitar código sem um segredo de console válido; o site traduz esse erro em uma orientação, sem expor chaves. Testes incluem pedidos malformados, vínculo somente HTTP, compatibilidade com relay WSS simulado e ausência de falsas promessas de streaming.

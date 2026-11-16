@@ -241,7 +241,8 @@ export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
     const url = new URL(request.url);
-    if (url.search || url.hash || (origin && origin !== ALLOWED_ORIGIN)) {
+    if (url.protocol !== "https:" || url.search || url.hash ||
+        (origin && origin !== ALLOWED_ORIGIN)) {
       return problem("FORBIDDEN", 403, origin);
     }
     if (request.method === "OPTIONS") {
@@ -271,6 +272,12 @@ export default {
     }
     if (!routes.has(request.method + " " + url.pathname)) {
       return problem("NOT_FOUND", 404, origin);
+    }
+    // A public browser should never be invited to guess a PIN when no
+    // console credential can be configured and no PS4 can start a session.
+    if (url.pathname === "/v1/pair/claim" &&
+        !/^[0-9a-f]{64}$/.test(env.BX_RELAY_CONSOLE_TOKEN || "")) {
+      return problem("BACKEND_NOT_CONFIGURED", 503, origin);
     }
     if (!env.PAIRING_ROOM) return problem("BACKEND_NOT_CONFIGURED", 503, origin);
     try {

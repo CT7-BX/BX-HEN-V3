@@ -1,6 +1,6 @@
-/* BX-REMOTE-PLAY browser pairing v0.3 — experimental/simulated only.
- * Code is entered by the user, claimant token remains in closure RAM,
- * player authorization is released only after simulated console approval.
+/* BX-REMOTE-PLAY browser pairing — PS4 HTTP pilot or simulated relay.
+ * Tokens remain in memory, never URL, local storage or logs. Linking over
+ * HTTPS is not the same thing as Remote Play/media/input transport.
  */
 (() => {
   "use strict";
@@ -11,6 +11,8 @@
 
   let requestId = 0;
   let activeClaimController = null;
+  let healthRequestId = 0;
+  let activeHealthController = null;
 
   function cancelActiveClaim() {
     requestId++;
@@ -21,13 +23,29 @@
     $("pairStatus").textContent = message;
   };
 
-  function apiBase(endpoint) {
-    const checked = game.validRelayEndpoint(endpoint);
-    if (!checked) return null;
-    const uri = new URL(checked);
-    uri.protocol = uri.protocol === "wss:" ? "https:" : "http:";
-    uri.pathname = "/";
-    return uri.origin;
+  function pairingTarget() {
+    return game.validPairingServer($("pairEndpoint").value.trim());
+  }
+
+  function stopHealthCheck() {
+    ++healthRequestId;
+    if (activeHealthController) activeHealthController.abort();
+    activeHealthController = null;
+  }
+
+  function errorMessage(error) {
+    const reasons = {
+      BACKEND_NOT_CONFIGURED: "Servidor online, mas falta configurar a chave privada do PS4.",
+      INVALID_CODE: "Código inválido ou expirado. Confira o código que aparece na TV.",
+      INVALID_CLAIM: "Pedido expirou ou foi revogado. Gere um novo código no PS4.",
+      RATE_LIMITED: "Muitas tentativas. Aguarde um minuto antes de tentar novamente.",
+      CONSOLE_OFFLINE: "O aplicativo PS4 de vínculo não está conectado.",
+      UNAUTHORIZED: "A chave de autenticação do PS4 está incorreta.",
+      FORBIDDEN: "Servidor não autorizou esta página ou o endereço informado.",
+      BACKEND_UNAVAILABLE: "Servidor temporariamente indisponível."
+    };
+    if (error?.name === "AbortError") return "Tempo esgotado ou solicitação cancelada.";
+    return reasons[error?.message] || "Falha de conexão com o servidor. Confira a configuração.";
   }
 
   async function jsonRequest(base, path, { data, token, signal } = {}) {
@@ -60,26 +78,33 @@
   }
 
   $("pairEndpoint").addEventListener("input", () => {
+    stopHealthCheck();
+    cancelActiveClaim();
+    $("pairClaim").disabled = false;
     $("pairServerStatus").dataset.relayCheck = "not_tested";
     $("pairServerStatus").textContent = "Endereço alterado. Teste novamente o servidor.";
+    report("Servidor alterado. Solicitação anterior cancelada.");
   });
 
   $("pairCheck").addEventListener("click", async () => {
-    const endpoint = game.validRelayEndpoint($("pairEndpoint").value.trim());
+    const server = pairingTarget();
     const target = $("pairServerStatus");
-    if (!endpoint) {
+    stopHealthCheck();
+    const current = healthRequestId;
+    if (!server) {
       target.dataset.relayCheck = "invalid";
-      target.textContent = "Endereço inválido. Use WSS (WS só em localhost).";
+      target.textContent = "Endereço inválido. Informe HTTPS; HTTP só em localhost.";
       return;
     }
     const button = $("pairCheck");
     button.disabled = true;
     target.dataset.relayCheck = "not_tested";
-    target.textContent = "Verificando acesso ao relay...";
+    target.textContent = "Verificando o servidor HTTPS de vínculo...";
     const controller = new AbortController();
+    activeHealthController = controller;
     const timeout = setTimeout(() => controller.abort(), 5500);
     try {
-      const response = await fetch(apiBase(endpoint) + "/health", {
+      const response = await fetch(server.apiBase + "/health", {
         signal: controller.signal,
         cache: "no-store",
         credentials: "omit",
@@ -88,47 +113,53 @@
       });
       if (!response.ok) throw new Error("HTTP " + response.status);
       const info = await response.json();
-      if (info.status !== "ok" || info.mode !== "control-prototype") {
+      if (current !== healthRequestId) return;
+      if (info.status !== "ok" || info.mode !== "control-prototype" ||
+          info.pairing !== true) {
         throw new Error("Servidor não reconhecido");
       }
-      if (info.pairingBackend === "cloudflare-durable-object"
-          && info.configured !== true) {
+      if (info.pairingBackend === "cloudflare-durable-object" &&
+          info.configured !== true) {
         target.dataset.relayCheck = "failed";
-        target.textContent = "BX-REMOTE-LINK online, mas falta configurar a chave privada do console no Cloudflare. O vínculo está bloqueado até essa etapa.";
+        target.textContent = "BX-REMOTE-LINK online. Falta adicionar a chave privada do console em Cloudflare → bx-remote-link → Variables and Secrets.";
         return;
       }
       target.dataset.relayCheck = "ok";
-      target.textContent = "Servidor de vínculo acessível. O PS4 ainda precisa do PKG configurado; controles reais, vídeo e áudio não estão disponíveis.";
+      target.textContent = "Servidor HTTPS de vínculo acessível. O PS4 precisa do PKG configurado; vídeo, áudio e controles reais ainda não estão disponíveis.";
     } catch (error) {
+      if (current !== healthRequestId) return;
       target.dataset.relayCheck = "failed";
-      target.textContent = error.name === "AbortError"
-        ? "Tempo esgotado. Confira a rede e o servidor HTTPS/WSS."
-        : "Não foi possível verificar o relay. Confira endereço, HTTPS/WSS e origem autorizada.";
+      target.textContent = error?.name === "AbortError"
+        ? "Tempo esgotado. Confira a rede e o endereço HTTPS."
+        : "Não foi possível verificar o servidor. Confira o endereço, HTTPS e origem autorizada.";
     } finally {
       clearTimeout(timeout);
-      button.disabled = false;
+      if (current === healthRequestId) {
+        activeHealthController = null;
+        button.disabled = false;
+      }
     }
   });
 
   $("pairClaim").addEventListener("click", async () => {
-    const endpoint = game.validRelayEndpoint($("pairEndpoint").value.trim());
+    const server = pairingTarget();
     const code = $("pairCode").value.trim();
-    if (!endpoint) {
-      report("Informe um endereço WSS seguro terminado em /v1/link.");
+    if (!server) {
+      report("Informe o endereço HTTPS do servidor de vínculo.");
       return;
     }
     if (!/^\d{8}$/.test(code)) {
       report("Digite os oito números exibidos no aplicativo PS4 de teste ou no simulador.");
       return;
     }
-    const base = apiBase(endpoint);
+    const base = server.apiBase;
     cancelActiveClaim();
     const current = requestId;
     const controller = new AbortController();
     activeClaimController = controller;
     $("pairClaim").disabled = true;
     $("pairCode").value = "";
-    report("Solicitando vínculo de laboratório...");
+    report("Enviando código ao servidor de vínculo...");
 
     let claimantToken;
     try {
@@ -139,7 +170,7 @@
       report("Aguardando aprovação pelo DualShock 4 no PS4 de teste ou pelo simulador...");
     } catch (error) {
       if (current === requestId) {
-        report("Vínculo recusado ou indisponível: " + error.message);
+        report(errorMessage(error));
         $("pairClaim").disabled = false;
       }
       return;
@@ -167,7 +198,7 @@
           report("Vínculo aprovado. Conectando ao relay de controles...");
           // Secrets stay in this transient browser session; no persistent storage.
           window.dispatchEvent(new CustomEvent("bxremote:paired", {
-            detail: { endpoint, playerToken: state.playerToken }
+            detail: { endpoint: server.controlEndpoint, playerToken: state.playerToken }
           }));
           claimantToken = null;
           return;
@@ -179,7 +210,7 @@
           return;
         }
       } catch (error) {
-        if (current === requestId) report("Vínculo encerrado: " + error.message);
+        if (current === requestId) report(errorMessage(error));
         $("pairClaim").disabled = false;
         claimantToken = null;
         return;
@@ -199,5 +230,8 @@
     $("pairCode").value = "";
     report("Solicitação cancelada neste navegador.");
   });
-  window.addEventListener("pagehide", cancelActiveClaim);
+  window.addEventListener("pagehide", () => {
+    cancelActiveClaim();
+    stopHealthCheck();
+  });
 })();
