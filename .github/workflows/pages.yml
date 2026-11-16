@@ -25,6 +25,10 @@ jobs:
           test -s _site/index.html
           test -s _site/remote/game.js
           test -s _site/remote/pkg-updates.js
+          test -s _site/remote/bridge.html
+          test -s _site/remote/bridge-p2p.js
+          test -s _site/remote/p2p-sender.js
+          test -s _site/remote/p2p-viewer.js
           test -s _site/remote/media-whep.js
           test -s _site/remote/media-controls.js
           test -s _site/remote/update.txt
