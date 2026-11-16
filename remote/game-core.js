@@ -80,6 +80,14 @@
   // The HTTP pairing backend is NOT a WebSocket media/control transport.
   // Accept an honest HTTPS origin as well as legacy WSS relay URLs; normalize
   // to HTTPS API + an optional future WebSocket control endpoint.
+  // Accept keyboard paste with spaces/dashes without ever storing the PIN.
+  // Reject other symbols, overly long values and incomplete codes.
+  function normalizePairingCode(raw) {
+    if (typeof raw !== "string" || raw.length > 32) return null;
+    const code = raw.replace(/[\s-]/g, "");
+    return /^[0-9]{8}$/.test(code) ? code : null;
+  }
+
   function validPairingServer(raw) {
     if (typeof raw !== "string" || raw.length > 240) return null;
     let url;
@@ -117,7 +125,7 @@
   const api = Object.freeze({
     qualityTargets: QUALITY_TARGETS,
     joystick, showTouch, touchState, fromTouch, fromGamepad,
-    neutral, input, validRelayEndpoint, validPairingServer, median
+    neutral, input, validRelayEndpoint, validPairingServer, normalizePairingCode, median
   });
   root.BXRemoteGame = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
