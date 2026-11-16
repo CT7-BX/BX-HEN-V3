@@ -1,6 +1,6 @@
 /*
- * BX-REMOTE-SERVICE v0.18 - experimental independent GoldHEN ELF process.
- * No video, audio or remote controller; TLS heartbeat ONLY. Manual launch.
+ * BX-REMOTE-SERVICE v0.20 - experimental independent GoldHEN ELF process.
+ * No video, audio or remote controller; HTTPS heartbeat and local TCP 9295 probe only.
  * Does not persist a player authorization or expose local ports.
  * Must be explicitly enabled by the user through BX Pair Test.
  */
@@ -15,6 +15,7 @@
 #include <orbis/Http.h>
 #include "../ps4-agent/resident/lifecycle.h"
 #include "pair_config.h"
+#include "remoteplay_probe.h"
 
 #define ENABLED_PATH "/data/bx-remote-service.enabled"
 #define STOP_PATH "/data/bx-remote-service.stop"
@@ -81,15 +82,21 @@ static int http_open(BXServiceHTTP *h) {
     if(h->ssl<0)return 0;
     h->http=sceHttpInit(h->pool,h->ssl,128*1024);
     if(h->http<0)return 0;
-    h->tmpl=sceHttpCreateTemplate(h->http,"BX-REMOTE-SERVICE/0.18",
+    h->tmpl=sceHttpCreateTemplate(h->http,"BX-REMOTE-SERVICE/0.20",
                                 ORBIS_HTTP_VERSION_1_1,1);
     return h->tmpl>=0;
 }
-static int heartbeat(BXServiceHTTP *h, BXPairConfig *cfg, int *status) {
+static int heartbeat(BXServiceHTTP *h, BXPairConfig *cfg, int *status, int rp_tcp) {
     char url[256]={0};
     char auth[80]={0};
+    char body[48]={0};
+    int body_len;
     int connection=-1,request=-1,result=-1;
     *status=0;
+    /* Diagnostic only. Never send local IPs, PINs, game data or PSN identity. */
+    body_len=snprintf(body,sizeof(body),"{\"remotePlayTcp9295\":%s}",
+                      rp_tcp==1?"true":rp_tcp==0?"false":"null");
+    if(body_len<=0 || body_len>=(int)sizeof(body))return -14;
     if(snprintf(url,sizeof(url),"%s/v1/pair/heartbeat",cfg->relay_origin)>=(int)sizeof(url)) return -10;
     if(snprintf(auth,sizeof(auth),"Bearer %s",cfg->console_token)>=(int)sizeof(auth))return -11;
     connection=sceHttpCreateConnectionWithURL(h->tmpl,url,false);
@@ -101,7 +108,7 @@ static int heartbeat(BXServiceHTTP *h, BXPairConfig *cfg, int *status) {
        sceHttpSetConnectTimeOut(request,5000000)<0 ||
        sceHttpSetResolveTimeOut(request,5000000)<0 ||
        sceHttpSetSendTimeOut(request,5000000)<0){result=-12;goto done;}
-    result=sceHttpSendRequest(request,"{}",2);
+    result=sceHttpSendRequest(request,body,(size_t)body_len);
     if(result<0)goto done;
     result=sceHttpGetStatusCode(request,status);
     if(result>=0)result=*status==200?1:-13;
@@ -119,7 +126,7 @@ int main(void) {
     BXServiceHTTP http;
     BXPairConfig config={{0},{0}};
     bx_agent_lifecycle agent;
-    int result,status=0;
+    int result,status=0,remoteplay_port=0;
     bx_agent_init(&agent);
     if (!enabled()) {log_status("not_enabled",0,0);return 0;}
     if (!config_read(&config)) {log_status("config_invalid",-1,0);return 0;}
@@ -135,10 +142,14 @@ int main(void) {
      * Run independently of the foreground PKG, after manual GoldHEN launch.
      */
     while(enabled() && agent.enabled) {
-        result=heartbeat(&http,&config,&status);
+        remoteplay_port=bx_remoteplay_probe_loopback();
+        result=heartbeat(&http,&config,&status,remoteplay_port);
         if(result==1) {
             bx_agent_on_connected(&agent);
             log_status("heartbeat_ok",result,status);
+            log_status(remoteplay_port==1?"remoteplay_tcp_open":
+                remoteplay_port==0?"remoteplay_tcp_unreachable":
+                "remoteplay_probe_failed",remoteplay_port,0);
             pause_checked(30);
         } else {
             bx_agent_on_failure(&agent);
