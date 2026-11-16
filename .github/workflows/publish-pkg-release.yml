@@ -1,0 +1,66 @@
+name: BX-REMOTE-PLAY — Publicar PKG experimental v0.12
+
+# This job only promotes an already-tested, SHA-256-pinned build from GitHub
+# Actions into a public release; it never rebuilds nor overwrites the package.
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-pkg-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: bx-remote-pair-v012-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the validated PKG from successful GitHub Actions run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p staging public
+          # Fixed, previously completed OpenOrbis workflow run.
+          gh run download 43786775943 --name bx-remote-play-native-pairing-untested --dir staging
+          test -s staging/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg
+          test -f staging/pkg.sha256
+          actual="$(sha256sum staging/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg | cut -d ' ' -f 1)"
+          expected="9b72f2a2613bd983a07216ca4a88abf86c6370a3b7f73630b1d2b4f37474ffa3"
+          test "$actual" = "$expected" || { echo "Package SHA-256 mismatch"; exit 1; }
+          grep -q "^$expected " staging/pkg.sha256 || { echo "Build hash manifest mismatch"; exit 1; }
+          cp staging/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg public/BX-REMOTE-PLAY-Pair-Test-v0.12.pkg
+          printf '%s  %s\n' "$expected" "BX-REMOTE-PLAY-Pair-Test-v0.12.pkg" > public/SHA256SUMS
+          test "$(stat -c '%s' public/BX-REMOTE-PLAY-Pair-Test-v0.12.pkg)" = "6619136"
+
+      - name: Publish permanent public pre-release link
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="pair-test-v0.12"
+          if gh release view "$tag" --json tagName >/dev/null 2>&1; then
+            echo "Release already exists. Not overwriting published assets."
+            exit 0
+          fi
+          gh release create "$tag" \
+            public/BX-REMOTE-PLAY-Pair-Test-v0.12.pkg \
+            public/SHA256SUMS \
+            --target "$GITHUB_SHA" \
+            --title "BX-REMOTE-PLAY — PS4 Pair Test v0.12 (experimental)" \
+            --prerelease \
+            --notes "PS4 Pair Test v0.12 for experimental HTTPS pairing only. Built and structurally validated using OpenOrbis in GitHub Actions run 43786775943. The PKG has NOT been physically tested on a PS4. Requires a separately configured private HTTPS pairing server and matching PS4 token. It does NOT stream games, audio, video or real PS4 controls. SHA-256 is provided as a release asset."
+          gh release view "$tag" --json url,assets --jq '{url: .url, assets: [.assets[].name]}'
