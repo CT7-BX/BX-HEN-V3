@@ -1,5 +1,16 @@
 # Histórico de atualizações — BX-REMOTE-PLAY
 
+## 2026-11-15 — Interface 0.8: vínculo guiado e limite de PIN distribuído
+
+- Guia compacto em três etapas no painel de pareamento; o teste de saúde do servidor roda uma vez quando o painel é aberto.
+- PIN de oito números pode ser colado com espaços ou hífens; entradas malformadas ou muito longas são rejeitadas, sem enviar para servidor.
+- A interface mostra segundos restantes durante a aprovação e encerra a espera ao receber estado inesperado, em vez de esperar dois minutos desnecessariamente.
+- Correção de corrida: resposta de pedido cancelado não reativa a espera nem sobrescreve o estado do navegador.
+- Diagnóstico do site diferencia backend Cloudflare online mas sem chave privada, sem armazenar URL, código ou token no relatório.
+- Worker acrescenta limite máximo de 32 erros por código temporário, mesmo quando solicitações são distribuídas entre IPs diferentes; o PS4 autenticado pode iniciar uma nova tentativa.
+- Novos testes de integração para abertura automática, cancelamento, aprovação HTTP e proteção contra força bruta distribuída.
+- **Compatibilidade PS4 física, transporte de mídia e controle remoto real ainda não validados.**
+
 ## 2026-11-15 — Pareamento HTTPS: correção de fluxo e tratamento de erros
 
 - Corrigida a exigência enganosa de WSS no site: o backend Cloudflare vincula por HTTPS e ainda não tem WebSocket de controle.
