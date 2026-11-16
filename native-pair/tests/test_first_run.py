@@ -40,7 +40,7 @@ class FirstRunFlowTests(unittest.TestCase):
         self.assertNotIn("console_token", updater.split("*/", 1)[-1])
         self.assertNotIn("sceAppInstUtil", updater)
         self.assertNotIn("pkg_install", updater)
-        self.assertIn("check_public_update(&http);", SOURCE)
+        self.assertIn("has_update = check_public_update(&http, &available_update);", SOURCE)
 
     def test_approved_pairing_waits_for_explicit_exit_and_logs_teardown(self):
         success = SOURCE[SOURCE.index("finish:"):]
@@ -70,11 +70,13 @@ class FirstRunFlowTests(unittest.TestCase):
         self.assertIn('report("idle_ready_for_ps4_close", 0, 0);', idle)
         self.assertIn("for (;;) sleep(1);", idle)
         self.assertIn("__attribute__((noreturn))", SOURCE)
+        self.assertIn("bx_ota_fetch_verified", SOURCE)
+        self.assertIn("bx_ota_install_with_consent", SOURCE)
 
     def test_version_labels_incremented(self):
-        self.assertIn("Pairing Proof v0.16", SOURCE)
-        self.assertIn("native pairing test 0.16", SOURCE)
-        self.assertIn("BX-REMOTE-PLAY-PS4-Pair/0.16", SOURCE)
+        self.assertIn("Pairing Proof v0.17", SOURCE)
+        self.assertIn("native pairing test 0.17", SOURCE)
+        self.assertIn("BX-REMOTE-PLAY-PS4-Pair/0.17", SOURCE)
 
 if __name__ == "__main__":
     unittest.main()
