@@ -70,6 +70,9 @@ test("unconfigured worker fails closed but can report its public status", async 
   const request = await post(env, "/v1/pair/heartbeat", {}, TOKEN);
   assert.equal(request.status, 503);
   assert.equal(request.json.error, "BACKEND_NOT_CONFIGURED");
+  const claim = await post(env, "/v1/pair/claim", { code: "00000000" });
+  assert.equal(claim.status, 503, "Public claims must not look usable without a PS4 secret");
+  assert.equal(claim.json.error, "BACKEND_NOT_CONFIGURED");
 });
 
 test("PS4 HTTP pair is online only with authenticated heartbeat", async () => {
@@ -117,6 +120,11 @@ test("one-time code requires console approval and returns status without control
 
 test("disallowed requests, oversized body and unknown paths fail closed", async () => {
   const { env } = instance();
+  const plainHttp = await worker.fetch(new Request(
+    "http://bx-remote-link.example.workers.dev/health", {
+      headers: { origin: SITE }
+    }), env);
+  assert.equal(plainHttp.status, 403, "Never accept bearer flows over unencrypted HTTP");
   const response = await worker.fetch(new Request(base + "/v1/pair/heartbeat", {
     method: "POST",
     headers: { origin: SITE, authorization: "Bearer " + TOKEN, "content-type": "application/json" },
