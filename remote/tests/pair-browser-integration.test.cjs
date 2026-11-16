@@ -12,12 +12,13 @@ function browserWith(fetchMock, endpoint = "https://bx-remote-link.4rt949zpj8.wo
   const dispatched = [];
   for (const name of [
     "pairClaim", "pairEndpoint", "pairCode", "pairServerStatus",
-    "pairStatus", "pairCheck", "pairCancel"
+    "pairStatus", "pairCheck", "pairCancel", "pairSection"
   ]) {
     nodes.set(name, {
       value: "", textContent: "", disabled: false, dataset: {},
       handlers: new Map(),
       addEventListener(name, callback) { this.handlers.set(name, callback); },
+      click() { return this.fire("click"); },
       async fire(name) {
         const handler = this.handlers.get(name);
         assert.ok(handler, name + " listener");
@@ -69,7 +70,7 @@ test("HTTPS health shows that Cloudflare is online but console secret is missing
   assert.equal(requests.length, 1);
   assert.equal(requests[0].url,
     "https://bx-remote-link.4rt949zpj8.workers.dev/health");
-  assert.equal(b.get("pairServerStatus").dataset.relayCheck, "failed");
+  assert.equal(b.get("pairServerStatus").dataset.relayCheck, "unconfigured");
   assert.match(b.get("pairServerStatus").textContent, /chave privada/);
   assert.equal(b.get("pairCheck").disabled, false);
 });
