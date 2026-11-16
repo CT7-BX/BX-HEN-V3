@@ -26,6 +26,8 @@ jobs:
           test -s _site/remote/game.js
           test -s _site/remote/site-v2.css
           test -s _site/remote/site-ui.js
+          test -s _site/remote/command-center.js
+          test -s _site/remote/command-center.css
           test -s _site/remote/pkg-updates.js
           test -s _site/remote/bridge.html
           test -s _site/remote/gateway.html
