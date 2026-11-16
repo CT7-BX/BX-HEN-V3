@@ -20,7 +20,7 @@ class NativeV023Tests(unittest.TestCase):
         self.assertIn("ui.progress >= (unsigned)(i+1)", UI)
         self.assertIn('"VERSAO 0.23 BETA"', UI)
         self.assertIn('"CODIGO DE PAREAMENTO"', UI)
-        self.assertIn('"STREAMING DIRETO AINDA INDISPONIVEL"', UI)
+        self.assertIn("STREAMING DIRETO AINDA INDISPONIVEL", UI)
         for stage in ("config_missing", "network_init_failed",
                       "ota_download_failed", "heartbeat_failed",
                       "approved_pairing_only", "cancelled"):
