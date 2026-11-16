@@ -1,4 +1,4 @@
 title_id=BRPM00001
-version=0.21
-sha256=b6f291dd73c210095878c4ad061aece933afc3b9ca42a2ff842dfa098e0078bc
-pkg_url=https://github.com/CT7-BX/BX-REMOTE-PLAY/releases/download/pair-test-v0.21/BX-REMOTE-PLAY-Pair-Test-v0.21.pkg
+version=0.22
+sha256=6bef906cee8a9ab11c4180a76f4051442d2431c0a1bc43029cd65b5f6ae566e4
+pkg_url=https://github.com/CT7-BX/BX-REMOTE-PLAY/releases/download/pair-test-v0.22/BX-REMOTE-PLAY-Pair-Test-v0.22.pkg
