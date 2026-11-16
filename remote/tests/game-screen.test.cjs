@@ -39,3 +39,12 @@ test("player clearly discloses lack of real PS4 streaming", () => {
   assert.doesNotMatch(engine, /localStorage|sessionStorage/);
   assert.doesNotMatch(html, /autoplay.*https?:\/\/.*video/);
 });
+
+test("relay session discards stale socket callbacks and clears sequence", () => {
+  assert.match(engine, /existing\.onopen = null;/);
+  assert.match(engine, /existing\.onmessage = null;/);
+  assert.match(engine, /existing\.onerror = null;/);
+  assert.match(engine, /client\.onopen = \(\) => \{\s*if \(ws !== client\) return;/);
+  assert.match(engine, /client\.onmessage = event => \{\s*if \(ws !== client\) return;/);
+  assert.match(engine, /nextSeq = 0;/);
+});
