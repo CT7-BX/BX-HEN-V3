@@ -48,7 +48,7 @@
     const diag = state?.remotePlayProbe;
     if (!diag || !Number.isInteger(diag.checkedSecondsAgo) ||
         diag.checkedSecondsAgo < 0 || diag.checkedSecondsAgo > 90)
-      return "Diagnóstico nativo de Remote Play ainda não recebido. Execute o serviço ELF v0.20 no PS4.";
+      return "Diagnóstico nativo de Remote Play ainda não recebido. Execute o serviço ELF v0.22 no PS4.";
     if (diag.loopbackTcp9295 === true)
       return "Diagnóstico do serviço: porta TCP 9295 respondeu localmente no PS4. Ainda não existe transmissão de vídeo/áudio nem controle.";
     if (diag.loopbackTcp9295 === false)
