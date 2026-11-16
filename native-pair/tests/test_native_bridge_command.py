@@ -16,6 +16,7 @@ class NativeCommandBridgeChecks(unittest.TestCase):
     def test_bounded_auth_status_parser_and_single_allowlisted_command(self):
         self.assertIn('#include "pair_protocol.h"', RESIDENT)
         self.assertIn('sceHttpReadData(request,response+received,', RESIDENT)
+        self.assertIn('sceHttpCreateRequestWithURL(connection,ORBIS_METHOD_POST,url,body_len)', RESIDENT)
         self.assertIn('bx_pair_field(response,"bridgeProbeId",candidate,sizeof(candidate))', RESIDENT)
         self.assertIn('strlen(candidate)!=64', RESIDENT)
         self.assertIn('post_bridge_result(&http,&config,bridge_probe_id,fresh)', RESIDENT)
