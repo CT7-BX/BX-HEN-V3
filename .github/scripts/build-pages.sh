@@ -35,6 +35,7 @@ assets=(
   pair-client.js
   first-tests.js
   touch-layout.css
+  site-v2.css
   relay-lab.html
   ps4-probe.txt
   update.txt
