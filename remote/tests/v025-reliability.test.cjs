@@ -105,7 +105,7 @@ test("iPhone can share the exact public Android page without any pairing data",(
   assert.match(gateway,/id="androidShareLink"/);
   assert.match(gateway,/id="androidShareStatus"/);
   assert.match(gateway,/id="androidManualLink"/);
-  assert.match(gateway,/android-readiness\.js\?v=0\.25/);
+  assert.match(gateway,/android-readiness\.js\?v=0\.26/);
   assert.match(script,/navigator\.share\(/);
   assert.match(script,/navigator\.clipboard\.writeText\(url\)/);
   assert.match(script,/new URL\("\.\/gateway\.html", window\.location\.href\)/);
