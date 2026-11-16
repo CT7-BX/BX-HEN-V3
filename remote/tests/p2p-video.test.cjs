@@ -121,7 +121,7 @@ test("both interfaces make capture and sharing restrictions explicit; no secret 
   assert.match(html,/id="p2pRoomCode"/);
   assert.match(html,/id="p2pJoin"/);
   assert.match(html,/src="\.\/bridge-p2p\.js\?v=0\.22"/);
-  assert.match(html,/src="\.\/p2p-viewer\.js\?v=0\.22"/);
+  assert.match(html,/src="\.\/p2p-viewer\.js\?v=0\.23"/);
   assert.match(sender,/id="startShare"/);
   assert.match(sender,/id="stopShare"/);
   assert.match(sender,/id="roomCode"/);
