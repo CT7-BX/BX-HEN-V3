@@ -1,5 +1,5 @@
 /*
- * BX-REMOTE-PLAY PS4 Pairing Proof v0.18
+ * BX-REMOTE-PLAY PS4 Pairing Proof v0.19
  *
  * NEW, SEPARATE PKG. Not the existing v0.21 HTTPS diagnostic.
  * Foreground-only console-side HTTP pairing test, with local DualShock consent.
@@ -29,6 +29,7 @@
 #include "ota_download.h"
 #include "ota_install.h"
 #include "resident_install.h"
+#include "native_ui.h"
 
 #define REPORT_PATH "/data/bx-remote-pairing-report.txt"
 #define CONFIG_PATH "/user/data/bx-remote-pair.cfg"
@@ -44,7 +45,7 @@
 #define CONFIG_AUTO_RECHECK_TICKS 50 /* re-read .cfg every five seconds */
 #define UPDATE_MANIFEST_URL "https://ct7-bx.github.io/BX-REMOTE-PLAY/remote/update.txt"
 #define CURRENT_UPDATE_MAJOR 0u
-#define CURRENT_UPDATE_MINOR 18u
+#define CURRENT_UPDATE_MINOR 19u
 
 typedef struct HttpContext {
     int initialized_net;
@@ -55,10 +56,13 @@ typedef struct HttpContext {
 } HttpContext;
 
 static void notice(const char *message) {
-    sceSysUtilSendSystemNotificationWithText(222, message);
+    /* Native dashboard is primary; notifications remain a safe fallback. */
+    if (bx_ui_enabled()) bx_ui_status(message);
+    else sceSysUtilSendSystemNotificationWithText(222, message);
 }
 
 static void report(const char *stage, int code, int status) {
+    bx_ui_stage(stage);
     /* Keep the entire finite cleanup / OTA timeline instead of overwriting
      * every previous checkpoint. Cap the diagnostic file to 64 KiB. */
     const char *location = REPORT_PATH;
@@ -75,7 +79,7 @@ static void report(const char *stage, int code, int status) {
         f=fopen(location,"w");
         if (!f) return;
     }
-    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.18\n");
+    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.19\n");
     fprintf(f, "stage=%s\n", stage ? stage : "unknown");
     fprintf(f, "result_code=%d\nhttp_status=%d\n", code, status);
     fprintf(f, "streaming=NOT_IMPLEMENTED\n");
@@ -91,6 +95,7 @@ static void report(const char *stage, int code, int status) {
 static void idle_until_ps4_close(void) __attribute__((noreturn));
 static void idle_until_ps4_close(void) {
     report("idle_ready_for_ps4_close", 0, 0);
+    bx_ui_stage("TESTE ENCERRADO");
     notice("BX-REMOTE: Teste encerrado. Feche o app pelo menu PS.");
     for (;;) sleep(1);
 }
@@ -136,7 +141,7 @@ static int open_http(HttpContext *ctx) {
     if (ctx->ssl < 0) return 0;
     ctx->http = sceHttpInit(ctx->pool, ctx->ssl, HTTP_MEMORY_BYTES);
     if (ctx->http < 0) return 0;
-    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.18",
+    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.19",
         ORBIS_HTTP_VERSION_1_1, 1);
     return ctx->tmpl >= 0;
 }
@@ -390,6 +395,8 @@ static void offer_resident_setup(int pad, uint32_t *last_buttons) {
 
 static void show_code(const char *code) {
     char message[180];
+    bx_ui_code(code);
+    bx_ui_stage("AGUARDANDO VINCULO");
     snprintf(message, sizeof(message),
         "BX-REMOTE: Codigo %s. Abra o site e escolha Vincular (LAB).", code);
     notice(message);
@@ -411,6 +418,10 @@ int main(void) {
     int pad = -1, user_initialized = 0, status = 0, result = -1, accepted = 0, round, i;
     const char *stage = "config";
     const char *final = "not_started";
+
+    /* Draw a real fullscreen dashboard before any HTTPS operations. */
+    (void)bx_ui_init();
+    bx_ui_stage("VERIFICANDO CONFIGURACAO");
 
     /* The PS4 first-run may happen before the user copies a private .cfg.
      * The app remains open while FTP is available, and detects the file
@@ -460,6 +471,7 @@ int main(void) {
             }
         }
     }
+    bx_ui_stage("CONECTANDO HTTPS");
     if (!open_http(&http)) {
         notice("BX-REMOTE: Falha ao iniciar bibliotecas HTTPS.");
         report("network_init_failed", -2, 0);
@@ -471,6 +483,7 @@ int main(void) {
         idle_until_ps4_close(); /* Do not return through OpenOrbis libc _exit. */
     }
     /* Best effort only: if GitHub Pages is offline, pairing still starts. */
+    bx_ui_stage("PROCURANDO ATUALIZACOES");
     has_update = check_public_update(&http, &available_update);
     if (pad < 0) pad = pad_open(&user_initialized);
     if (pad < 0) {
@@ -480,13 +493,16 @@ int main(void) {
     }
     if (has_update) offer_update(&http, &available_update, pad, &last_buttons);
     memset(&available_update, 0, sizeof(available_update));
+    bx_ui_stage("CONFIGURAR SERVICO ELF");
     offer_resident_setup(pad, &last_buttons);
 
     /* Only authenticated HTTPS originating from this PS4 homebrew can initiate. */
     stage = "heartbeat";
+    bx_ui_stage("VERIFICANDO SERVIDOR");
     result = call_api(&http, &config, "/v1/pair/heartbeat", "{}", response, &status);
     if (result != 1) { final = "heartbeat_failed"; goto finish; }
     stage = "start";
+    bx_ui_stage("GERANDO CODIGO");
     result = call_api(&http, &config, "/v1/pair/start", "{}", response, &status);
     if (result != 1) { final = "start_http_failed"; goto finish; }
     if (!bx_pair_code(response, code) ||
@@ -515,6 +531,7 @@ int main(void) {
                 result = -18;
                 break;
             }
+            bx_ui_stage("AUTORIZACAO NO PS4");
             notice("BX-REMOTE: Aprovar acesso de teste? X = SIM, O = NAO, OPTIONS sai.");
             stage = "user_consent";
             for (i = 0; i < APPROVAL_POLL_TICKS; ++i) {
@@ -552,6 +569,7 @@ int main(void) {
 
 finish:
     stage = final;
+    bx_ui_stage(accepted ? "VINCULO APROVADO" : "VINCULO ENCERRADO");
     /* Preserve native/HTTP failure code instead of converting all failures
      * to -1. The log is safe to share after checking for local information. */
     report(stage, accepted ? 0 : (result < 0 ? result : -1), status);
