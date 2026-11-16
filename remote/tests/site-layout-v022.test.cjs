@@ -41,7 +41,7 @@ test("quick actions point to existing sections, with no fake PS4 media promises"
   assert.match(bridge, /id="stopShare"/);
   assert.match(bridge, /id="copyCode"/);
   assert.match(bridge, /id="roomCode"/);
-  assert.match(native, /VERSAO 0\.23 BETA/);
+  assert.match(native, /VERSION 0\.24   BETA/);
   assert.match(native, /STREAMING DIRETO AINDA INDISPONIVEL/);
 });
 
