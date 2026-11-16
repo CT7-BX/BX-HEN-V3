@@ -29,6 +29,10 @@ O ELF residente atual só envia heartbeats HTTPS. Para oferecer no futuro **Soli
 - Indicador RTT do navegador até o relay; **não** é ping do PS4 ou latência real do jogo.
 - Liberação de comandos de toque quando termina a pressão ou quando a página perde foco.
 
+## Primeiro diagnóstico independente de Mac — PKG v0.20
+
+Após instalar v0.20 no PS4, o ELF residente atualizado verifica localmente a porta TCP 9295 (Remote Play) e envia por HTTPS autenticado apenas o resultado booleano. Ao aprovar um vínculo temporário pelo PKG, o navegador exibe se a porta respondeu, não respondeu, ou se houve erro. O Worker mostra esse diagnóstico **somente** a um requerente aprovado e oculta dados antigos. A verificação não exige Mac ou PC, mas **não envia imagem, áudio ou comandos** e não valida uma sessão Remote Play real. A etapa seguinte é uma ponte de transporte TCP/UDP e um cliente WebAssembly compatível com iOS. Consulte [Plano PS4-only](../docs/PS4-ONLY-VIDEO-BRIDGE.md).
+
 ## Piloto P2P para imagem real no player do BX
 
 O arquivo [bridge.html](bridge.html) permite que um Mac com Chiaki conectado ao PS4 compartilhe uma janela/aba **sob permissão explícita do navegador**, enviando mídia WebRTC diretamente a outro navegador. No iPhone, a seção **Receber imagem do Mac — teste P2P real** aceita um código privado de sessão de 64 caracteres e anexa as trilhas reais ao player BX. Áudio depende da captura suportada pelo navegador. **O Mac precisa ficar ligado e o PKG v0.19 não envia vídeo nem controla jogos.**
