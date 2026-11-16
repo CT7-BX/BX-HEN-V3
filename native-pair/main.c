@@ -67,6 +67,17 @@ static void report(const char *stage, int code, int status) {
     fclose(f);
 }
 
+/* OpenOrbis' libc exit path has caused CE-34878-0 on physical PS4s.
+ * A finished foreground proof must therefore remain idle until the user
+ * closes the application from the PS button menu. No background agent.
+ */
+static void idle_until_ps4_close(void) __attribute__((noreturn));
+static void idle_until_ps4_close(void) {
+    report("idle_ready_for_ps4_close", 0, 0);
+    notice("BX-REMOTE: Teste encerrado. Feche o app pelo menu PS.");
+    for (;;) sleep(1);
+}
+
 static void close_http(HttpContext *ctx) {
     /* These checkpoints isolate the failing native teardown API on hardware.
      * The associated PS4 error happens after an otherwise approved link. */
@@ -336,7 +347,7 @@ int main(void) {
                 if (pad >= 0) scePadClose(pad);
                 if (user_initialized) sceUserServiceTerminate();
                 memset(&config, 0, sizeof(config));
-                return 0;
+                idle_until_ps4_close();
             }
         }
     }
@@ -348,7 +359,7 @@ int main(void) {
         if (user_initialized) sceUserServiceTerminate();
         memset(&config, 0, sizeof(config));
         sleep(5);
-        return 0; /* Expected network failure: report it, do not crash PS4 shell. */
+        idle_until_ps4_close(); /* Do not return through OpenOrbis libc _exit. */
     }
     /* Best effort only: if GitHub Pages is offline, pairing still starts. */
     check_public_update(&http);
@@ -479,5 +490,5 @@ finish:
     }
     report("cleanup_complete", 0, 0);
     memset(&config, 0, sizeof(config));
-    return 0; /* Expected completion; unexpected termination is traceable. */
+    idle_until_ps4_close(); /* Never return through OpenOrbis libc _exit. */
 }
