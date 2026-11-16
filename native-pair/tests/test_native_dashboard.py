@@ -25,7 +25,7 @@ class NativeDashboardTests(unittest.TestCase):
         self.assertIn("bx_ui_shutdown();", UI)
 
     def test_native_dashboard_does_not_imitate_video_or_media_transport(self):
-        self.assertIn("SEM STREAMING DE VIDEO OU AUDIO", UI)
+        self.assertIn("STREAMING DIRETO AINDA INDISPONIVEL", UI)
         self.assertIn("CODIGO DE PAREAMENTO", UI)
         self.assertIn('"01 VINCULO"', UI)
         self.assertIn('"02 SERVICO"', UI)
@@ -47,7 +47,7 @@ class NativeDashboardTests(unittest.TestCase):
         self.assertIn('bx_ui_stage("TESTE ENCERRADO");', MAIN)
 
     def test_build_links_dashboard_and_keeps_resident_payload(self):
-        self.assertIn("VERSION := 0.21", MAKE)
+        self.assertIn("VERSION := 0.22", MAKE)
         self.assertIn("-lSceVideoOut", MAKE)
         self.assertIn("$(OUT)/native_ui.o", MAKE)
         self.assertIn("$(OUT)/bx_remote_service.elf", MAKE)

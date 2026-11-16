@@ -20,7 +20,7 @@ test("GitHub Pages deployment stages only the public frontend allowlist", () => 
       "remote/game-core.js", "remote/controller-core.js", "remote/pair-client.js", "remote/first-tests.js",
       "remote/media-whep.js", "remote/media-controls.js", "remote/pkg-updates.js",
       "remote/bridge.html", "remote/bridge-p2p.js", "remote/p2p-sender.js", "remote/p2p-viewer.js",
-      "remote/touch-layout.css", "remote/relay-lab.html",
+      "remote/touch-layout.css", "remote/site-v2.css", "remote/site-ui.js", "remote/relay-lab.html",
       "remote/manifest.webmanifest", "remote/ps4-probe.txt", "remote/update.txt", "remote/icon.svg"
     ]) {
       assert.equal(fs.existsSync(path.join(dir, asset)), true, asset);
@@ -39,7 +39,7 @@ test("GitHub Pages deployment stages only the public frontend allowlist", () => 
        "index.html", "manifest.webmanifest", "pair-client.js", "first-tests.js", "ps4-probe.txt",
        "media-whep.js", "media-controls.js", "pkg-updates.js",
        "bridge.html", "bridge-p2p.js", "p2p-sender.js", "p2p-viewer.js",
-       "relay-lab.html", "touch-layout.css", "update.txt"].sort()
+       "relay-lab.html", "touch-layout.css", "site-v2.css", "site-ui.js", "update.txt"].sort()
     );
     const rerun = spawnSync("bash", [path.join(root, ".github/scripts/build-pages.sh"), dir], {
       cwd: root, encoding: "utf8"

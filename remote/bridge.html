@@ -2,8 +2,8 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#111016">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0c11">
 <title>BX-REMOTE-PLAY | Transmitir Chiaki no Mac</title>
 <style>
 :root{color-scheme:dark;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0c0b11;color:#f6f3f6}
@@ -31,15 +31,22 @@ input{display:block;width:100%;margin:8px 0;border:1px solid #786273;border-radi
 em{color:#ffc6d0}
 .note{font-size:.85rem}
 </style>
+<link rel="stylesheet" href="./site-v2.css?v=0.22">
 </head>
-<body>
+<body class="bridge-page">
 <main>
-  <header><strong>BX-<span>REMOTE</span>-PLAY</strong><a href="./">Voltar ao player</a></header>
-  <p class="tag">PILOTO P2P · MAC COMO TRANSMISSOR TEMPORÁRIO</p>
-  <h1>Compartilhar a imagem do Chiaki</h1>
+  <header><strong>BX-<span>REMOTE</span>-PLAY</strong><a href="./">← Voltar ao player</a></header>
+  <p class="tag">BX LAB · TRANSMISSOR P2P EXPERIMENTAL</p>
+  <h1>Imagem real. <em>Teste com o Mac.</em></h1>
   <p>Para testar vídeo real no celular, deixe um cliente Chiaki aberto no Mac e conectado ao seu PS4. Esta página captura <strong>somente a janela/aba que você escolher</strong> e transmite diretamente a outro navegador usando WebRTC. Não obtém vídeo do PKG e não dispensa o Mac neste teste.</p>
+  <div class="bridge-disclaimer"><strong>Importante:</strong> esta transmissão exige Chiaki funcionando no Mac. Ainda não é uma conexão direta do PKG ao navegador nem funciona com o Mac desligado.</div>
+  <div class="bridge-metrics" aria-label="Como funciona o teste">
+    <article><strong>01 · PS4</strong><span>Remote Play ativo e Chiaki conectado no Mac</span></article>
+    <article><strong>02 · Captura</strong><span>Compartilhamento de janela autorizado no navegador</span></article>
+    <article><strong>03 · iPhone</strong><span>Reprodução WebRTC no site BX usando código privado</span></article>
+  </div>
   <section class="card" aria-label="Instruções de transmissão">
-    <h2>Antes de iniciar</h2>
+    <h2>Iniciar transmissão</h2>
     <ol class="steps">
       <li>Abra o Chiaki no Mac, conecte ao PS4 e confirme que o jogo aparece normalmente.</li>
       <li>Toque em <strong>Compartilhar janela</strong> e autorize apenas a janela ou aba do Chiaki. Não selecione sua área de trabalho inteira se houver informações privadas visíveis.</li>
@@ -47,13 +54,13 @@ em{color:#ffc6d0}
       <li>Os dois dispositivos devem usar a mesma rede Wi-Fi neste primeiro teste. A captura de áudio depende das permissões e do navegador. O Chrome pode permitir áudio quando a fonte é uma aba.</li>
     </ol>
     <div class="buttons">
-      <button class="primary" id="startShare">Compartilhar janela</button>
-      <button id="stopShare" disabled>Parar transmissão</button>
+      <button class="primary" type="button" id="startShare">Iniciar captura da janela</button>
+      <button type="button" id="stopShare" disabled>Parar transmissão</button>
     </div>
     <p id="shareStatus" role="status" aria-live="polite">Nenhuma captura iniciada.</p>
     <label for="roomCode">Código privado de sessão (expira em 3 minutos para entrar)</label>
     <input id="roomCode" readonly autocomplete="off" spellcheck="false" aria-describedby="shareStatus" placeholder="O código aparecerá após permitir a captura">
-    <button id="copyCode" disabled>Copiar código</button>
+    <button type="button" id="copyCode" disabled>Copiar código</button>
     <p class="note"><em>Privacidade:</em> nunca compartilhe o código publicamente. O servidor armazena temporariamente apenas a negociação WebRTC, não grava sua tela. Encerrar esta página interrompe a captura. O código expira para novos acessos, mas a conexão em andamento deve ser encerrada pelo botão Parar.</p>
   </section>
   <p class="note">Este é um teste para comprovar imagem e áudio no player BX. Não oferece comandos reais ao PS4 e não substitui o objetivo final de PS4 ligado em casa sem Mac. Sem Chiaki conectado, compartilhar esta página não faz a imagem do PS4 aparecer.</p>

@@ -1,5 +1,11 @@
 # BX-REMOTE-PLAY — interface, pareamento PS4 e mídia WHEP experimental
 
+## Interface v0.22 — visual unificado preto e vermelho
+
+O layout principal e o transmissor temporário [bridge.html](bridge.html) agora compartilham `site-v2.css`. A página principal traz navegação direta para Player, Vincular e Atualizações, atalhos para jogar sem Mac (cliente externo), conectar PS4 ou consultar PKG, estado da mídia honesto e configuração avançada recolhida por padrão. O script `site-ui.js` abre as seções de destino sem alterar pareamento, mídia, controle virtual ou credenciais. Ambos os arquivos foram incluídos na lista explícita do build GitHub Pages e possuem testes de regressão, iPhone/desktop e navegação por teclado. Nenhum vídeo foi criado artificialmente.
+
+O painel do PKG v0.22 também ganhou hierarquia visual atualizada (VideoOut nativo 1920×1080), com código de pareamento destacado, etapas e controles mais claros. O serviço ELF preserva as funções da v0.21, mas precisa ser copiado novamente ao instalar a nova versão pelo TRIÂNGULO; a estabilidade durante jogos e a imagem PS4→BX ainda exigem testes físicos.
+
 A página principal em [index.html](index.html) prioriza a tela e o controle físico. Sem controle conectado no iPhone, o modo automático mostra um DualShock virtual **sobre a área de vídeo**.
 
 ## Central de atualizações do PKG (consulta pública)
