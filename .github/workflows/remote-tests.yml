@@ -38,6 +38,7 @@ jobs:
           node --check remote/media-source-core.js
           node --check remote/diagnostics.js
           node --check remote/android-readiness.js
+          node --check remote/command-center.js
           node --check remote/pkg-updates.js
           node --check remote/bridge-p2p.js
           node --check remote/p2p-sender.js
