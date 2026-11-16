@@ -10,8 +10,8 @@ from verify_package import parse_sfo  # existing validated SFO parser
 expected = {
     "TITLE_ID": "BRPM00001",
     "CONTENT_ID": "IV0000-BRPM00001_00-BXREMOTEPAIR0001",
-    "APP_VER": "0.18",
-    "VERSION": "0.18",
+    "APP_VER": "0.19",
+    "VERSION": "0.19",
     "CATEGORY": "gd"
 }
 
@@ -20,7 +20,7 @@ def verify(sfo_path, icon_path):
     for key, value in expected.items():
         if sfo.get(key) != value:
             raise ValueError(f"{key}: expected {value!r}, got {sfo.get(key)!r}")
-    if sfo.get("TITLE") != "BX Remote Play - Pair Test":
+    if sfo.get("TITLE") != "BX Remote Play - Dashboard":
         raise ValueError("pairing proof must have a distinct diagnostic title")
     data = pathlib.Path(icon_path).read_bytes()
     if data[:8] != b"\x89PNG\r\n\x1a\n":
