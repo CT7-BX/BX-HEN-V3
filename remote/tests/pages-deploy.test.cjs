@@ -18,7 +18,7 @@ test("GitHub Pages deployment stages only the public frontend allowlist", () => 
     for (const asset of [
       "index.html", ".nojekyll", "remote/index.html", "remote/game.js",
       "remote/game-core.js", "remote/controller-core.js", "remote/pair-client.js", "remote/first-tests.js",
-      "remote/media-whep.js", "remote/media-controls.js", "remote/pkg-updates.js",
+      "remote/media-whep.js", "remote/media-controls.js", "remote/media-source-core.js", "remote/diagnostics.js", "remote/pkg-updates.js",
       "remote/bridge.html", "remote/bridge-p2p.js", "remote/p2p-sender.js", "remote/p2p-viewer.js",
       "remote/touch-layout.css", "remote/site-v2.css", "remote/site-ui.js", "remote/relay-lab.html",
       "remote/manifest.webmanifest", "remote/ps4-probe.txt", "remote/update.txt", "remote/icon.svg"
@@ -37,7 +37,7 @@ test("GitHub Pages deployment stages only the public frontend allowlist", () => 
       fs.readdirSync(path.join(dir, "remote")).sort(),
       ["controller-core.js", "game-core.js", "game.js", "icon.svg",
        "index.html", "manifest.webmanifest", "pair-client.js", "first-tests.js", "ps4-probe.txt",
-       "media-whep.js", "media-controls.js", "pkg-updates.js",
+       "media-whep.js", "media-controls.js", "media-source-core.js", "diagnostics.js", "pkg-updates.js",
        "bridge.html", "bridge-p2p.js", "p2p-sender.js", "p2p-viewer.js",
        "relay-lab.html", "touch-layout.css", "site-v2.css", "site-ui.js", "update.txt"].sort()
     );
