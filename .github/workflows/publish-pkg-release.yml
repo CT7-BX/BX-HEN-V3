@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download the validated PKG from successful GitHub Actions run
+      - name: Download the validated PKG from the SHA-matched successful GitHub Actions run
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -33,7 +33,7 @@ jobs:
           set -euo pipefail
           mkdir -p staging public
           # Fixed, previously completed OpenOrbis workflow run.
-          gh run download 43786775943 --name bx-remote-play-native-pairing-untested --dir staging
+          gh run download 43759580060 --name bx-remote-play-native-pairing-untested --dir staging
           test -s staging/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg
           test -f staging/pkg.sha256
           actual="$(sha256sum staging/IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg | cut -d ' ' -f 1)"
