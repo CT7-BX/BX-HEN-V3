@@ -1,3 +1,13 @@
+# BX-REMOTE-PLAY — PKG nativo com painel grafico para PS4 (v0.21 experimental)
+
+## Nova comunicação autenticada PS4 ↔ celular — v0.21
+
+O ELF residente agora atende a **uma tarefa fixa de diagnóstico** iniciada no site, após o usuário aprovar um vínculo temporário no PS4. Ao tocar em **Testar comunicação PS4 ↔ celular**, o Worker cria uma tarefa com ID secreto de 256 bits e a devolve ao console no próximo heartbeat HTTPS. O ELF executa apenas o teste de conexão TCP local a 127.0.0.1:9295 e devolve `true`, `false` ou `null` com autorização do console. O celular pode ler a resposta no vínculo aprovado. A tarefa expira em até 90 segundos e é apagada se a sessão for revogada.
+
+Atenção: isso é **um primeiro caminho de controle bidirecional**, não streaming de vídeo, áudio ou comandos reais de jogo. O PKG continua podendo ser fechado enquanto o ELF trabalha, mas o processo residente durante jogos ainda precisa de validação física. Para substituir um ELF anterior, encerre a instância antiga, use TRIÂNGULO no PKG v0.21 para preparar o novo, feche o PKG e inicie manualmente no GoldHEN LaunchPad. Sem AutoRun.
+
+Comparativo técnico e prioridades para vídeo real: [NATIVE-BRIDGE-RESEARCH.md](../docs/NATIVE-BRIDGE-RESEARCH.md).
+
 # BX-REMOTE-PLAY — PKG nativo com painel grafico para PS4 (v0.20 experimental)
 
 **Estado: o PKG v0.20 inclui um painel grafico de VideoOut (1920x1080), com etapa, status e codigo de 8 digitos. A compilacao e validacao ainda nao substituem teste no PS4. Pareamento HTTPS confirmado pelo usuário na v0.15, seguido de CE-34878-0 após alguns segundos. A v0.16 contornou o retorno de main; a v0.17 adicionou OTA experimental e a v0.18 inclui um ELF residente de diagnóstico, com execução e estabilidade ainda não verificadas em PS4 físico.** Este pacote nao oferece streaming de video/audio, controle remoto real de jogos nem vinculacao permanente; contem apenas um ELF de diagnostico separado, de ativacao manual.
