@@ -323,11 +323,11 @@
     }
     function stop() {
       if (!active) return;
+      // Release controls while the data channel is still live.
+      if (inputProtocol && inputChannel) sendInput(inputProtocol.neutral());
       active = false;
       if (controller) controller.abort();
       if (inputChannel) {
-        // A final neutral release is best-effort and is sent before close.
-        sendInput(inputProtocol.neutral());
         inputChannel.onopen = null;
         inputChannel.onmessage = null;
         inputChannel.onclose = null;
