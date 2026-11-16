@@ -183,12 +183,14 @@
     }
 
     const stopAt = Date.now() + 2 * 60 * 1000;
+    let consecutiveTransientFailures = 0;
     while (current === requestId && Date.now() < stopAt) {
       try {
         const state = await jsonRequest(base, "/v1/pair/status", {
           token: claimantToken, signal: controller.signal
         });
-        if (current !== requestId) return;
+        if (current !== requestId || controller.signal.aborted) return;
+        consecutiveTransientFailures = 0;
         if (state.status === "approved") {
           $("pairClaim").disabled = false;
           if (state.controlAvailable === false) {
@@ -224,7 +226,20 @@
         report("Aguardando aprovação na TV... " +
           Math.max(0, Math.ceil((stopAt - Date.now()) / 1000)) + "s restantes.");
       } catch (error) {
-        if (current === requestId) report(errorMessage(error));
+        if (current !== requestId || controller.signal.aborted) return;
+        // iOS/mobile networks may briefly drop while the PS4 is showing the
+        // approval prompt. Retry only reads of the existing claim, never
+        // regenerate a PIN or resend the POST /claim.
+        const transient = error?.name === "AbortError" ||
+          error?.name === "TypeError" || /^HTTP 5\d\d$/.test(error?.message || "");
+        if (transient && consecutiveTransientFailures < 2 && Date.now() < stopAt) {
+          consecutiveTransientFailures++;
+          report("Rede instável. Tentando consultar o mesmo vínculo novamente (" +
+            consecutiveTransientFailures + "/2). Não feche o app do PS4.");
+          await new Promise(resolve => setTimeout(resolve, consecutiveTransientFailures * 1250));
+          continue;
+        }
+        report(errorMessage(error));
         $("pairClaim").disabled = false;
         claimantToken = null;
         return;
@@ -254,8 +269,22 @@
     }
   });
 
+  // Safari may restore the document from the back/forward cache (BFCache).
+  // Leave no stale bearer request or disabled button on a restored page.
   window.addEventListener("pagehide", () => {
+    const wasPending = $("pairClaim").disabled;
     cancelActiveClaim();
     stopHealthCheck();
+    $("pairClaim").disabled = false;
+    if (wasPending) report("Vínculo interrompido ao sair da página. Gere novo código se necessário.");
+  });
+  window.addEventListener("pageshow", event => {
+    if (!event?.persisted) return;
+    cancelActiveClaim();
+    stopHealthCheck();
+    $("pairClaim").disabled = false;
+    if (!$("pairStatus").textContent?.includes("Vínculo interrompido")) {
+      report("Página restaurada. Confira o código no PS4 antes de vincular novamente.");
+    }
   });
 })();

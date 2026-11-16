@@ -10,6 +10,7 @@ const script = readFileSync(resolve(__dirname, "../pair-client.js"), "utf8");
 function browserWith(fetchMock, endpoint = "https://bx-remote-link.4rt949zpj8.workers.dev") {
   const nodes = new Map();
   const dispatched = [];
+  const windowHandlers = new Map();
   for (const name of [
     "pairClaim", "pairEndpoint", "pairCode", "pairServerStatus",
     "pairStatus", "pairCheck", "pairCancel", "pairSection"
@@ -30,7 +31,7 @@ function browserWith(fetchMock, endpoint = "https://bx-remote-link.4rt949zpj8.wo
   nodes.get("pairCode").value = "12345678";
   const window = {
     BXRemoteGame: game,
-    addEventListener() {},
+    addEventListener(name, callback) { windowHandlers.set(name, callback); },
     dispatchEvent(event) { dispatched.push(event); }
   };
   const context = {
@@ -39,7 +40,7 @@ function browserWith(fetchMock, endpoint = "https://bx-remote-link.4rt949zpj8.wo
     AbortController,
     URL,
     Date,
-    setTimeout,
+    setTimeout: (fn, ms) => setTimeout(fn, ms === 1250 || ms === 2500 ? 0 : ms),
     clearTimeout,
     fetch: fetchMock,
     CustomEvent: class {
@@ -47,7 +48,7 @@ function browserWith(fetchMock, endpoint = "https://bx-remote-link.4rt949zpj8.wo
     }
   };
   vm.runInNewContext(script, context, { filename: "pair-client.js" });
-  return { nodes, dispatched, get: name => nodes.get(name) };
+  return { nodes, dispatched, windowHandlers, get: name => nodes.get(name) };
 }
 function jsonResponse(data, status = 200) {
   return {
@@ -208,4 +209,72 @@ test("malformed claim response is not used as a bearer token", async () => {
   assert.equal(requests.length, 1);
   assert.match(b.get("pairStatus").textContent, /novo código|expirou|revogado/i);
   assert.equal(b.get("pairClaim").disabled, false);
+});
+
+test("brief network failures retry status reads but never POST the PIN twice", async () => {
+  let claims = 0;
+  let polls = 0;
+  const b = browserWith(async url => {
+    if (url.endsWith("/v1/pair/claim")) {
+      claims++;
+      return jsonResponse({ claimToken: "a".repeat(64) });
+    }
+    if (url.endsWith("/v1/pair/status")) {
+      polls++;
+      if (polls <= 2) throw new TypeError("Temporary offline");
+      return jsonResponse({ status: "approved", controlAvailable: false });
+    }
+    throw Error("unexpected");
+  });
+  await b.get("pairClaim").fire("click");
+  assert.equal(claims, 1);
+  assert.equal(polls, 3);
+  assert.match(b.get("pairStatus").textContent, /Vínculo aprovado/);
+  assert.equal(b.get("pairClaim").disabled, false);
+});
+
+test("three consecutive transient failures stop with visible error and free button", async () => {
+  let claims = 0;
+  let polls = 0;
+  const b = browserWith(async url => {
+    if (url.endsWith("/v1/pair/claim")) {
+      claims++;
+      return jsonResponse({ claimToken: "a".repeat(64) });
+    }
+    polls++;
+    throw new TypeError("Network down");
+  });
+  await b.get("pairClaim").fire("click");
+  assert.equal(claims, 1);
+  assert.equal(polls, 3);
+  assert.match(b.get("pairStatus").textContent, /Falha de conexão/);
+  assert.equal(b.get("pairClaim").disabled, false);
+});
+
+test("authorization failure never retries and does not expose claimant bearer", async () => {
+  let polls = 0;
+  const b = browserWith(async url => {
+    if (url.endsWith("/v1/pair/claim")) return jsonResponse({ claimToken: "c".repeat(64) });
+    polls++;
+    return jsonResponse({ error: "INVALID_CLAIM" }, 401);
+  });
+  await b.get("pairClaim").fire("click");
+  assert.equal(polls, 1);
+  assert.match(b.get("pairStatus").textContent, /expirou|revogado/);
+  assert.doesNotMatch(b.get("pairStatus").textContent, /c{32}/);
+});
+
+test("Safari pagehide and BFCache pageshow clear stale disabled claim button", async () => {
+  let resolveClaim;
+  const b = browserWith(async () => new Promise(resolve => { resolveClaim = resolve; }));
+  const pending = b.get("pairClaim").fire("click");
+  assert.equal(b.get("pairClaim").disabled, true);
+  b.windowHandlers.get("pagehide")();
+  assert.equal(b.get("pairClaim").disabled, false);
+  assert.match(b.get("pairStatus").textContent, /interrompido ao sair/);
+  b.windowHandlers.get("pageshow")({ persisted: true });
+  assert.equal(b.get("pairClaim").disabled, false);
+  resolveClaim(jsonResponse({ claimToken: "b".repeat(64) }));
+  await pending;
+  assert.match(b.get("pairStatus").textContent, /interrompido ao sair/);
 });

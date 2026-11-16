@@ -78,3 +78,11 @@ O diagnóstico exportável distingue `unconfigured` (Worker online, sem chave) d
 ### Diagnóstico de HTTPS no navegador (interface 0.9)
 
 Quando o botão **Testar servidor HTTPS** é clicado em **Vincular PS4 — conexão experimental**, um código independente dos módulos de controles mostra imediatamente **Verificando HTTPS...** e depois informa o resultado ou falha. Isso evita parecer que o botão não fez nada caso o módulo de jogos ou o módulo de pareamento não carregue. Há também o link **Abrir diagnóstico HTTPS direto (sem chave)**, que permite inspecionar `/health` fora da interface. O teste não envia nem revela o segredo do console. Uma resposta configurada do backend **não** prova que o PS4 esteja online nem habilita jogos remotos. O campo **Servidor WSS** pertence exclusivamente ao simulador.
+
+### Resiliência no navegador móvel — interface v0.10
+
+- No pareamento, uma queda temporária da internet (erro de rede, timeout ou HTTP 5xx) **durante a consulta do status** não cancela imediatamente o pedido: o navegador tenta ler **o mesmo vínculo** no máximo duas vezes adicionais. A chamada `POST /v1/pair/claim` **nunca é repetida automaticamente**, para evitar solicitações duplicadas.
+- Erros permanentes (código inválido, solicitação expirada, bloqueio por tentativas, autorização negada) encerram o teste imediatamente, com mensagem.
+- Ao sair da página ou voltar pelo histórico do Safari, requisições pendentes são canceladas e os botões voltam ao estado normal; nunca é retomada uma autorização antiga silenciosamente.
+- O botão de saúde HTTPS também é restaurado após retorno do navegador e verifica novamente o servidor caso a seção esteja aberta.
+- O simulador WSS permanece separado. Não há streaming, controle real de jogos ou conexão de mídia ao PS4.

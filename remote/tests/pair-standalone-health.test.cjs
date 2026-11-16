@@ -11,6 +11,7 @@ new vm.Script(script);
 
 function mockPage(fetchImpl, initialEndpoint = "https://bx-remote-link.4rt949zpj8.workers.dev") {
   const elements = new Map();
+  const windowHandlers = new Map();
   for (const name of ["pairCheck", "pairServerStatus", "pairEndpoint", "pairSection"]) {
     elements.set(name, {
       value: "", disabled: false, textContent: "",
@@ -21,7 +22,7 @@ function mockPage(fetchImpl, initialEndpoint = "https://bx-remote-link.4rt949zpj
   }
   elements.get("pairCheck").textContent = "Testar servidor HTTPS";
   elements.get("pairEndpoint").value = initialEndpoint;
-  const root = {};
+  const root = { addEventListener(name, fn) { windowHandlers.set(name, fn); } };
   vm.runInNewContext(script, {
     window: root,
     document: { getElementById: id => elements.get(id) || null },
@@ -31,7 +32,7 @@ function mockPage(fetchImpl, initialEndpoint = "https://bx-remote-link.4rt949zpj
     setTimeout,
     clearTimeout
   }, { filename: "health-inline.js" });
-  return { root, get: id => elements.get(id) };
+  return { root, windowHandlers, get: id => elements.get(id) };
 }
 
 function goodHealth(configured = true) {
@@ -101,5 +102,20 @@ test("opening pairing section runs health exactly once", async () => {
 
 test("page contains direct no-token health link and cache-busted pairing script", () => {
   assert.match(html, /id="pairHealthDirect"[^>]*>Abrir diagnóstico HTTPS direto/);
-  assert.match(html, /src="\.\/pair-client\.js\?v=0\.9"/);
+  assert.match(html, /src="\.\/pair-client\.js\?v=0\.10"/);
+});
+
+test("Safari BFCache restoration repeats health check without stale disabled button", async () => {
+  let requests = 0;
+  const page = mockPage(async () => { requests++; return goodHealth(); });
+  page.get("pairSection").open = true;
+  await page.get("pairCheck").fire("click");
+  assert.equal(requests, 1);
+  page.windowHandlers.get("pagehide")();
+  assert.equal(page.get("pairCheck").disabled, false);
+  page.windowHandlers.get("pageshow")({ persisted: true });
+  assert.equal(requests, 2);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(page.get("pairServerStatus").dataset.relayCheck, "ok");
+  assert.equal(page.get("pairCheck").disabled, false);
 });
