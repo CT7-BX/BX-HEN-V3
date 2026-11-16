@@ -152,7 +152,7 @@
     .pair-steps li::marker{color:#f36c88;font-weight:800}
   </style>
   <link rel="stylesheet" href="./touch-layout.css">
-  <link rel="stylesheet" href="./site-v2.css?v=0.22">
+  <link rel="stylesheet" href="./site-v2.css?v=0.24">
 </head>
 <body>
   <div class="shell">
@@ -163,7 +163,7 @@
         <a href="#pairSection">Vincular</a>
         <a href="#pkgUpdatesSection">Atualizações</a>
       </nav>
-      <div class="beta">Interface 0.23 · Beta</div>
+      <div class="beta">Interface 0.24 · Beta</div>
     </header>
     <main>
       <div class="intro">
@@ -173,6 +173,7 @@
       </div>
       <nav class="bx-quicknav" aria-label="Escolha o que deseja fazer">
         <a href="#noMacPlay"><span class="bx-quick-icon" aria-hidden="true">▶</span><span><strong>Jogar sem Mac</strong><small>Teste com aplicativo Remote Play no iPhone</small></span></a>
+        <a href="./gateway.html"><span class="bx-quick-icon" aria-hidden="true">▣</span><span><strong>Gateway Android</strong><small>Avaliar um celular antigo como ponte experimental</small></span></a>
         <a href="#pairSection"><span class="bx-quick-icon" aria-hidden="true">⌁</span><span><strong>Conectar PS4</strong><small>Vínculo HTTPS e diagnóstico independente</small></span></a>
         <a href="#pkgUpdatesSection"><span class="bx-quick-icon" aria-hidden="true">↓</span><span><strong>Atualizar BX</strong><small>Consulte e baixe o PKG oficial</small></span></a>
       </nav>
@@ -311,6 +312,16 @@
             <p class="field-note"><a href="https://github.com/CSystem77/Chiaki-NG-Web" target="_blank" rel="noopener noreferrer">Cliente Chiaki-NG-Web (código e instalação)</a> · <a href="https://chiaki-ng.github.io/chiaki-ng/setup/configuration/" target="_blank" rel="noopener noreferrer">Configuração do Remote Play no PS4</a> · <a href="https://github.com/CT7-BX/BX-REMOTE-PLAY/blob/main/docs/REAL-AV-TEST-PLAN.md" target="_blank" rel="noopener noreferrer">Plano de teste BX</a></p>
             <p class="field-note">O cliente externo tem sua própria sessão e políticas de dados. Prefira instalação local para não compartilhar informações do console com terceiros.</p>
           </details>
+          <section class="media-config" id="androidGatewaySection" aria-labelledby="androidGatewayTitle">
+            <span class="bx-flag warning">ANDROID ANTIGO · COMPATIBILIDADE EM TESTES</span>
+            <h3 id="androidGatewayTitle">BX Android Gateway — segunda opção sem Mac</h3>
+            <p class="field-note">Estamos preparando um aplicativo nativo leve para verificar Android 7+ e os recursos de vídeo do aparelho. A central funciona mesmo sem saber o modelo do seu celular. A transmissão PS4 → Android → iPhone ainda não foi implementada.</p>
+            <div class="toolbar-left">
+              <a class="action primary" href="./gateway.html">Abrir central Android</a>
+              <a class="action plain" href="https://github.com/CT7-BX/BX-REMOTE-PLAY/actions/workflows/android-gateway-build.yml" target="_blank" rel="noopener noreferrer">Ver compilação do APK experimental</a>
+            </div>
+            <p class="field-note">O Chrome Android não oferece a captura de tela web necessária neste cenário; o futuro gateway deverá solicitar permissão pelo Android. O APK atual apenas diagnostica o hardware, sem transmitir jogos.</p>
+          </section>
           <section class="media-config" id="noMacPlay" aria-labelledby="noMacHeading">
             <span class="bx-flag ready">CLIENTE EXTERNO · SEM MAC</span>
             <h3 id="noMacHeading">Jogar no iPhone sem Mac — teste do Remote Play real</h3>
