@@ -1,8 +1,7 @@
 (function (root) {
   "use strict";
 
-  // The controller module only interprets local Gamepad API data.
-  // It does not connect to a console or transmit commands over the network.
+  // Interprets local Gamepad API data only; no console or network commands.
   const LABELS = [
     "Cruz", "Círculo", "Quadrado", "Triângulo",
     "L1", "R1", "L2", "R2", "Share", "Options",
@@ -23,19 +22,24 @@
   function readSnapshot(gamepad) {
     if (!gamepad) return null;
     const sourceButtons = Array.from(gamepad.buttons || []);
+    const sourceAxes = Array.from(gamepad.axes || []);
     return {
       id: String(gamepad.id || "Controle sem identificação"),
-      index: Number(gamepad.index) || 0,
+      index: Number.isInteger(gamepad.index) && gamepad.index >= 0 ? gamepad.index : 0,
       mapping: gamepad.mapping === "standard" ? "standard" : "unknown",
       connected: gamepad.connected !== false,
-      axes: Array.from(gamepad.axes || []).slice(0, 4).map(normalizeAxis),
+      // Always emit four axes. Missing axes must be neutral, never undefined.
+      axes: Array.from({ length: 4 }, function (_, index) {
+        return normalizeAxis(sourceAxes[index]);
+      }),
       buttons: LABELS.map(function (label, index) {
         const raw = sourceButtons[index];
+        const value = raw ? clamp(raw.value, 0, 1) : 0;
         return {
           label: label,
           index: index,
-          pressed: Boolean(raw && raw.pressed),
-          value: raw ? clamp(raw.value, 0, 1) : 0
+          pressed: Boolean(raw && (raw.pressed || value >= 1)),
+          value: value
         };
       })
     };
