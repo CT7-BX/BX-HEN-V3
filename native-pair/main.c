@@ -360,11 +360,18 @@ static void offer_update(const HttpContext *http, const BXUpdateManifest *update
 static void offer_resident_setup(int pad, uint32_t *last_buttons) {
     int tick;
     struct stat installed;
-    if (stat("/data/payloads/bx-remote-service.elf", &installed) == 0) {
-        /* Subsequent pairing launches must not delay for setup again. */
-        return;
+    char version[12] = {0};
+    FILE *marker=fopen("/data/bx-remote-service.version","rb");
+    if(marker) {
+        size_t read=fread(version,1,sizeof(version)-1,marker);
+        fclose(marker);
+        if(read==5 && memcmp(version,"0.20\\n",5)==0
+          && stat("/data/payloads/bx-remote-service.elf",&installed)==0) {
+            /* Already installed the current resident, skip repeat prompt. */
+            return;
+        }
     }
-    notice("BX-REMOTE: TRIANGULO prepara servico ELF; X segue vinculacao.");
+    notice("BX-REMOTE: TRIANGULO ATUALIZA servico ELF 0.20; X segue.");
     for (tick=0; tick<140; ++tick) {
         OrbisPadData state;
         uint32_t fresh;
