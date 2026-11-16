@@ -14,7 +14,7 @@ Este guia organiza os **primeiros testes no PS4, iPhone e Mac**, sem prometer tr
 | Aplicativo | Identificador | Finalidade |
 | --- | --- | --- |
 | BX Remote Play - Network Test v0.21 | `BRPT00001` | Verificar HTTPS com GitHub Pages, sem relay de pareamento |
-| BX Remote Play - Pair Test v0.12 | `BRPM00001` | Testar código de vínculo e aprovação X/O via seu backend HTTPS |
+| BX Remote Play - Pair Test v0.13 | `BRPM00001` | Testar código de vínculo e aprovação X/O via seu backend HTTPS |
 
 O Pair Test v0.12 não sobrescreve o Network Test v0.21. Nenhum deles recebe vídeo/áudio ou injeta comandos no console. **Não ativa AutoRun nem precisa instalar payload persistente.**
 
@@ -85,3 +85,7 @@ Copie somente: versão do PKG, `stage`, `result_code`, `http_status` do relatór
 Para o backend Cloudflare, informe **`https://bx-remote-link.4rt949zpj8.workers.dev`**, não `wss://...`. Esse Worker só aceita as rotas de vínculo por HTTPS. No site, **Testar servidor** avisará se o Worker está online mas sem a chave privada `BX_RELAY_CONSOLE_TOKEN`. Isso requer uma configuração manual privada no Cloudflare e o arquivo correspondente no PS4; a chave não deve ser enviada ao ChatGPT ou publicada.
 
 Em testes locais com o relay Node antigo, `ws://localhost:8765/v1/link` ainda funciona; em qualquer servidor externo só se aceita HTTPS/WSS com TLS válido. A etapa de vídeo e controles reais permanece pendente.
+
+## Atualização — primeira execução da v0.13
+
+Quando o arquivo `bx-remote-pair.cfg` não existe ou é inválido, o Pair Test v0.13 não deve mais encerrar imediatamente como erro. A notificação informa o caminho; copie o arquivo por FTP enquanto a aplicação está aberta e aperte **X** para revalidar. **OPTIONS** encerra, ou o app termina normalmente após no máximo dois minutos. Se houver erro CE-, anote o código exato e o estágio do relatório, sem compartilhar o token.

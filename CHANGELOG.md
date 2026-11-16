@@ -1,5 +1,15 @@
 # Histórico de atualizações — BX-REMOTE-PLAY
 
+## 2026-11-15 — Pair Test v0.13: tratar configuração ausente sem erro de encerramento
+
+- Relato de teste físico: PKG v0.12 abriu e notificou falta de HTTPS/token, depois fechou e mostrou erro no PS4.
+- Corrigida a primeira execução: em vez de encerrar com `return 2` após 5 segundos, o app aguarda até 2 minutos para receber o arquivo privado via FTP; X revalida e OPTIONS sai.
+- Falhas esperadas de rede/bibliotecas também retornam status normal (0) ao sistema após registrar erro no relatório. Não afirmamos que isso corrige outros códigos de erro do PS4.
+- Novo teste de regressão e versão PKG 0.13; arquivos de diagnóstico preservados e nenhum token embutido.
+- **v0.13 compilada em CI não significa teste físico aprovado.**
+
+
+
 ## 2026-11-15 — Interface 0.8: vínculo guiado e limite de PIN distribuído
 
 - Guia compacto em três etapas no painel de pareamento; o teste de saúde do servidor roda uma vez quando o painel é aberto.

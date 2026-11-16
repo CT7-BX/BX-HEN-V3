@@ -1,6 +1,6 @@
-# BX-REMOTE-PLAY — prova de vínculo NATIVA para PS4 (v0.12 experimental)
+# BX-REMOTE-PLAY — prova de vínculo NATIVA para PS4 (v0.13 experimental)
 
-**Estado: implementação separada e NÃO testada em um PS4 físico.** Este pacote não oferece Remote Play, streaming de vídeo/áudio, virtualização de controle, agente residente nem início automático.
+**Estado: usuário relatou que a v0.12 abre no PS4 e exibe a notificação de configuração ausente. A v0.13 ainda não foi validada em hardware.** Este pacote não oferece Remote Play, streaming de vídeo/áudio, virtualização de controle, agente residente nem início automático.
 
 ## Por que outro PKG?
 
@@ -72,6 +72,19 @@ Os seguintes pontos **não estão validados em hardware**: leitura de config em 
 Documentos complementares: `docs/PAIRING-AND-REAL-PS4.md`, `docs/LOW-LATENCY-AND-NETWORK.md`.
 
 Referência OpenOrbis: https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain .
+
+## Primeira execução e correção do encerramento — v0.13
+
+O teste no PS4 físico com **Pair Test v0.12** confirmou que o aplicativo inicia e notifica **"Falta configurar servidor HTTPS e token privado"**. Em seguida, o aplicativo fechava com erro na interface do PS4. A investigação revelou que o código saía com status `return 2` após cinco segundos (e `return 3` para falha de biblioteca HTTPS), mesmo sendo falhas esperadas de configuração. Não há prova de que isso seja a única causa do erro do shell sem seu código CE-xxxx.
+
+A versão **v0.13** tenta recuperar a situação sem reinstalar o PKG:
+
+1. Quando a configuração está ausente ou inválida, mostra o caminho do arquivo e deixa o aplicativo aberto por até **2 minutos**.
+2. Pode copiar o arquivo privado via FTP para `/user/data/bx-remote-pair.cfg` (ou `/data/bx-remote-pair.cfg`) enquanto o aplicativo aguarda.
+3. Aperte **X** no controle para testar o arquivo novamente. Se passar, o mesmo aplicativo continua para o HTTPS, sem reiniciar.
+4. Aperte **OPTIONS** para sair. Após o limite de espera, a ausência de configuração e falhas normais de rede são registradas e encerradas com status `0` em vez de sinalizar um erro de processo ao sistema.
+
+Em cada caso, o relatório permanece em `/data/bx-remote-pairing-report.txt` (ou `/user/data/bx-remote-pairing-report.txt`). Não compartilhe o `console_token` ou o arquivo `.cfg` com ninguém. Se o PS4 ainda mostrar um erro CE-, registre **apenas o código do erro e o estágio do relatório** (sem credenciais), pois ainda pode haver uma causa de execução nativa diferente.
 
 ## Preparação para os primeiros testes — v0.12
 

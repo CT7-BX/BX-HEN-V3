@@ -31,6 +31,7 @@ jobs:
           node --check native-pair/tools/generate_setup.mjs
           node --test native-pair/tests/generate_setup.test.mjs
           python3 -m unittest discover -s ps4-agent/tests -p 'test_*.py' -v
+          python3 -m unittest discover -s native-pair/tests -p 'test_*.py' -v
 
       - name: Install compiler and linker
         run: |
