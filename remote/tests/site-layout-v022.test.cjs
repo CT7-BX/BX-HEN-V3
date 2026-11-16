@@ -33,7 +33,7 @@ test("quick actions point to existing sections, with no fake PS4 media promises"
   assert.match(html, /id="streamVideo"/);
   assert.match(html, /id="touchOverlay"/);
   assert.match(html, /id="bridgeProbeRequest"/);
-  assert.match(html, /href="\\.\\/gateway\\.html"/);
+  assert.ok(html.includes('href="./gateway.html"'));
   assert.match(html, /id="androidGatewaySection"/);
   assert.match(html, /id="mediaEndpoint"/);
   assert.match(html, /id="p2pRoomCode"/);
