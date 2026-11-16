@@ -141,3 +141,71 @@ test("legacy WSS simulator still creates a player session after approval", async
   assert.equal(b.dispatched[0].type, "bxremote:paired");
   assert.equal(b.dispatched[0].detail.endpoint, "wss://my-relay.example/v1/link");
 });
+
+
+test("paste formatting is normalized before sending a one-time PIN", async () => {
+  const calls = [];
+  const b = browserWith(async (url, options) => {
+    calls.push(url);
+    if (url.endsWith("/v1/pair/claim")) {
+      assert.equal(JSON.parse(options.body).code, "12345678");
+      return jsonResponse({ claimToken: "c".repeat(64) });
+    }
+    if (url.endsWith("/v1/pair/status")) {
+      return jsonResponse({ status: "denied" });
+    }
+    throw new Error("unexpected");
+  });
+  b.get("pairCode").value = "1234-5678";
+  await b.get("pairClaim").fire("click");
+  assert.equal(calls.length, 2);
+  assert.match(b.get("pairStatus").textContent, /recusada pelo console/);
+});
+
+test("a claim result arriving after cancellation cannot resume polling or overwrite cancellation", async () => {
+  let resolveClaim;
+  const calls = [];
+  const b = browserWith(async url => {
+    calls.push(url);
+    return await new Promise(resolve => { resolveClaim = resolve; });
+  });
+  const attempt = b.get("pairClaim").fire("click");
+  assert.equal(calls.length, 1);
+  await b.get("pairCancel").fire("click");
+  resolveClaim(jsonResponse({ claimToken: "c".repeat(64) }));
+  await attempt;
+  assert.equal(calls.length, 1);
+  assert.match(b.get("pairStatus").textContent, /cancelada neste navegador/);
+  assert.equal(b.get("pairClaim").disabled, false);
+});
+
+test("opening pairing panel automatically checks health once only", async () => {
+  let requests = 0;
+  const b = browserWith(async (url) => {
+    requests++;
+    assert.match(url, /\/health$/);
+    return jsonResponse({
+      status: "ok", mode: "control-prototype", pairing: true,
+      pairingBackend: "cloudflare-durable-object", configured: false
+    });
+  });
+  b.get("pairSection").open = true;
+  await b.get("pairSection").fire("toggle");
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(requests, 1);
+  assert.equal(b.get("pairServerStatus").dataset.relayCheck, "unconfigured");
+  await b.get("pairSection").fire("toggle");
+  assert.equal(requests, 1);
+});
+
+test("malformed claim response is not used as a bearer token", async () => {
+  const requests = [];
+  const b = browserWith(async (url) => {
+    requests.push(url);
+    return jsonResponse({ claimToken: "short" });
+  });
+  await b.get("pairClaim").fire("click");
+  assert.equal(requests.length, 1);
+  assert.match(b.get("pairStatus").textContent, /novo código|expirou|revogado/i);
+  assert.equal(b.get("pairClaim").disabled, false);
+});
