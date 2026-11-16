@@ -12,10 +12,10 @@ const logic = fs.readFileSync(path.join(ROOT, "site-ui.js"), "utf8");
 const native = fs.readFileSync(path.resolve(ROOT, "../native-pair/native_ui.c"), "utf8");
 
 test("same branded theme is applied to player and Mac source page", () => {
-  assert.match(html, /href="\.\/site-v2\.css\?v=0\.22"/);
+  assert.match(html, /href="\.\/site-v2\.css\?v=0\.24"/);
   assert.match(bridge, /href="\.\/site-v2\.css\?v=0\.22"/);
   assert.match(bridge, /<body class="bridge-page">/);
-  assert.match(html, /Interface 0\.23/);
+  assert.match(html, /Interface 0\.24/);
   assert.match(bridge, /Imagem real/);
   assert.match(theme, /\.bx-quicknav/);
   assert.match(theme, /body\.bridge-page \.bridge-metrics/);
@@ -33,6 +33,8 @@ test("quick actions point to existing sections, with no fake PS4 media promises"
   assert.match(html, /id="streamVideo"/);
   assert.match(html, /id="touchOverlay"/);
   assert.match(html, /id="bridgeProbeRequest"/);
+  assert.ok(html.includes('href="./gateway.html"'));
+  assert.match(html, /id="androidGatewaySection"/);
   assert.match(html, /id="mediaEndpoint"/);
   assert.match(html, /id="p2pRoomCode"/);
   assert.match(bridge, /id="startShare"/);
