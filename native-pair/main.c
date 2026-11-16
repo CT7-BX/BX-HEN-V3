@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include <orbis/Net.h>
 #include <orbis/Ssl.h>
@@ -353,6 +354,11 @@ static void offer_update(const HttpContext *http, const BXUpdateManifest *update
  */
 static void offer_resident_setup(int pad, uint32_t *last_buttons) {
     int tick;
+    struct stat installed;
+    if (stat("/data/payloads/bx-remote-service.elf", &installed) == 0) {
+        /* Subsequent pairing launches must not delay for setup again. */
+        return;
+    }
     notice("BX-REMOTE: TRIANGULO prepara servico ELF; X segue vinculacao.");
     for (tick=0; tick<140; ++tick) {
         OrbisPadData state;
