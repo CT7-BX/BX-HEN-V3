@@ -65,51 +65,57 @@
       "Nenhum resultado comprova vídeo, áudio ou controle real do PS4 no navegador."
     ].join("\n");
   }
+  // Health and the public PKG manifest are independent services. A hanging
+  // Cloudflare request must NOT consume the timeout for a working Pages asset.
+  async function timedPublicFetch(task, timeoutMs, signal) {
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    if (signal?.aborted) controller.abort();
+    signal?.addEventListener("abort", abort, { once:true });
+    const ms = Number.isFinite(timeoutMs)
+      ? Math.max(100, Math.min(15000, timeoutMs)) : 6500;
+    const timer = setTimeout(abort, ms);
+    try { return await task(controller.signal); }
+    finally {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
+    }
+  }
   async function run({ fetcher, secure = true, webrtc = false, h264 = null,
     currentSource = null, parseManifest, signal, timeoutMs = 6500 } = {}) {
     const request = fetcher || ((...args) => fetch(...args));
     const results = assessBrowser({ secure, webrtc, h264 });
-    const controller = new AbortController();
-    const abort = () => controller.abort();
-    if (signal?.aborted) controller.abort();
-    signal?.addEventListener("abort", abort, { once: true });
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    let health = null;
-    try {
-      try {
-        const response = await request(PUBLIC_HEALTH, {
-          method: "GET", mode: "cors", credentials: "omit",
-          cache: "no-store", redirect: "error", referrerPolicy: "no-referrer",
-          signal: controller.signal
-        });
-        if (!response || response.status !== 200)
-          throw new Error("health_unavailable");
-        health = await response.json();
-        results.push(assessBackend(health));
-      } catch {
-        results.push(finding("backend", "unavailable",
-          "Servidor HTTPS não respondeu. Verifique internet, DNS ou CORS."));
-      }
-      results.push(assessMedia(health, currentSource));
-      try {
-        const response = await request("./update.txt", {
-          method:"GET", mode:"same-origin", credentials:"omit",
-          cache:"no-store", redirect:"error", referrerPolicy:"no-referrer",
-          signal: controller.signal
-        });
-        if (!response || response.status !== 200) throw new Error("manifest_http");
-        if (typeof parseManifest !== "function") throw new Error("manifest_parser");
-        const parsed = parseManifest(await response.text());
-        results.push(finding("update", "ok", "Último PKG publicado: v" + parsed.version +
-          ". A versão instalada no PS4 não é detectável pelo site."));
-      } catch {
-        results.push(finding("update", "attention",
-          "Não foi possível validar a versão pública do PKG."));
-      }
-    } finally {
-      clearTimeout(timer);
-      signal?.removeEventListener("abort", abort);
-    }
+    // Neither endpoint receives an authorization header or PS4-specific data.
+    const healthTask = timedPublicFetch(async (requestSignal) => {
+      const response = await request(PUBLIC_HEALTH, {
+        method:"GET", mode:"cors", credentials:"omit",
+        cache:"no-store", redirect:"error", referrerPolicy:"no-referrer",
+        signal:requestSignal
+      });
+      if (!response || response.status !== 200) throw Error("health_http");
+      const health = await response.json();
+      return { health, status:assessBackend(health) };
+    }, timeoutMs, signal).catch(() => ({
+      health:null, status:finding("backend", "unavailable",
+        "Servidor HTTPS não respondeu. Verifique internet, DNS ou CORS.")
+    }));
+    const updateTask = timedPublicFetch(async (requestSignal) => {
+      const response = await request("./update.txt", {
+        method:"GET", mode:"same-origin", credentials:"omit",
+        cache:"no-store", redirect:"error", referrerPolicy:"no-referrer",
+        signal:requestSignal
+      });
+      if (!response || response.status !== 200) throw Error("manifest_http");
+      if (typeof parseManifest !== "function") throw Error("manifest_parser");
+      const parsed = parseManifest(await response.text());
+      return finding("update", "ok", "Último PKG publicado: v" + parsed.version +
+        ". A versão instalada no PS4 não é detectável pelo site.");
+    }, timeoutMs, signal).catch(() =>
+      finding("update", "attention",
+        "Não foi possível validar a versão pública do PKG.")
+    );
+    const [backend, update] = await Promise.all([healthTask, updateTask]);
+    results.push(backend.status, assessMedia(backend.health, currentSource), update);
     return Object.freeze(results);
   }
   return Object.freeze({ PUBLIC_HEALTH, assessBrowser, assessBackend,
