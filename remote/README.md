@@ -74,3 +74,7 @@ O botão **Testar servidor** diferencia serviço online sem chave secreta, servi
 Ao expandir **Vincular PS4 — conexão experimental**, o site verifica o servidor HTTPS uma vez sem enviar token ou código. O formulário inclui três passos para o teste com PKG v0.12: abrir o aplicativo no console, digitar os oito dígitos exibidos na TV, depois confirmar com X ou recusar com O. É possível colar códigos com espaço/hífen. O navegador exibe a contagem regressiva enquanto aguarda a resposta, e a solicitação cancelada não pode retomar a espera caso uma resposta antiga chegue atrasada.
 
 O diagnóstico exportável distingue `unconfigured` (Worker online, sem chave) dos estados de rede falha, inválida e preparada; **não registra credenciais**. A aprovação HTTP não inicia vídeo, áudio ou controle do PS4.
+
+### Diagnóstico de HTTPS no navegador (interface 0.9)
+
+Quando o botão **Testar servidor HTTPS** é clicado em **Vincular PS4 — conexão experimental**, um código independente dos módulos de controles mostra imediatamente **Verificando HTTPS...** e depois informa o resultado ou falha. Isso evita parecer que o botão não fez nada caso o módulo de jogos ou o módulo de pareamento não carregue. Há também o link **Abrir diagnóstico HTTPS direto (sem chave)**, que permite inspecionar `/health` fora da interface. O teste não envia nem revela o segredo do console. Uma resposta configurada do backend **não** prova que o PS4 esteja online nem habilita jogos remotos. O campo **Servidor WSS** pertence exclusivamente ao simulador.
