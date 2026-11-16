@@ -35,7 +35,7 @@
 #define HTTP_MEMORY_BYTES (128 * 1024)
 #define POLL_ROUNDS 60
 #define APPROVAL_POLL_TICKS 80
-#define APPROVED_NOTICE_SECONDS 20
+#define APPROVED_HOLD_TICKS 1200 /* at most two minutes; user can exit earlier */
 #define CONFIG_RETRY_TICKS 1200 /* two minutes; safe first-run window */
 #define CONFIG_AUTO_RECHECK_TICKS 50 /* re-read .cfg every five seconds */
 #define UPDATE_MANIFEST_URL "https://ct7-bx.github.io/BX-REMOTE-PLAY/remote/update.txt"
@@ -68,11 +68,33 @@ static void report(const char *stage, int code, int status) {
 }
 
 static void close_http(HttpContext *ctx) {
-    if (ctx->tmpl >= 0) sceHttpDeleteTemplate(ctx->tmpl);
-    if (ctx->http >= 0) sceHttpTerm(ctx->http);
-    if (ctx->ssl >= 0) sceSslTerm(ctx->ssl);
-    if (ctx->pool >= 0) sceNetPoolDestroy(ctx->pool);
-    if (ctx->initialized_net) sceNetTerm();
+    /* These checkpoints isolate the failing native teardown API on hardware.
+     * The associated PS4 error happens after an otherwise approved link. */
+    if (ctx->tmpl >= 0) {
+        report("cleanup_http_template", 0, 0);
+        sceHttpDeleteTemplate(ctx->tmpl);
+        ctx->tmpl = -1;
+    }
+    if (ctx->http >= 0) {
+        report("cleanup_http_library", 0, 0);
+        sceHttpTerm(ctx->http);
+        ctx->http = -1;
+    }
+    if (ctx->ssl >= 0) {
+        report("cleanup_http_ssl", 0, 0);
+        sceSslTerm(ctx->ssl);
+        ctx->ssl = -1;
+    }
+    if (ctx->pool >= 0) {
+        report("cleanup_http_pool", 0, 0);
+        sceNetPoolDestroy(ctx->pool);
+        ctx->pool = -1;
+    }
+    if (ctx->initialized_net) {
+        report("cleanup_http_net", 0, 0);
+        sceNetTerm();
+        ctx->initialized_net = 0;
+    }
 }
 
 static int open_http(HttpContext *ctx) {
@@ -411,9 +433,16 @@ finish:
      * to -1. The log is safe to share after checking for local information. */
     report(stage, accepted ? 0 : (result < 0 ? result : -1), status);
     if (accepted) {
-        notice("BX-REMOTE: Vinculo aprovado (HTTP). SEM VIDEO OU CONTROLE.");
-        /* Allow the paired browser to fetch approval before revocation. */
-        sleep(APPROVED_NOTICE_SECONDS);
+        /* Never vanish shortly after success: keep this foreground-only proof
+         * open while the user checks the browser. No resident agent is started.
+         * OPTIONS revokes the temporary link; a bounded timeout is a fail-safe.
+         */
+        report("approved_waiting_exit", 0, status);
+        notice("BX-REMOTE: Vinculo OK (sem video/audio). OPTIONS encerra o teste.");
+        for (i = 0; i < APPROVED_HOLD_TICKS; ++i) {
+            if (poll_decision(pad, &last_buttons) == -2) break;
+            usleep(100000);
+        }
     } else {
         if (status == 401) {
             notice("BX-REMOTE: Token recusado (401). Confira chave no PS4 e Cloudflare.");
