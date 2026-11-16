@@ -1,4 +1,4 @@
-# BX-REMOTE-PLAY — tela de jogo experimental 0.8
+# BX-REMOTE-PLAY — interface experimental e pareamento PS4 v0.15
 
 A página principal em [index.html](index.html) prioriza a tela e o controle físico. Sem controle conectado no iPhone, o modo automático mostra um DualShock virtual **sobre a área de vídeo**.
 
@@ -43,15 +43,15 @@ O comando `npm run probe:ps4 -- 192.168.1.20` na pasta `relay/` testa **somente*
 
 ## Vínculo com console (laboratório v0.5)
 
-No painel lateral, abra **Vincular console (laboratório)**. Um servidor relay de teste e um console **simulado** devem estar ativos; digite o código apresentado pelo simulador e aguarde aprovação explícita. Quando aprovado, a interface passa o token temporário diretamente ao WebSocket de controle. O token não é guardado no navegador e não é exibido no HTML.
+No painel lateral, abra **Vincular console (laboratório)** para testar o simulador WSS; o fluxo HTTPS com PKG real é separado. Um servidor relay de teste e um console **simulado** devem estar ativos; digite o código apresentado pelo simulador e aguarde aprovação explícita. Quando aprovado, a interface passa o token temporário diretamente ao WebSocket de controle. O token não é guardado no navegador e não é exibido no HTML.
 
-**Ainda não vincula um PS4 físico nem transmite vídeo.** O site público GitHub Pages não tem backend próprio implantado. Consulte [o guia de vínculo](../docs/PAIRING-AND-REAL-PS4.md).
+**O PKG Pair Test v0.15 oferece um fluxo experimental de vínculo HTTPS com confirmação no PS4, sujeito a configuração privada e validação física.** Isso não estabelece sessão de jogo nem transmite vídeo. O site público GitHub Pages não tem backend próprio implantado. Consulte [o guia de vínculo](../docs/PAIRING-AND-REAL-PS4.md).
 
 ## Teste de conexão com o relay
 
-Na seção **Vincular PS4 — conexão experimental**, informe seu endpoint WSS de laboratório e selecione **Testar servidor**. O site consulta o endpoint público `/health` com limite de 5,5 segundos e informa se encontrou um relay compatível. Esse teste **não vincula o PS4, não verifica um console online e não confirma imagem ou áudio**.
+Na seção **Vincular PS4 — conexão experimental**, informe o endereço HTTPS do Worker e selecione **Testar servidor HTTPS**. O campo **Servidor WSS** é exclusivo do simulador. O site consulta o endpoint público `/health` com limite de 5,5 segundos e informa se encontrou um relay compatível. Esse teste **não vincula o PS4, não verifica um console online e não confirma imagem ou áudio**.
 
-O vínculo por código pode ser testado com simulador ou com o PKG PS4 experimental ainda não validado em hardware. A geração local e privada de credenciais está descrita em [native-pair/README.md](../native-pair/README.md). O GitHub Pages não hospeda o backend.
+O vínculo por código pode ser testado com simulador ou com o PKG PS4 experimental; o sucesso da compilação não substitui a validação de ponta a ponta em hardware. A geração local e privada de credenciais está descrita em [native-pair/README.md](../native-pair/README.md). O GitHub Pages não hospeda o backend.
 
 ## Primeiros testes — v0.7
 
@@ -61,7 +61,7 @@ As chamadas de pareamento HTTP no navegador agora possuem limite de 6,5 segundos
 
 ### Servidor de vínculo sugerido
 
-O site preenche automaticamente `wss://bx-remote-link.4rt949zpj8.workers.dev/v1/link`, correspondente ao Worker exclusivo BX-REMOTE-LINK implantado no Cloudflare. A URL WSS é usada **apenas para derivar as rotas HTTPS de pareamento**; o Worker não oferece WebSocket nem vídeo. O endpoint `/health` informa `configured:false` enquanto o titular da conta não definir o segredo privado do PS4. A configuração manual está em [cloudflare/README.md](../cloudflare/README.md). A disponibilidade do endereço público ainda precisa de um teste real no navegador.
+O campo HTTPS é preenchido com `https://bx-remote-link.4rt949zpj8.workers.dev`, correspondente ao Worker exclusivo BX-REMOTE-LINK implantado no Cloudflare. O Worker não oferece WebSocket nem vídeo. O endpoint `/health` informa `configured:false` enquanto o titular da conta não definir o segredo privado do PS4. A configuração manual está em [cloudflare/README.md](../cloudflare/README.md). A disponibilidade do endereço público ainda precisa de um teste real no navegador.
 
 ## Conexão HTTPS direta de pareamento
 
@@ -71,7 +71,7 @@ O botão **Testar servidor** diferencia serviço online sem chave secreta, servi
 
 ## Pareamento guiado no celular — v0.8
 
-Ao expandir **Vincular PS4 — conexão experimental**, o site verifica o servidor HTTPS uma vez sem enviar token ou código. O formulário inclui três passos para o teste com PKG v0.12: abrir o aplicativo no console, digitar os oito dígitos exibidos na TV, depois confirmar com X ou recusar com O. É possível colar códigos com espaço/hífen. O navegador exibe a contagem regressiva enquanto aguarda a resposta, e a solicitação cancelada não pode retomar a espera caso uma resposta antiga chegue atrasada.
+Ao expandir **Vincular PS4 — conexão experimental**, o site verifica o servidor HTTPS uma vez sem enviar token ou código. O formulário inclui três passos para o teste com PKG v0.15: abrir o aplicativo no console, digitar os oito dígitos exibidos na TV, depois confirmar com X ou recusar com O. É possível colar códigos com espaço/hífen. O navegador exibe a contagem regressiva enquanto aguarda a resposta, e a solicitação cancelada não pode retomar a espera caso uma resposta antiga chegue atrasada.
 
 O diagnóstico exportável distingue `unconfigured` (Worker online, sem chave) dos estados de rede falha, inválida e preparada; **não registra credenciais**. A aprovação HTTP não inicia vídeo, áudio ou controle do PS4.
 
@@ -86,3 +86,14 @@ Quando o botão **Testar servidor HTTPS** é clicado em **Vincular PS4 — conex
 - Ao sair da página ou voltar pelo histórico do Safari, requisições pendentes são canceladas e os botões voltam ao estado normal; nunca é retomada uma autorização antiga silenciosamente.
 - O botão de saúde HTTPS também é restaurado após retorno do navegador e verifica novamente o servidor caso a seção esteja aberta.
 - O simulador WSS permanece separado. Não há streaming, controle real de jogos ou conexão de mídia ao PS4.
+
+## Estado de integração (novembro de 2026)
+
+- Controles virtuais, Gamepad API, diagnósticos e verificações de navegador: implementados no frontend; dependem das permissões e capacidades do navegador.
+- Worker HTTPS e PKG Pair Test v0.15: vínculo experimental com confirmação local no PS4; **não** é transporte de jogos.
+- WSS `/v1/link`: relay separado para simulador, não é oferecido pelo Worker HTTPS.
+- Perfis de qualidade e rota: metas visuais, sem encoder, servidor de mídia ou seleção efetiva de transporte.
+- Vídeo/áudio do PS4, comandos reais, gateway de mídia, serviço residente e atualização automática do PKG: **não implementados**.
+- A v0.15 apenas consulta um manifesto público e notifica quando há versão nova; não baixa nem instala o PKG.
+
+Para um teste físico, valide separadamente a saúde do Worker, a configuração privada do console, a exibição do código, a confirmação local e o resultado do vínculo. Nunca publique tokens ou arquivos `.cfg` privados.
