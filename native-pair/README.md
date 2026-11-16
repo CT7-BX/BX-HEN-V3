@@ -1,4 +1,10 @@
-# BX-REMOTE-PLAY — PKG nativo com painel grafico para PS4 (v0.21 experimental)
+# BX-REMOTE-PLAY — PKG nativo com painel grafico para PS4 (v0.22 experimental)nativo com painel grafico para PS4 (v0.21 experimental)
+
+## PKG v0.22 — interface gráfica revisada
+
+Atualização apenas da apresentação nativa: painel preto e vermelho, identificação da versão, cartões de vínculo/serviço/atualização/diagnóstico, código temporário em destaque, status da etapa atual e instruções dos botões do controle. A interface utiliza o mesmo VideoOut do PS4 já confirmado na v0.19; as rotas HTTPS e a autorização do usuário foram preservadas. O ELF de v0.22 mantém o heartbeat e o diagnóstico independente da v0.21. Para preparar a nova versão, encerre o serviço ELF anterior antes de usar TRIÂNGULO no PKG, feche o PKG e abra o ELF manualmente pelo GoldHEN LaunchPad.
+
+**Não há vídeo/áudio de jogos no BX ainda.** Os testes de CI verificam compilação e contratos de interface, não substituem validação de exibição no PS4 físico.
 
 ## Nova comunicação autenticada PS4 ↔ celular — v0.21
 
