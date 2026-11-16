@@ -84,9 +84,9 @@ test("Android v0.2 reads only on demand and keeps report through rotation",()=>{
   const manifest=source("android-gateway/app/src/main/AndroidManifest.xml");
   const build=source("android-gateway/app/build.gradle");
   const workflow=source(".github/workflows/android-gateway-build.yml");
-  assert.match(build,/versionCode 2/);
-  assert.match(build,/versionName '0\.2\.0-diagnostic'/);
-  assert.match(workflow,/BX-Android-Gateway-Diagnostic-v0\.2/);
+  assert.match(build,/versionCode 3/);
+  assert.match(build,/versionName '0\.3\.0-diagnostic'/);
+  assert.match(workflow,/BX-Android-Gateway-Diagnostic-v0\.3/);
   for (const marker of [
     "ACTION_BATTERY_CHANGED","BatteryManager.EXTRA_TEMPERATURE",
     "BatteryManager.EXTRA_LEVEL","memory.availMem","memory.lowMemory",
@@ -105,11 +105,11 @@ test("iPhone can share the exact public Android page without any pairing data",(
   assert.match(gateway,/id="androidShareLink"/);
   assert.match(gateway,/id="androidShareStatus"/);
   assert.match(gateway,/id="androidManualLink"/);
-  assert.match(gateway,/android-readiness\.js\?v=0\.25/);
+  assert.match(gateway,/android-readiness\.js\?v=0\.26/);
   assert.match(script,/navigator\.share\(/);
   assert.match(script,/navigator\.clipboard\.writeText\(url\)/);
   assert.match(script,/new URL\("\.\/gateway\.html", window\.location\.href\)/);
   assert.doesNotMatch(script,/localStorage|sessionStorage|Authorization/);
-  assert.match(home,/Interface 0\.25/);
+  assert.match(home,/Interface 0\.26/);
   assert.match(home,/diagnostics\.js\?v=0\.25/);
 });

@@ -1,5 +1,16 @@
 # BX-REMOTE-PLAY — interface, pareamento PS4 e mídia WHEP experimental
 
+## Interface v0.26 — BX Command Center
+
+A página principal ganhou uma **central de modos interativa**, sem alterar os protocolos ou a execução do player. Os quatro caminhos são: BX Native (PS4 → iPhone, ainda em desenvolvimento), Gateway Android (APK diagnóstico v0.3, sem streaming), cliente Remote Play externo no iPhone (jogável no próprio app, compatibilidade a testar) e Mac P2P (transmissor experimental WebRTC já existente). Cada modo mostra passos específicos, progresso **marcado manualmente e não salvo**, um botão que abre a seção real, uma advertência própria e opção de copiar um checklist local sem PIN/token.
+
+Um painel lateral consulta apenas os elementos **já exibidos** pelo navegador para indicar o estado do servidor HTTPS, vínculo aprovado, fonte P2P/WHEP anexada e versão pública do PKG. Não afirma que o PS4 está online pelo simples fato do Worker responder nem que anexar mídia equivale a jogar. No iPhone, uma barra de navegação inferior respeita o recorte de tela e as áreas seguras; atalhos revelam corretamente seções recolhidas.
+
+Estilos e código separados em `command-center.css` e `command-center.js`, ambos publicados pela allowlist restrita do GitHub Pages, sem novas bibliotecas ou ligações de rede. Os testes cobrem rotas, destinos, estado do sistema, progresso, interface Android e ausência de credenciais. O menu nativo PS4/PKG continua **v0.22**; esta atualização não adiciona transmissão direta de jogos.
+
+A [central Android](gateway.html) também recebeu nova hierarquia visual e roteiro por etapas, e o APK diagnóstico usa três cartões nativos e versão 0.3.
+
+
 ## Web v0.25 + Android Gateway v0.2 — diagnóstico mais robusto
 
 A central Android agora permite **compartilhar o endereço público com o celular antigo** pelo menu de compartilhamento do iPhone, pela área de transferência ou por um endereço selecionável. Não inclui PINs, token, conta ou endereço do PS4. Os testes de compatibilidade continuam locais e voluntários.

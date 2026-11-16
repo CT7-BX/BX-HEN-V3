@@ -1,10 +1,10 @@
-/* BX layout navigation v0.22
+/* BX layout navigation v0.26
  * Progressive enhancement: internal shortcuts open their target accordion.
  * Deliberately never alters pairing, streaming, controllers or credentials.
  */
 (() => {
   "use strict";
-  const links = Array.from(document.querySelectorAll('.bx-toplinks a[href^="#"],.bx-quicknav a[href^="#"]'));
+  const links = Array.from(document.querySelectorAll('.bx-toplinks a[href^="#"],.bx-quicknav a[href^="#"],.bx-main-action[href^="#"],.bx-system-action[href^="#"],.bx-mobile-dock a[href^="#"]'));
   function reveal(hash) {
     if (!/^#[A-Za-z][A-Za-z0-9_-]{0,79}$/.test(hash)) return;
     const target = document.getElementById(hash.slice(1));
