@@ -58,3 +58,21 @@ test("missing pad and unknown mappings are handled safely", () => {
   assert.equal(core.readSnapshot(null), null);
   assert.equal(core.readSnapshot(makePad({ mapping: "" })).mapping, "unknown");
 });
+
+test("missing axes always resolve to neutral values", () => {
+  assert.deepEqual(core.readSnapshot(makePad({ axes: [] })).axes, [0, 0, 0, 0]);
+  assert.deepEqual(core.readSnapshot(makePad({ axes: [0.3] })).axes, [0.3, 0, 0, 0]);
+  assert.deepEqual(core.readSnapshot(makePad({ axes: [Infinity, NaN, -2, 2, 0.8] })).axes, [0, 0, -1, 1]);
+});
+
+test("invalid controller index is sanitized", () => {
+  assert.equal(core.readSnapshot(makePad({ index: -1 })).index, 0);
+  assert.equal(core.readSnapshot(makePad({ index: Infinity })).index, 0);
+  assert.equal(core.readSnapshot(makePad({ index: 3 })).index, 3);
+});
+
+test("fully engaged analog button reports pressed even when browser omits pressed flag", () => {
+  const snap = core.readSnapshot(makePad({ buttons: [{ value: 1 }] }));
+  assert.equal(snap.buttons[0].pressed, true);
+  assert.equal(snap.buttons[0].value, 1);
+});
