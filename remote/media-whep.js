@@ -65,6 +65,12 @@
     const onStream = options.onStream || (() => {});
     const onStatus = options.onStatus || (() => {});
     const onMetrics = options.onMetrics || (() => {});
+    const requestTimeoutMs = Number.isInteger(options.requestTimeoutMs) &&
+      options.requestTimeoutMs >= 20 && options.requestTimeoutMs <= 30000
+      ? options.requestTimeoutMs : 15000;
+    const noVideoTimeoutMs = Number.isInteger(options.noVideoTimeoutMs) &&
+      options.noVideoTimeoutMs >= 20 && options.noVideoTimeoutMs <= 120000
+      ? options.noVideoTimeoutMs : 20000;
     const token = options.token || "";
     if (typeof token !== "string" || token.length > 2048 || /[\r\n]/.test(token)) {
       throw new Error("invalid_token");
@@ -79,6 +85,8 @@
     let started = false;
     let metricsTimer = null;
     let metricsInFlight = false;
+    let videoWatchdog = null;
+    let decodedVideo = false;
     const observed = { videoTrack: false, audioTrack: false };
 
     async function sampleMetrics(current) {
@@ -109,6 +117,13 @@
           }
           snapshot.packetsLost += positive(item.packetsLost);
         });
+        if (snapshot.videoFramesDecoded > 0) {
+          decodedVideo = true;
+          if (videoWatchdog !== null) {
+            clearTimeout(videoWatchdog);
+            videoWatchdog = null;
+          }
+        }
         onMetrics(snapshot);
       } catch {
         /* Stats unavailable is not a connection failure. No fake success. */
@@ -121,6 +136,10 @@
       if (!active) return;
       active = false;
       controller.abort();
+      if (videoWatchdog !== null) {
+        clearTimeout(videoWatchdog);
+        videoWatchdog = null;
+      }
       if (metricsTimer !== null) {
         clearInterval(metricsTimer);
         metricsTimer = null;
@@ -175,11 +194,36 @@
         await waitForIce(current, controller.signal, 12000);
         if (!active) throw new Error("cancelled");
 
-        const response = await fetcher(url, {
-          method: "POST", mode: "cors", credentials: "omit", redirect: "error",
-          headers, body: current.localDescription.sdp, signal: controller.signal,
-          cache: "no-store", referrerPolicy: "no-referrer"
-        });
+        /* Bound a silent WHEP gateway or broken CORS request. Never wait forever.
+         * Promise.race handles injected test fetchers that ignore AbortSignal.
+         */
+        let requestTimer = null;
+        let requestExpired = false;
+        let response;
+        try {
+          const request = fetcher(url, {
+            method: "POST", mode: "cors", credentials: "omit", redirect: "error",
+            headers, body: current.localDescription.sdp, signal: controller.signal,
+            cache: "no-store", referrerPolicy: "no-referrer"
+          });
+          response = await Promise.race([
+            request,
+            new Promise((_, reject) => {
+              requestTimer = setTimeout(() => {
+                requestExpired = true;
+                controller.abort();
+                reject(new Error("gateway_timeout"));
+              }, requestTimeoutMs);
+            })
+          ]);
+        } catch (error) {
+          if (requestExpired) throw new Error("gateway_timeout");
+          if (error && (error.name === "TypeError" || error.name === "NetworkError"))
+            throw new Error("gateway_network_error");
+          throw error;
+        } finally {
+          if (requestTimer !== null) clearTimeout(requestTimer);
+        }
         if (!active) throw new Error("cancelled");
         if (response.status !== 201) throw new Error("whep_http_" + response.status);
         const contentType = String(response.headers.get("content-type") || "").toLowerCase();
@@ -194,6 +238,13 @@
         if (!active) throw new Error("cancelled");
         onStatus("Sessão WebRTC criada. Aguardando vídeo e áudio do gateway.");
         await sampleMetrics(current);
+        if (active && current === peer && !decodedVideo) {
+          videoWatchdog = setTimeout(() => {
+            if (active && current === peer && !decodedVideo) {
+              onStatus("Gateway respondeu, mas nenhum quadro de vídeo foi decodificado. Confira se há fonte real e conexão ICE/UDP.");
+            }
+          }, noVideoTimeoutMs);
+        }
         if (active && current === peer) {
           metricsTimer = setInterval(() => { void sampleMetrics(current); }, 2000);
         }
