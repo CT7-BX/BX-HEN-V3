@@ -54,7 +54,7 @@ test("browser offers checklist, accessible status and never claims streaming", (
   }
   assert.equal((html.match(/data-test-step/g) || []).length, 5);
   assert.match(html, /src="\.\/first-tests\.js"/);
-  assert.match(html, /vídeo ainda não foram validados/i);
+  assert.match(html, /vídeo real depende de gateway/i);
   assert.match(pairing, /dataset\.relayCheck = "ok"/);
   assert.match(pairing, /dataset\.relayCheck = "failed"/);
   assert.match(pairing, /dataset\.relayCheck = "not_tested"/);
