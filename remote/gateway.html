@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0c11">
+<meta name="description" content="BX Android Gateway: avalie seu celular antigo antes dos testes de Remote Play.">
+<title>BX-REMOTE-PLAY | Android Gateway</title>
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./site-v2.css?v=0.24">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#090a0f;color:#f6f0f4}
+main{max-width:960px;margin:auto;padding:24px clamp(16px,4vw,34px) 84px}
+.gateway-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid #674054;padding-bottom:17px}
+.gateway-header strong{font-size:1.17rem}.gateway-header strong span{color:#ff6580}
+.gateway-header a{color:#ffe2eb;border:1px solid #715165;border-radius:11px;padding:10px 13px;text-decoration:none;font-weight:750}
+h1{font-size:clamp(2rem,5vw,3.2rem);letter-spacing:-.055em;line-height:1.07;margin:18px 0 12px}
+h1 span{color:#ff708b}
+.lead,.hint,p{color:#c7b7c1;line-height:1.65}
+.eyebrow{color:#ff9aab;text-transform:uppercase;letter-spacing:.11em;font-weight:800;font-size:.72rem;margin-top:29px}
+.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:24px 0}
+.summary article{border:1px solid #544354;background:linear-gradient(125deg,#241923,#16151d);border-radius:14px;padding:16px}
+.summary strong{display:block;margin-bottom:9px}.summary span{color:#c2b2be;font-size:.78rem;line-height:1.5}
+.card{background:linear-gradient(145deg,#211923,#14151b);border:1px solid #705069;border-radius:18px;padding:clamp(18px,3vw,26px);margin-top:19px}
+.card h2{font-size:1.3rem;letter-spacing:-.035em;margin:0 0 11px}
+button,.action-link{display:inline-flex;align-items:center;justify-content:center;min-height:46px;border:1px solid #854357;border-radius:11px;padding:11px 16px;background:#34202c;color:white;font:inherit;font-weight:800;cursor:pointer;text-decoration:none}
+button.primary,.action-link.primary{background:#df3152;border-color:#ff7188}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,a:focus-visible{outline:3px solid #ffb7c4;outline-offset:3px}
+.buttons{display:flex;flex-wrap:wrap;gap:10px;margin:15px 0}
+#androidStatus{font-size:.82rem;line-height:1.6;color:#ecc8d4}
+#androidOutput{display:grid;gap:8px}
+.android-result-row{background:#14151b;border:1px solid #4b3c49;border-left:3px solid #f44764;border-radius:10px;padding:11px}
+.android-result-row strong{display:block;color:#fff;font-size:.78rem;margin-bottom:4px}
+.android-result-row span{color:#c9bac7;font-size:.79rem;line-height:1.5}
+.warning{border-left:4px solid #e7a35c;padding:11px 15px;background:#2b211e;border-radius:0 11px 11px 0}
+.steps{padding-left:22px}.steps li{margin:11px 0;color:#d9ccd6;line-height:1.55}.steps li::marker{color:#ff7e96;font-weight:800}
+small{color:#b5a8b6;line-height:1.5}
+@media(max-width:640px){.summary{grid-template-columns:1fr}.summary article{padding:13px}.buttons>*{flex:1 1 100%}}
+</style>
+</head>
+<body>
+<main>
+<header class="gateway-header">
+  <strong>BX-<span>REMOTE</span>-PLAY · ANDROID</strong>
+  <a href="./">← Voltar ao player</a>
+</header>
+<p class="eyebrow">Gateway Android · Etapa 1 de desenvolvimento</p>
+<h1>Seu Android antigo. <span>Uma nova ponte.</span></h1>
+<p class="lead">Queremos usar um Android em casa como ponte entre PS4 e iPhone, sem Mac. Primeiro precisamos confirmar o hardware. Este diagnóstico funciona sem saber o modelo do aparelho — e não tenta iniciar uma sessão de jogo sem um cliente Remote Play.</p>
+<div class="summary" aria-label="Etapas de implementação">
+  <article><strong>01 · Compatibilidade</strong><span>Avaliar versão do Android, memória e suporte a vídeo</span></article>
+  <article><strong>02 · Captura e transporte</strong><span>Futuro aplicativo nativo com autorização de tela, rede e WebRTC</span></article>
+  <article><strong>03 · Controle e imagem</strong><span>Integração com Remote Play do PS4 e controles do iPhone, ainda não implementada</span></article>
+</div>
+<section class="card" aria-labelledby="checkTitle">
+  <h2 id="checkTitle">Verificar este Android</h2>
+  <p>Abra esta página no celular antigo e toque em <strong>Analisar aparelho</strong>. O navegador revela apenas uma estimativa. Para diagnóstico mais completo, o aplicativo Android poderá consultar diretamente os recursos do sistema.</p>
+  <div class="buttons">
+    <button class="primary" id="androidCheck" type="button">Analisar aparelho</button>
+    <button id="androidCopy" type="button" disabled>Copiar relatório</button>
+  </div>
+  <p id="androidStatus" role="status" aria-live="polite">Nenhuma avaliação iniciada.</p>
+  <div id="androidOutput" role="group" aria-label="Resultados locais de compatibilidade"></div>
+  <p class="hint">Os resultados não são transmitidos ao BX nem salvos automaticamente. Você escolhe se deseja copiá-los.</p>
+</section>
+<section class="card" aria-labelledby="nativeTitle">
+  <h2 id="nativeTitle">BX Android Gateway — aplicativo nativo</h2>
+  <p>Um APK de diagnóstico está sendo preparado para celulares a partir do Android 7. Ele poderá mostrar RAM física, versão do Android e codecs H.264 diretamente no aparelho. <strong>Esse APK ainda não retransmite jogos.</strong></p>
+  <div class="buttons">
+    <a class="action-link" href="https://github.com/CT7-BX/BX-REMOTE-PLAY/actions/workflows/android-gateway-build.yml" rel="noopener noreferrer" target="_blank">Consultar APK experimental no GitHub</a>
+    <a class="action-link" href="https://developer.android.com/media/platform/av-capture" rel="noopener noreferrer" target="_blank">Entender permissões do Android</a>
+  </div>
+  <p class="warning">Não deixe um Android antigo transmitindo ou carregando sem supervisão por longos períodos. A versão futura deverá parar automaticamente se houver superaquecimento ou problemas de energia.</p>
+</section>
+<section class="card">
+  <h2>Como será a integração com o PS4</h2>
+  <ol class="steps">
+    <li>Confirmar no Android a compatibilidade de codecs, memória e conectividade Wi-Fi.</li>
+    <li>Adicionar uma sessão real de Remote Play do PS4 ao aplicativo, com autorização de registro local.</li>
+    <li>Transportar vídeo, áudio e comandos de forma autenticada até o player BX no iPhone.</li>
+    <li>Testar reconexão e estabilidade antes de considerar uso contínuo.</li>
+  </ol>
+  <p class="hint">O modo BX Native, somente PS4 + iPhone, continua como objetivo paralelo. Nenhum dos dois modos já transmite vídeo do PS4 no nosso site.</p>
+</section>
+</main>
+<script src="./android-readiness.js?v=0.24"></script>
+</body>
+</html>
