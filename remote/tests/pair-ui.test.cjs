@@ -50,6 +50,16 @@ test("mobile pairing calls have bounded timeouts and cancel outstanding requests
   assert.match(pairing, /\$\("pairSection"\)\?\.addEventListener\("toggle"/);
 });
 
+test("approved temporary pairing exposes native PS4 readiness but does not advertise media", () => {
+  assert.match(pairing, /function describeNativeRemotePlayProbe\(state\)/);
+  assert.match(pairing, /diag\.loopbackTcp9295 === true/);
+  assert.match(pairing, /diag\.loopbackTcp9295 === false/);
+  assert.match(pairing, /diag\.checkedSecondsAgo > 90/);
+  assert.match(pairing, /nenhum jogo|não existe transmissão de vídeo\/áudio/);
+  assert.match(html, /Diagnóstico independente PS4/);
+  assert.match(html, /src="\.\/pair-client\.js\?v=0\.23"/);
+});
+
 test("approved pairing connects to existing relay without manual secret entry", () => {
   assert.match(game, /function connectRelay\(endpoint, token\)/);
   assert.match(game, /addEventListener\("bxremote:paired"/);
