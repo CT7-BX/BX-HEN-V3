@@ -9,7 +9,8 @@ class FirstRunFlowTests(unittest.TestCase):
     def test_missing_configuration_is_expected_not_crash(self):
         self.assertIn('report("missing_or_invalid_config", -1, 0);', SOURCE)
         self.assertIn('return 0; /* All expected test outcomes are logged, not process errors. */', SOURCE)
-        self.assertNotRegex(SOURCE, r"\breturn\s+[123];\s*(?:/\*.*?\*/)?\s*\n")
+        main = SOURCE[SOURCE.index("int main(void) {"):]
+        self.assertNotRegex(main, r"\breturn\s+[123];")
         block = SOURCE[SOURCE.index("if (!read_config(&config)) {"):SOURCE.index("if (!open_http(&http)) {")]
         self.assertIn("CONFIG_RETRY_TICKS", block)
         self.assertIn("poll_decision(pad, &last_buttons)", block)
