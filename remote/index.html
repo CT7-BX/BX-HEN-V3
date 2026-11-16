@@ -370,13 +370,14 @@
       message("checking", "Verificando HTTPS... Aguarde o resultado aqui.");
       button.textContent = "Verificando HTTPS...";
       button.disabled = true;
-      controller = new AbortController();
-      var timeout = setTimeout(function () { controller && controller.abort(); }, 6500);
+      var thisController = new AbortController();
+      controller = thisController;
+      var timeout = setTimeout(function () { thisController.abort(); }, 6500);
       try {
         var response = await fetch(url.origin + "/health", {
           method: "GET", mode: "cors", credentials: "omit",
           cache: "no-store", referrerPolicy: "no-referrer",
-          signal: controller.signal
+          signal: thisController.signal
         });
         if (!response.ok) throw new Error("HTTP " + response.status);
         var info = await response.json();
