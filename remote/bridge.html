@@ -30,6 +30,9 @@ input{display:block;width:100%;margin:8px 0;border:1px solid #786273;border-radi
 .steps{display:grid;gap:10px;padding-left:20px}
 em{color:#ffc6d0}
 .note{font-size:.85rem}
+#senderControlStatus,#senderControlInput{background:#16141d;border:1px solid #5c4450;border-radius:10px;padding:11px 12px;font-size:.79rem;line-height:1.5;overflow-wrap:anywhere}
+.bx-input-test{margin-top:19px;padding:16px;background:#211921;border-radius:13px;border:1px solid #68475b}
+.bx-input-test h2{font-size:1.04rem;color:#fff;margin:0 0 10px}
 </style>
 <link rel="stylesheet" href="./site-v2.css?v=0.26">
 </head>
@@ -61,13 +64,20 @@ em{color:#ffc6d0}
     <label for="roomCode">Código privado de sessão (expira em 3 minutos para entrar)</label>
     <input id="roomCode" readonly autocomplete="off" spellcheck="false" aria-describedby="shareStatus" placeholder="O código aparecerá após permitir a captura">
     <button type="button" id="copyCode" disabled>Copiar código</button>
+    <section class="bx-input-test" aria-labelledby="controlTestTitle">
+      <h2 id="controlTestTitle">Controles recebidos do iPhone</h2>
+      <p class="note">O canal WebRTC pode receber comandos reais dos botões virtuais e controles físicos do iPhone. Este painel confirma a chegada, mas <strong>não envia esses comandos ao Chiaki nem ao PS4</strong>.</p>
+      <p id="senderControlStatus" role="status" aria-live="polite">Canal de comandos não conectado.</p>
+      <p id="senderControlInput" aria-live="off">Nenhum comando recebido.</p>
+    </section>
     <p class="note"><em>Privacidade:</em> nunca compartilhe o código publicamente. O servidor armazena temporariamente apenas a negociação WebRTC, não grava sua tela. Encerrar esta página interrompe a captura. O código expira para novos acessos, mas a conexão em andamento deve ser encerrada pelo botão Parar.</p>
   </section>
   <p class="bridge-disclaimer"><strong>Outro modo de conexão:</strong> prefira a central BX caso queira preparar o PS4 ou avaliar o Android sem um Mac. O modo P2P desta página permanece um teste opcional.</p>
   <p><a href="./#bxCommandCenter">Abrir todos os modos de conexão do BX</a></p>
   <p class="note">Este é um teste para comprovar imagem e áudio no player BX. Não oferece comandos reais ao PS4 e não substitui o objetivo final de PS4 ligado em casa sem Mac. Sem Chiaki conectado, compartilhar esta página não faz a imagem do PS4 aparecer.</p>
 </main>
-<script src="./bridge-p2p.js?v=0.22"></script>
-<script src="./p2p-sender.js?v=0.22"></script>
+<script src="./input-transport.js?v=0.27"></script>
+<script src="./bridge-p2p.js?v=0.27"></script>
+<script src="./p2p-sender.js?v=0.27"></script>
 </body>
 </html>
