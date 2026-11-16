@@ -1,6 +1,12 @@
-# BX Android Gateway — diagnóstico experimental v0.2
+# BX Android Gateway — diagnóstico experimental v0.3
 
 Este subprojeto Android nativo é o **primeiro teste de compatibilidade para aparelhos antigos**, preparado para Android 7 (API 24) ou superior. **Não é ainda um cliente Remote Play, um gateway WebRTC, nem um aplicativo que transmita jogos.** O BX atual continua sem o transporte PS4 → Android → iPhone.
+
+## Interface v0.3 — três áreas nativas
+
+O aplicativo apresenta três cartões: **Diagnóstico local**, **Central BX** e **Segurança e limites**. A análise usa um indicador de prontidão com descrição conservadora, separa os dados técnicos numa área de texto selecionável, permite copiar o relatório apenas após o usuário iniciar a verificação e mantém o resultado ao girar a tela. O esquema preto/vermelho usa componentes Android nativos e não solicita permissões extras.
+
+A nova interface não torna o APK um cliente Remote Play. A temperatura medida é uma leitura pontual, não um monitor automático de segurança para uso por 24 horas.
 
 ## O que a versão faz
 
@@ -16,7 +22,7 @@ O aplicativo **não pede nenhuma permissão**, não contém `INTERNET` ou `RECOR
 
 ## Instalação e teste
 
-A versão APK experimental é compilada pela workflow [BX Android Gateway — diagnóstico experimental](../.github/workflows/android-gateway-build.yml). Abra a execução concluída com sucesso, baixe o artefato `BX-Android-Gateway-Diagnostic-v0.2` e confira seu SHA-256. O APK contido é **debug**; não há distribuição estável nem função de Remote Play neste estágio.
+A versão APK experimental é compilada pela workflow [BX Android Gateway — diagnóstico experimental](../.github/workflows/android-gateway-build.yml). Abra a execução concluída com sucesso, baixe o artefato `BX-Android-Gateway-Diagnostic-v0.3` e confira seu SHA-256. O APK contido é **debug**; não há distribuição estável nem função de Remote Play neste estágio.
 
 O botão **Analisar aparelho** mostra os dados localmente. Use **Copiar relatório local** se quiser compartilhá-los de forma voluntária, revisando antes o modelo do celular incluído no texto.
 
