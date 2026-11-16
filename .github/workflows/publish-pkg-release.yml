@@ -11,7 +11,7 @@ on:
 
 permissions:
   contents: write
-  actions: read
+  actions: write  # required to dispatch Pages after GITHUB_TOKEN commits manifest
 
 concurrency:
   group: bx-remote-pair-v015-release
@@ -95,3 +95,16 @@ jobs:
             -f message="chore(release): point PS4 update manifest to verified v0.15" \
             -f content="$payload" -f sha="$sha" -f branch=main >/dev/null
           echo "Public version manifest published without private credentials."
+
+      # A manifest commit made with GITHUB_TOKEN does not trigger push workflows.
+      # workflow_dispatch is the explicit exception: deploy the verified
+      # public update channel after its commit.
+      - name: Deploy latest version manifest to GitHub Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api -X POST "repos/$GH_REPO/actions/workflows/pages.yml/dispatches" -f ref=main
+          echo "Requested GitHub Pages publication for the public update channel."
