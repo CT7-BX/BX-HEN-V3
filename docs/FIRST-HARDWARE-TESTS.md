@@ -89,3 +89,11 @@ Em testes locais com o relay Node antigo, `ws://localhost:8765/v1/link` ainda fu
 ## Atualização — primeira execução da v0.13
 
 Quando o arquivo `bx-remote-pair.cfg` não existe ou é inválido, o Pair Test v0.13 não deve mais encerrar imediatamente como erro. A notificação informa o caminho; copie o arquivo por FTP enquanto a aplicação está aberta e aperte **X** para revalidar. **OPTIONS** encerra, ou o app termina normalmente após no máximo dois minutos. Se houver erro CE-, anote o código exato e o estágio do relatório, sem compartilhar o token.
+
+## Experiência de atualização: Pair Test v0.14
+
+1. Atualize o PKG experimental com mesmo Title ID, sem copiar o segredo para o repositório ou compartilhar a configuração.
+2. Abra o aplicativo no PS4. Se a config estiver ausente, copie via FTP para `/user/data/bx-remote-pair.cfg`; a aplicação testa o arquivo **automaticamente a cada 5 segundos** (X também força novo teste).
+3. Caso a config exista mas esteja malformada, aparece **Config invalida**. O arquivo pode usar linhas vazias CRLF ou BOM UTF-8, mas precisa de `relay_base=` HTTPS e `console_token=` de 64 hexadecimais minúsculos, com a mesma chave secreta no Worker.
+4. Em falhas da rede, verifique HTTP 401/403/503 na notificação e o relatório local sem revelar tokens.
+5. Teste OPTIONS para sair sem erro. O vínculo e a conexão HTTPS reais ainda exigem confirmação no hardware físico. A instalação/abertura não prova Remote Play.
