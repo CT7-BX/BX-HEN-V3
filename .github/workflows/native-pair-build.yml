@@ -129,7 +129,7 @@ jobs:
           retention-days: 30
 
   release-native:
-    name: Publish verified PS4 v0.23 prerelease
+    name: Publish verified PS4 v0.24 prerelease
     needs: native-pair
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -151,25 +151,25 @@ jobs:
           test -s bx-remote-service.elf
           EXPECTED="$(awk 'NR==1 {print $1}' pkg.sha256)"
           printf '%s  %s\n' "$EXPECTED" "IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg" | sha256sum -c -
-          mv IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg BX-REMOTE-PLAY-Pair-Test-v0.23.pkg
-          sha256sum BX-REMOTE-PLAY-Pair-Test-v0.23.pkg > BX-REMOTE-PLAY-Pair-Test-v0.23.sha256
+          mv IV0000-BRPM00001_00-BXREMOTEPAIR0001.pkg BX-REMOTE-PLAY-Pair-Test-v0.24.pkg
+          sha256sum BX-REMOTE-PLAY-Pair-Test-v0.24.pkg > BX-REMOTE-PLAY-Pair-Test-v0.24.sha256
       - name: Publish optional experimental prerelease
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
-          TAG="pair-test-v0.23"
+          TAG="pair-test-v0.24"
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release $TAG already exists. Will not overwrite published binaries."
             exit 0
           fi
           gh release create "$TAG" \
-            _ps4_release/BX-REMOTE-PLAY-Pair-Test-v0.23.pkg \
-            _ps4_release/BX-REMOTE-PLAY-Pair-Test-v0.23.sha256 \
+            _ps4_release/BX-REMOTE-PLAY-Pair-Test-v0.24.pkg \
+            _ps4_release/BX-REMOTE-PLAY-Pair-Test-v0.24.sha256 \
             _ps4_release/bx-remote-service.elf \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --prerelease \
-            --title "BX-REMOTE-PLAY PS4 v0.23 — diagnostico e estabilidade" \
+            --title "BX-REMOTE-PLAY PS4 v0.24 — diagnostico e estabilidade" \
             --notes "Build CI OpenOrbis validado, mas ainda nao testado em PS4 fisico. Painel nativo com etapas e dicas de erro, menos redesenhos, log local seguro e ELF de diagnostico opcional atualizado. Sem streaming de jogos nem injeção de controle. Encerre a instancia ELF antiga antes de instalar novamente pelo TRIANGULO."
