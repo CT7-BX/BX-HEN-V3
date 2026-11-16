@@ -1,6 +1,6 @@
-# BX-REMOTE-PLAY — prova de vínculo NATIVA para PS4 (v0.13 experimental)
+# BX-REMOTE-PLAY — prova de vínculo NATIVA para PS4 (v0.14 experimental)
 
-**Estado: usuário relatou que a v0.12 abre no PS4 e exibe a notificação de configuração ausente. A v0.13 ainda não foi validada em hardware.** Este pacote não oferece Remote Play, streaming de vídeo/áudio, virtualização de controle, agente residente nem início automático.
+**Estado: usuário testou fisicamente as versões anteriores e confirmou que a v0.13 permanece aberta e responde ao botão X com configuração ausente/inválida. A v0.14 ainda não foi testada no PS4 físico.** Este pacote não oferece Remote Play, streaming de vídeo/áudio, virtualização de controle, agente residente nem início automático.
 
 ## Por que outro PKG?
 
@@ -101,3 +101,14 @@ O novo guia [FIRST-HARDWARE-TESTS.md](../docs/FIRST-HARDWARE-TESTS.md) descreve 
 - O analisador das respostas JSON verifica o objeto inteiro, bloqueia chaves duplicadas, campos aninhados inesperados e respostas malformadas. Não modifica códigos ou identificadores anteriores se a resposta for inválida.
 - O site tem botão **Testar servidor** que consulta `/health` com tempo limite, sem enviar código ou token.
 - Nenhum acesso ao console físico foi comprovado nesta versão; o novo PKG é experimental e diferente do PKG de diagnóstico v0.21.
+
+## Melhorias do Pair Test v0.14 (prova HTTPS; não transmite jogos)
+
+- **Arquivo via FTP detectado automaticamente**: na tela inicial de configuração, o PS4 verifica `/user/data/bx-remote-pair.cfg` e o caminho alternativo `/data/bx-remote-pair.cfg` a cada **5 segundos** por até **2 minutos**. X força uma nova leitura; OPTIONS encerra normalmente. O navegador/PS4 não guarda seu segredo fora do arquivo privado.
+- **Erros de arquivo separados**: `config_missing` para ausente e `config_invalid` para inválido; nunca inclui o conteúdo ou segredo no relatório.
+- **Compatibilidade com editores**: aceita marca BOM UTF-8 e linhas vazias do Windows (CRLF), sem aceitar HTTP, token incorreto, duplicações ou chaves inesperadas.
+- **HTTPS mais claro**: notificações distintas em HTTP **401** (chave diferente), **403** (acesso negado) e **503** (servidor indisponível). O relatório `/data/bx-remote-pairing-report.txt` continua preservando estágio/código/HTTP.
+- **Estabilidade do controle**: só finaliza o serviço de usuário se sua inicialização realmente ocorreu, inclusive em falhas parciais. Não ativa serviços residentes nem acesso remoto sem autorização.
+- O PKG usa o mesmo Title ID `BRPM00001` das versões anteriores, atualizando o teste existente. A compilação e a validação estrutural não substituem teste no console físico.
+
+Após copiar a configuração, aguarde a notificação **Config OK. Conectando HTTPS...**, ou aperte X. Para vincular, o site usa **Servidor HTTPS de vinculação**, não **Servidor WSS** (este pertence ao simulador). Se houver falha, informe o texto da notificação e o estágio do relatório; **nunca envie o `console_token`**.
