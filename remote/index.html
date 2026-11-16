@@ -125,6 +125,8 @@
     .first-tests-steps label{display:flex;align-items:flex-start;gap:9px;color:#e6dae3;font-size:.79rem;line-height:1.4}
     .first-tests-steps input{width:18px;height:18px;min-width:18px;accent-color:var(--accent);margin:0}
     #firstTestsReport{display:block;width:100%;min-height:184px;resize:vertical;padding:11px 12px;border:1px solid #625363;border-radius:9px;background:#100f16;color:#eee;font:.71rem/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}
+    .pair-steps{padding-left:22px;margin:10px 0 14px;display:grid;gap:8px;color:#e6dce6;font-size:.78rem;line-height:1.45}
+    .pair-steps li::marker{color:#f36c88;font-weight:800}
   </style>
   <link rel="stylesheet" href="./touch-layout.css">
 </head>
@@ -275,6 +277,11 @@
           <details class="relay-config" id="pairSection">
             <summary>Vincular PS4 — conexão experimental</summary>
             <p class="field-note">Pode testar um PS4 com o PKG Pair Test (ainda sem validação física), ou um console simulado. A aprovação do vínculo não habilita vídeo, áudio ou controle real.</p>
+            <ol class="pair-steps" aria-label="Passos de vinculação">
+              <li>Abra o <strong>Pair Test v0.12</strong> no PS4, com a configuração privada pronta.</li>
+              <li>Digite aqui os oito números mostrados na TV.</li>
+              <li>Confirme no PS4 com <strong>X</strong>, ou recuse com <strong>O</strong>.</li>
+            </ol>
             <label class="field" for="pairEndpoint">Servidor HTTPS de vinculação</label>
             <input id="pairEndpoint" type="url" inputmode="url" autocomplete="off" spellcheck="false" value="https://bx-remote-link.4rt949zpj8.workers.dev" aria-describedby="pairServerStatus">
             <div class="toolbar-left" style="margin-top:9px">
@@ -283,7 +290,8 @@
             <p class="field-note" id="pairServerStatus" role="status" aria-live="polite">O BX-REMOTE-LINK é um serviço HTTPS experimental. Clique em Testar servidor; para vincular o PS4, é preciso configurar a mesma chave privada no Worker e no console.</p>
             <p class="field-note"><a href="https://github.com/CT7-BX/BX-REMOTE-PLAY/blob/main/cloudflare/README.md" target="_blank" rel="noopener noreferrer">Como configurar o vínculo de teste</a> · O serviço ainda não transmite vídeo ou controles.</p>
             <label class="field" for="pairCode">Código de 8 números exibido pelo aplicativo PS4 ou simulador</label>
-            <input id="pairCode" type="text" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" autocomplete="off" placeholder="00000000">
+            <input id="pairCode" type="text" inputmode="numeric" pattern="[0-9 -]{8,16}" maxlength="16" autocomplete="one-time-code" enterkeyhint="done" placeholder="1234 5678" aria-describedby="pairCodeHelp">
+            <p id="pairCodeHelp" class="field-note">Os oito números aparecem na TV e expiram após cerca de dois minutos. Pode colar com espaço ou hífen; o código não é salvo no navegador.</p>
             <div class="toolbar-left" style="margin-top:11px">
               <button class="action primary" type="button" id="pairClaim">Solicitar vínculo</button>
               <button class="action plain" type="button" id="pairCancel">Cancelar</button>
