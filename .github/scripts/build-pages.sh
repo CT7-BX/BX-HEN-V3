@@ -27,6 +27,10 @@ assets=(
   game.js
   media-whep.js
   media-controls.js
+  bridge.html
+  bridge-p2p.js
+  p2p-sender.js
+  p2p-viewer.js
   pkg-updates.js
   pair-client.js
   first-tests.js
