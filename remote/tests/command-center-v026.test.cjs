@@ -110,7 +110,7 @@ test("Android v0.3 is a redesigned read-only hardware diagnostic, not a fake str
   assert.doesNotMatch(manifest,/<uses-permission\b/);
   assert.doesNotMatch(android,/startForegroundService|createVirtualDisplay\(/);
   assert.match(gateway,/gateway-hero/);
-  assert.match(gateway,/CENTRAL BX/);
+  assert.match(gateway,/Voltar à central de modos do BX/);
   assert.match(gateway,/APK experimental v0\.3/);
   assert.match(gateway,/href="\.\/#bxCommandCenter"/);
 });
