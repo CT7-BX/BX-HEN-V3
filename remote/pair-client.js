@@ -18,7 +18,6 @@
   let bridgeDeadline = 0;
   let bridgeController = null;
   let bridgeSerial = 0;
-  let bridgeTimer = null;
   let bridgeBusy = false;
 
   function cancelBridgeRequest() {
@@ -33,8 +32,6 @@
     bridgeToken = null;
     bridgeBase = null;
     bridgeDeadline = 0;
-    if (bridgeTimer !== null) clearTimeout(bridgeTimer);
-    bridgeTimer = null;
     if ($("bridgeProbeRequest")) $("bridgeProbeRequest").disabled = true;
   }
 
@@ -307,11 +304,6 @@
             bridgeToken = claimantToken;
             bridgeBase = base;
             bridgeDeadline = Date.now() + 110000;
-            if (bridgeTimer !== null) clearTimeout(bridgeTimer);
-            bridgeTimer = setTimeout(() => {
-              resetBridge();
-              if (bridgeStatus) bridgeStatus.textContent = "Autorização temporária encerrada. Vincule novamente para testar.";
-            }, 110000);
             if (bridgeButton) bridgeButton.disabled = false;
             if (bridgeStatus)
               bridgeStatus.textContent = "PS4 vinculado. Toque no botão para solicitar uma verificação diretamente ao serviço ELF, sem Mac.";
