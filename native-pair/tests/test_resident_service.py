@@ -42,7 +42,7 @@ class ResidentPrototypeTests(unittest.TestCase):
         self.assertIn("bx_resident_prepare();", MAIN)
 
     def test_pkg_includes_independent_elf(self):
-        self.assertIn("VERSION := 0.20", MAKE)
+        self.assertIn("VERSION := 0.21", MAKE)
         self.assertIn("RESIDENT_OBJECTS", MAKE)
         self.assertIn("$(OUT)/bx_remote_service.elf", MAKE)
         self.assertIn("pkg: eboot.bin bx-remote-service.elf", MAKE)

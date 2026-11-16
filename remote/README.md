@@ -29,6 +29,12 @@ O ELF residente atual só envia heartbeats HTTPS. Para oferecer no futuro **Soli
 - Indicador RTT do navegador até o relay; **não** é ping do PS4 ou latência real do jogo.
 - Liberação de comandos de toque quando termina a pressão ou quando a página perde foco.
 
+## Primeiro comando remoto autenticado sem Mac — PKG v0.21
+
+Após um vínculo HTTP temporário aprovado no PS4, a página oferece o botão **Testar comunicação PS4 ↔ celular**. Ele solicita pelo Worker um único comando seguro, que o serviço ELF residente (com PKG fechado) recebe no heartbeat HTTPS, executa como sonda local TCP 9295 e responde ao mesmo navegador. Não é um canal de jogo: não transmite imagem, áudio ou comandos do controle. O token de vínculo fica só em memória durante a autorização, o pedido expira em até 90 segundos e o cancelamento local interrompe a consulta.
+
+Para testar **jogos reais já, sem Mac**, o site também aponta para clientes de Remote Play existentes no iPhone. O PS Remote Play oficial requer conta PlayStation; o PXPlay permite alternativas de registro local, mas a compatibilidade com GoldHEN e a versão do console não foi confirmada. O vídeo aparecerá no aplicativo externo, não no BX. Consulte o [estudo comparativo](../docs/NATIVE-BRIDGE-RESEARCH.md).
+
 ## Primeiro diagnóstico independente de Mac — PKG v0.20
 
 Após instalar v0.20 no PS4, o ELF residente atualizado verifica localmente a porta TCP 9295 (Remote Play) e envia por HTTPS autenticado apenas o resultado booleano. Ao aprovar um vínculo temporário pelo PKG, o navegador exibe se a porta respondeu, não respondeu, ou se houve erro. O Worker mostra esse diagnóstico **somente** a um requerente aprovado e oculta dados antigos. A verificação não exige Mac ou PC, mas **não envia imagem, áudio ou comandos** e não valida uma sessão Remote Play real. A etapa seguinte é uma ponte de transporte TCP/UDP e um cliente WebAssembly compatível com iOS. Consulte [Plano PS4-only](../docs/PS4-ONLY-VIDEO-BRIDGE.md).

@@ -1,6 +1,6 @@
 /*
- * BX-REMOTE-SERVICE v0.20 - experimental independent GoldHEN ELF process.
- * No video, audio or remote controller; HTTPS heartbeat and local TCP 9295 probe only.
+ * BX-REMOTE-SERVICE v0.21 - experimental independent GoldHEN ELF process.
+ * No video/audio/control: outbound HTTPS and explicit owner-approved 9295 probe only.
  * Does not persist a player authorization or expose local ports.
  * Must be explicitly enabled by the user through BX Pair Test.
  */
@@ -15,6 +15,7 @@
 #include <orbis/Http.h>
 #include "../ps4-agent/resident/lifecycle.h"
 #include "pair_config.h"
+#include "pair_protocol.h"
 #include "remoteplay_probe.h"
 
 #define ENABLED_PATH "/data/bx-remote-service.enabled"
@@ -38,7 +39,7 @@ static void log_status(const char *phase, int result, int status) {
         f=fopen(REPORT_PATH,"w");
         if(!f)return;
     }
-    fprintf(f,"BX-REMOTE-SERVICE v0.18 | state=%s | result=%d | http=%d\n",
+    fprintf(f,"BX-REMOTE-SERVICE v0.21 | state=%s | result=%d | http=%d\n",
             phase, result, status);
     fclose(f);
 }
@@ -82,16 +83,19 @@ static int http_open(BXServiceHTTP *h) {
     if(h->ssl<0)return 0;
     h->http=sceHttpInit(h->pool,h->ssl,128*1024);
     if(h->http<0)return 0;
-    h->tmpl=sceHttpCreateTemplate(h->http,"BX-REMOTE-SERVICE/0.20",
+    h->tmpl=sceHttpCreateTemplate(h->http,"BX-REMOTE-SERVICE/0.21",
                                 ORBIS_HTTP_VERSION_1_1,1);
     return h->tmpl>=0;
 }
-static int heartbeat(BXServiceHTTP *h, BXPairConfig *cfg, int *status, int rp_tcp) {
+static int heartbeat(BXServiceHTTP *h, BXPairConfig *cfg, int *status, int rp_tcp,
+                     char probe_id[65]) {
     char url[256]={0};
     char auth[80]={0};
+    char response[256]={0};
     char body[48]={0};
     int body_len;
-    int connection=-1,request=-1,result=-1;
+    int connection=-1,request=-1,result=-1,received=0,n;
+    probe_id[0]='\0';
     *status=0;
     /* Diagnostic only. Never send local IPs, PINs, game data or PSN identity. */
     body_len=snprintf(body,sizeof(body),"{\"remotePlayTcp9295\":%s}",
@@ -101,7 +105,10 @@ static int heartbeat(BXServiceHTTP *h, BXPairConfig *cfg, int *status, int rp_tc
     if(snprintf(auth,sizeof(auth),"Bearer %s",cfg->console_token)>=(int)sizeof(auth))return -11;
     connection=sceHttpCreateConnectionWithURL(h->tmpl,url,false);
     if(connection<0){result=connection;goto done;}
-    request=sceHttpCreateRequestWithURL(connection,ORBIS_METHOD_POST,url,2);
+    /* The request length must match the entire JSON body, not the old
+     * two-byte "{}" heartbeat. Otherwise native POST may truncate diagnostics.
+     */
+    request=sceHttpCreateRequestWithURL(connection,ORBIS_METHOD_POST,url,body_len);
     if(request<0){result=request;goto done;}
     if(sceHttpAddRequestHeader(request,"Authorization",auth,0)<0 ||
        sceHttpAddRequestHeader(request,"Content-Type","application/json",0)<0 ||
@@ -111,11 +118,71 @@ static int heartbeat(BXServiceHTTP *h, BXPairConfig *cfg, int *status, int rp_tc
     result=sceHttpSendRequest(request,body,(size_t)body_len);
     if(result<0)goto done;
     result=sceHttpGetStatusCode(request,status);
-    if(result>=0)result=*status==200?1:-13;
+    if(result>=0 && *status==200) {
+        /* Parse only a flat, bounded JSON response. No arbitrary commands. */
+        while(received < (int)sizeof(response)-1) {
+            n=sceHttpReadData(request,response+received,
+                              (uint32_t)(sizeof(response)-1-received));
+            if(n<=0)break;
+            received+=n;
+        }
+        response[received]='\0';
+        if(received>0) {
+            char candidate[65]={0};
+            int valid=1;
+            int i;
+            if(bx_pair_field(response,"bridgeProbeId",candidate,sizeof(candidate))) {
+                if(strlen(candidate)!=64)valid=0;
+                for(i=0;i<64 && valid;i++)
+                    if(!((candidate[i]>='0' && candidate[i]<='9') ||
+                         (candidate[i]>='a' && candidate[i]<='f')))valid=0;
+                if(valid)memcpy(probe_id,candidate,65);
+            }
+            memset(candidate,0,sizeof(candidate));
+        }
+        result=1;
+    } else if(result>=0)result=-13;
 done:
     if(request>=0)sceHttpDeleteRequest(request);
     if(connection>=0)sceHttpDeleteConnection(connection);
     memset(auth,0,sizeof(auth));
+    return result;
+}
+/* Console-initiated reply to one approved browser diagnostic.
+ * Never accept an arbitrary TCP destination, UDP port or shell command.
+ * The Worker binds the one-time ID to the temporary approved claimant.
+ */
+static int post_bridge_result(BXServiceHTTP *h, BXPairConfig *cfg,
+                              const char probe_id[65], int tcp_open) {
+    char url[256]={0},auth[80]={0},body[128]={0};
+    int connection=-1,request=-1,status=0,result=-1,length;
+    if(strlen(probe_id)!=64)return -20;
+    if(snprintf(url,sizeof(url),"%s/v1/bridge/probe-result",
+                cfg->relay_origin)>=(int)sizeof(url))return -21;
+    if(snprintf(auth,sizeof(auth),"Bearer %s",cfg->console_token)>=(int)sizeof(auth))
+        return -22;
+    length=snprintf(body,sizeof(body),
+                    "{\"id\":\"%s\",\"tcp9295\":%s}",probe_id,
+                    tcp_open==1?"true":tcp_open==0?"false":"null");
+    if(length<=0 || length>=(int)sizeof(body)) {result=-23;goto done;}
+    connection=sceHttpCreateConnectionWithURL(h->tmpl,url,false);
+    if(connection<0){result=connection;goto done;}
+    request=sceHttpCreateRequestWithURL(connection,ORBIS_METHOD_POST,url,length);
+    if(request<0){result=request;goto done;}
+    if(sceHttpAddRequestHeader(request,"Authorization",auth,0)<0 ||
+       sceHttpAddRequestHeader(request,"Content-Type","application/json",0)<0 ||
+       sceHttpSetConnectTimeOut(request,5000000)<0 ||
+       sceHttpSetResolveTimeOut(request,5000000)<0 ||
+       sceHttpSetSendTimeOut(request,5000000)<0){result=-24;goto done;}
+    result=sceHttpSendRequest(request,body,(size_t)length);
+    if(result<0)goto done;
+    result=sceHttpGetStatusCode(request,&status);
+    if(result>=0)result=status==200?1:-25;
+done:
+    if(request>=0)sceHttpDeleteRequest(request);
+    if(connection>=0)sceHttpDeleteConnection(connection);
+    memset(auth,0,sizeof(auth));
+    memset(body,0,sizeof(body));
     return result;
 }
 static void pause_checked(unsigned seconds) {
@@ -127,6 +194,7 @@ int main(void) {
     BXPairConfig config={{0},{0}};
     bx_agent_lifecycle agent;
     int result,status=0,remoteplay_port=0;
+    char bridge_probe_id[65]={0};
     bx_agent_init(&agent);
     if (!enabled()) {log_status("not_enabled",0,0);return 0;}
     if (!config_read(&config)) {log_status("config_invalid",-1,0);return 0;}
@@ -143,10 +211,19 @@ int main(void) {
      */
     while(enabled() && agent.enabled) {
         remoteplay_port=bx_remoteplay_probe_loopback();
-        result=heartbeat(&http,&config,&status,remoteplay_port);
+        result=heartbeat(&http,&config,&status,remoteplay_port,
+                         bridge_probe_id);
         if(result==1) {
             bx_agent_on_connected(&agent);
             log_status("heartbeat_ok",result,status);
+            if(bridge_probe_id[0]) {
+                /* Only a bounded allowlisted local check, never game actions. */
+                int fresh=bx_remoteplay_probe_loopback();
+                int report_result=post_bridge_result(&http,&config,bridge_probe_id,fresh);
+                log_status(report_result==1?"bridge_result_accepted":
+                           "bridge_result_failed",report_result,0);
+                memset(bridge_probe_id,0,sizeof(bridge_probe_id));
+            }
             log_status(remoteplay_port==1?"remoteplay_tcp_open":
                 remoteplay_port==0?"remoteplay_tcp_unreachable":
                 "remoteplay_probe_failed",remoteplay_port,0);

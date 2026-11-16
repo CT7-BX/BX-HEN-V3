@@ -13,7 +13,8 @@ function browserWith(fetchMock, endpoint = "https://bx-remote-link.4rt949zpj8.wo
   const windowHandlers = new Map();
   for (const name of [
     "pairClaim", "pairEndpoint", "pairCode", "pairServerStatus",
-    "pairStatus", "pairCheck", "pairCancel", "pairSection"
+    "pairStatus", "pairCheck", "pairCancel", "pairSection",
+    "bridgeProbeRequest", "bridgeProbeStatus"
   ]) {
     nodes.set(name, {
       value: "", textContent: "", disabled: false, dataset: {},
@@ -101,6 +102,40 @@ test("HTTP-only approval is reported without initiating game controls or video",
   assert.equal(b.dispatched.length, 0);
   assert.equal(b.get("pairClaim").disabled, false);
   assert.equal(b.get("pairCode").value, "");
+});
+
+test("approved phone starts real one-shot PS4 resident command without a Mac", async () => {
+  const token = "7".repeat(64);
+  const calls = [];
+  const b = browserWith(async (url, options) => {
+    calls.push({ url, options });
+    if (url.endsWith("/v1/pair/claim"))
+      return jsonResponse({ claimToken: token, expiresInSeconds: 120 });
+    if (url.endsWith("/v1/pair/status"))
+      return jsonResponse({ status: "approved", controlAvailable: false });
+    if (url.endsWith("/v1/bridge/probe") && options.method === "POST")
+      return jsonResponse({ status: "queued" });
+    if (url.endsWith("/v1/bridge/probe") && options.method === "GET")
+      return jsonResponse({ status: "done", tcp9295: true });
+    throw Error("Unexpected URL: " + url);
+  });
+  assert.equal(b.get("bridgeProbeRequest").disabled, true);
+  await b.get("pairClaim").fire("click");
+  assert.equal(b.get("bridgeProbeRequest").disabled, false);
+  await b.get("bridgeProbeRequest").fire("click");
+  assert.match(b.get("bridgeProbeStatus").textContent,
+    /PS4 respondeu ao pedido pelo serviço ELF/);
+  assert.equal(b.get("bridgeProbeRequest").disabled, false);
+  assert.equal(calls.filter(x => x.url.endsWith("/v1/bridge/probe")).length, 2);
+  for (const req of calls) {
+    assert.equal(req.url.includes(token), false, "bearer must never be in URL");
+    if (req.url.endsWith("/v1/bridge/probe")) {
+      assert.equal(req.options.headers.authorization, "Bearer " + token);
+      assert.equal(req.options.credentials, "omit");
+    }
+  }
+  await b.get("pairCancel").fire("click");
+  assert.equal(b.get("bridgeProbeRequest").disabled, true);
 });
 
 test("unconfigured backend returns a friendly error, no token exposure", async () => {

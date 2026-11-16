@@ -102,7 +102,7 @@ test("opening pairing section runs health exactly once", async () => {
 
 test("page contains direct no-token health link and cache-busted pairing script", () => {
   assert.match(html, /id="pairHealthDirect"[^>]*>Abrir diagnóstico HTTPS direto/);
-  assert.match(html, /src="\.\/pair-client\.js\?v=0\.23"/);
+  assert.match(html, /src="\.\/pair-client\.js\?v=0\.24"/);
 });
 
 test("Safari BFCache restoration repeats health check without stale disabled button", async () => {
