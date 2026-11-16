@@ -202,8 +202,8 @@ test("main screen exposes WHEP controls separately from HTTP pairing and WSS sim
   assert.match(html, /id="mediaHealth"/);
   assert.match(html, /não é o código de oito dígitos/);
   assert.match(html, /Chiaki-NG-Web/);
-  assert.match(html, /src="\.\/media-whep\.js"/);
-  assert.match(html, /src="\.\/media-controls\.js"/);
+  assert.match(html, /src="\.\/media-whep\.js(?:\?v=[\d.]+)?"/);
+  assert.match(html, /src="\.\/media-controls\.js(?:\?v=[\d.]+)?"/);
   assert.match(html, /o Worker BX-REMOTE-LINK não é um servidor WHEP/);
   assert.match(html, /id="pairSection"/);
   assert.match(html, /id="relaySection"/);
