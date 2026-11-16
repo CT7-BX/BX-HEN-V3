@@ -1,4 +1,5 @@
 #include "ota_install.h"
+#include <stdbool.h>
 #include <orbis/AppInstUtil.h>
 #include <string.h>
 
