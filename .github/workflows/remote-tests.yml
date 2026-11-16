@@ -36,6 +36,9 @@ jobs:
           node --check remote/media-whep.js
           node --check remote/media-controls.js
           node --check remote/pkg-updates.js
+          node --check remote/bridge-p2p.js
+          node --check remote/p2p-sender.js
+          node --check remote/p2p-viewer.js
           node --check remote/pair-client.js
           node --check remote/first-tests.js
           node -e "JSON.parse(require('node:fs').readFileSync('remote/manifest.webmanifest', 'utf8'))"
