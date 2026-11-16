@@ -1,5 +1,5 @@
 /*
- * BX-REMOTE-PLAY PS4 Pairing Proof v0.13
+ * BX-REMOTE-PLAY PS4 Pairing Proof v0.14
  *
  * NEW, SEPARATE PKG. Not the existing v0.21 HTTPS diagnostic.
  * Foreground-only console-side HTTP pairing test, with local DualShock consent.
@@ -35,7 +35,8 @@
 #define POLL_ROUNDS 60
 #define APPROVAL_POLL_TICKS 80
 #define APPROVED_NOTICE_SECONDS 20
-#define CONFIG_RETRY_TICKS 1200 /* two minutes; exit safely even if no controller input */
+#define CONFIG_RETRY_TICKS 1200 /* two minutes; safe first-run window */
+#define CONFIG_AUTO_RECHECK_TICKS 50 /* re-read .cfg every five seconds */
 
 typedef struct HttpContext {
     int initialized_net;
@@ -53,7 +54,7 @@ static void report(const char *stage, int code, int status) {
     FILE *f = fopen(REPORT_PATH, "w");
     if (!f) f = fopen("/user/data/bx-remote-pairing-report.txt", "w");
     if (!f) return;
-    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.13\n");
+    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.14\n");
     fprintf(f, "stage=%s\n", stage ? stage : "unknown");
     fprintf(f, "result_code=%d\nhttp_status=%d\n", code, status);
     fprintf(f, "streaming=NOT_IMPLEMENTED\n");
@@ -81,7 +82,7 @@ static int open_http(HttpContext *ctx) {
     if (ctx->ssl < 0) return 0;
     ctx->http = sceHttpInit(ctx->pool, ctx->ssl, HTTP_MEMORY_BYTES);
     if (ctx->http < 0) return 0;
-    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.13",
+    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.14",
         ORBIS_HTTP_VERSION_1_1, 1);
     return ctx->tmpl >= 0;
 }
@@ -148,32 +149,40 @@ done:
     return ok;
 }
 
+/* Return 1 for valid private config, 0 for file missing, -1 for invalid.
+ * Avoid treating a malformed file as if it were missing; never log its text.
+ */
 static int read_config(BXPairConfig *config) {
     FILE *f;
     size_t length;
-    char buffer[1024];
+    char buffer[1024] = {0};
+    int result = -1;
     f = fopen(CONFIG_PATH, "rb");
     if (!f) f = fopen(CONFIG_FALLBACK, "rb");
     if (!f) return 0;
     length = fread(buffer, 1, sizeof(buffer) - 1, f);
-    fclose(f);
-    if (!length || length == sizeof(buffer) - 1) return 0;
+    if (ferror(f)) goto done;
+    if (!length || length == sizeof(buffer) - 1) goto done;
     buffer[length] = '\0';
-    if (!bx_pair_parse_config(buffer, config)) {
-        memset(buffer, 0, sizeof(buffer));
-        return 0;
-    }
+    if (bx_pair_parse_config(buffer, config)) result = 1;
+done:
+    fclose(f);
     memset(buffer, 0, sizeof(buffer));
-    return 1;
+    return result;
 }
 
-static int pad_open(void) {
-    int user = -1, handle;
-    if (sceUserServiceInitialize(NULL) < 0) return -1;
+/* UserService can be partially initialized when controller setup fails.
+ * Keep ownership explicit; never terminate an uninitialized service.
+ */
+static int pad_open(int *user_initialized) {
+    int user = -1;
+    if (!*user_initialized) {
+        if (sceUserServiceInitialize(NULL) < 0) return -1;
+        *user_initialized = 1;
+    }
     if (sceUserServiceGetInitialUser(&user) < 0) return -1;
     if (scePadInit() < 0) return -1;
-    handle = scePadOpen(user, 0, 0, NULL);
-    return handle;
+    return scePadOpen(user, 0, 0, NULL);
 }
 
 /* Only a NEW local press may authorize or reject a claim.
@@ -209,51 +218,56 @@ int main(void) {
     char decision[250];
     char message[180];
     uint32_t last_buttons = 0;
-    int pad = -1, status = 0, result = -1, accepted = 0, round, i;
+    int pad = -1, user_initialized = 0, status = 0, result = -1, accepted = 0, round, i;
     const char *stage = "config";
     const char *final = "not_started";
 
-    /* A missing or malformed private configuration is expected on first
-     * launch: do NOT exit with a non-zero code which some PS4 shells show
-     * as an application error. Keep the foreground app responsive and allow
-     * an explicit local retry after transferring the file through FTP.
-     * Neither this code nor the PKG contains a secret.
+    /* The PS4 first-run may happen before the user copies a private .cfg.
+     * The app remains open while FTP is available, and detects the file
+     * automatically without requiring a restart or repeated X presses.
      */
-    if (!read_config(&config)) {
-        int configured = 0;
-        notice("BX-REMOTE: Config ausente. FTP: /user/data/bx-remote-pair.cfg");
-        report("missing_or_invalid_config", -1, 0);
-        pad = pad_open();
-        if (pad < 0) {
-            notice("BX-REMOTE: Sem controle. Confira config e abra de novo.");
-            sleep(10);
-        } else {
-            notice("BX-REMOTE: Copie config via FTP. X = tentar; OPTIONS = sair.");
-            for (i = 0; i < CONFIG_RETRY_TICKS; i++) {
-                int choice = poll_decision(pad, &last_buttons);
-                if (choice == -2) break;
-                if (choice == 1) {
-                    if (read_config(&config)) {
-                        configured = 1;
-                        notice("BX-REMOTE: Config encontrada. Iniciando vinculo HTTPS.");
-                        break;
+    {
+        int config_state = read_config(&config);
+        if (config_state != 1) {
+            int configured = 0;
+            report(config_state == 0 ? "config_missing" : "config_invalid", -1, 0);
+            notice(config_state == 0
+                ? "BX-REMOTE: Config nao encontrada. Copie por FTP para /user/data/."
+                : "BX-REMOTE: Config invalida. Confira bx-remote-pair.cfg.");
+            pad = pad_open(&user_initialized);
+            if (pad < 0) {
+                notice("BX-REMOTE: Sem controle. Verifique a config e reinicie.");
+                sleep(10);
+            } else {
+                notice("BX-REMOTE: FTP /user/data/bx-remote-pair.cfg. X tenta; OPTIONS sai.");
+                for (i = 0; i < CONFIG_RETRY_TICKS; ++i) {
+                    const int choice = poll_decision(pad, &last_buttons);
+                    if (choice == -2) break;
+                    if (choice == 1 || (i > 0 && i % CONFIG_AUTO_RECHECK_TICKS == 0)) {
+                        config_state = read_config(&config);
+                        if (config_state == 1) {
+                            configured = 1;
+                            notice("BX-REMOTE: Config OK. Conectando HTTPS...");
+                            break;
+                        }
+                        if (choice == 1) {
+                            notice(config_state == 0
+                                ? "BX-REMOTE: Arquivo nao encontrado. Verifique o caminho FTP."
+                                : "BX-REMOTE: Arquivo invalido. Confira URL e token privado.");
+                        }
                     }
-                    notice("BX-REMOTE: Config ausente ou invalida. X tenta novamente.");
+                    if (i > 0 && i % 150 == 0)
+                        notice("BX-REMOTE: Aguardando config. X revalida; OPTIONS sai.");
+                    usleep(100000);
                 }
-                if (i > 0 && i % 150 == 0) {
-                    notice("BX-REMOTE: FTP + arquivo .cfg. X tenta; OPTIONS sai.");
-                }
-                usleep(100000);
             }
-        }
-        if (!configured) {
-            /* Expected first-run state: terminate normally, without
-             * claiming successful pairing or crashing the PS4 shell. */
-            report("missing_or_invalid_config", -1, 0);
-            if (pad >= 0) scePadClose(pad);
-            sceUserServiceTerminate();
-            memset(&config, 0, sizeof(config));
-            return 0;
+            if (!configured) {
+                report(config_state == 0 ? "config_missing" : "config_invalid", -1, 0);
+                if (pad >= 0) scePadClose(pad);
+                if (user_initialized) sceUserServiceTerminate();
+                memset(&config, 0, sizeof(config));
+                return 0;
+            }
         }
     }
     if (!open_http(&http)) {
@@ -261,12 +275,12 @@ int main(void) {
         report("network_init_failed", -2, 0);
         close_http(&http);
         if (pad >= 0) scePadClose(pad);
-        sceUserServiceTerminate();
+        if (user_initialized) sceUserServiceTerminate();
         memset(&config, 0, sizeof(config));
         sleep(5);
         return 0; /* Expected network failure: report it, do not crash PS4 shell. */
     }
-    if (pad < 0) pad = pad_open();
+    if (pad < 0) pad = pad_open(&user_initialized);
     if (pad < 0) {
         notice("BX-REMOTE: Controle nao encontrado; vinculo cancelado.");
         final = "no_local_controller";
@@ -351,10 +365,18 @@ finish:
         /* Allow the paired browser to fetch approval before revocation. */
         sleep(APPROVED_NOTICE_SECONDS);
     } else {
-        snprintf(message, sizeof(message),
-            "BX-REMOTE: %s (HTTP %d, codigo %d). Ver relatorio.",
-            stage, status, result < 0 ? result : -1);
-        notice(message);
+        if (status == 401) {
+            notice("BX-REMOTE: Token recusado (401). Confira chave no PS4 e Cloudflare.");
+        } else if (status == 503) {
+            notice("BX-REMOTE: Servidor indisponivel (503). Confira Cloudflare.");
+        } else if (status == 403) {
+            notice("BX-REMOTE: Acesso negado (403). Verifique servidor HTTPS.");
+        } else {
+            snprintf(message, sizeof(message),
+                "BX-REMOTE: %s (HTTP %d, codigo %d). Ver relatorio.",
+                stage, status, result < 0 ? result : -1);
+            notice(message);
+        }
         sleep(5);
     }
     /* Revoke short-lived proof. Do not leave an unattended controller session. */
@@ -362,7 +384,7 @@ finish:
         call_api(&http, &config, "/v1/pair/revoke", "{}", response, &status);
     }
     if (pad >= 0) scePadClose(pad);
-    sceUserServiceTerminate();
+    if (user_initialized) sceUserServiceTerminate();
     close_http(&http);
     memset(&config, 0, sizeof(config));
     return 0; /* All expected test outcomes are logged, not process errors. */
