@@ -309,7 +309,7 @@
               <a id="pkgUpdateDownload" class="action primary" target="_blank" rel="noopener noreferrer" hidden>Baixar PKG oficial</a>
               <a id="pkgUpdateRelease" class="action plain" target="_blank" rel="noopener noreferrer" hidden>Ver release</a>
             </div>
-            <p class="field-note"><strong>Atualização pelo console:</strong> ao abrir o PKG v0.22 com internet e configuração HTTPS válida, ele verifica um manifesto público. Quando existe versão mais nova, tenta baixar, verifica o SHA-256 e solicita X no DualShock para instalar. O instalador ainda é experimental e pode exigir o Package Installer do GoldHEN como alternativa.</p>
+            <p class="field-note"><strong>Atualização pelo console:</strong> ao abrir o PKG v0.23 com internet e configuração HTTPS válida, ele verifica um manifesto público. Quando existe versão mais nova, tenta baixar, verifica o SHA-256 e solicita X no DualShock para instalar. O instalador ainda é experimental e pode exigir o Package Installer do GoldHEN como alternativa.</p>
             <p class="field-note">Para instalar um arquivo baixado pelo site, transfira o PKG por USB ou FTP e use o instalador de pacotes do console. O botão de download não inicia instalação no PS4.</p>
           </details>
           <div class="panel-row">
@@ -387,7 +387,7 @@
           <section class="media-config" aria-labelledby="p2pHeading" id="p2pSection">
             <span class="bx-flag warning">TESTE EXPERIMENTAL · REQUER MAC</span>
             <h3 id="p2pHeading">Receber imagem do Mac — teste P2P real</h3>
-            <p class="field-note"><strong>Primeiro caminho para testar imagem real no BX:</strong> abra o Chiaki em um Mac conectado ao PS4, escolha a janela para compartilhar com sua autorização e receba o vídeo aqui, pelo WebRTC. O Mac precisa permanecer ligado durante este teste; o PKG v0.22 não envia imagem sozinho.</p>
+            <p class="field-note"><strong>Primeiro caminho para testar imagem real no BX:</strong> abra o Chiaki em um Mac conectado ao PS4, escolha a janela para compartilhar com sua autorização e receba o vídeo aqui, pelo WebRTC. O Mac precisa permanecer ligado durante este teste; o PKG v0.23 não envia imagem sozinho.</p>
             <p class="field-note"><a class="action plain" href="./bridge.html" target="_blank" rel="noopener noreferrer">Abrir transmissor no Mac</a></p>
             <label class="field" for="p2pRoomCode">Código privado da transmissão (64 caracteres)</label>
             <input id="p2pRoomCode" type="text" inputmode="text" autocomplete="off" spellcheck="false" maxlength="64" placeholder="Cole o código exibido no Mac" aria-describedby="p2pStatus">
@@ -419,7 +419,7 @@
             </select>
             <div id="mediaNoGateway">
               <strong>Sem fonte de mídia conectada</strong>
-              <p class="field-note">Não há endereço automático para preencher. O PKG v0.22 e o Worker fazem pareamento, mas ainda não capturam nem encaminham vídeo e áudio dos jogos.</p>
+              <p class="field-note">Não há endereço automático para preencher. O PKG v0.23 e o Worker fazem pareamento, mas ainda não capturam nem encaminham vídeo e áudio dos jogos.</p>
               <p class="field-note">Para verificar a transmissão real do PS4 agora, use um cliente Remote Play compatível (Chiaki-NG) na mesma rede do console. Para assistir dentro do BX, precisamos desenvolver e hospedar a ponte entre Remote Play e WebRTC.</p>
               <p class="field-note"><a href="https://github.com/CT7-BX/BX-REMOTE-PLAY/blob/main/docs/REAL-AV-TEST-PLAN.md" target="_blank" rel="noopener noreferrer">Abrir procedimento de teste com PS4 real</a></p>
             </div>
@@ -464,7 +464,7 @@
             <summary>Primeiros testes — checklist e diagnóstico</summary>
             <p class="field-note">Preparação para testes no PS4 físico. O vídeo real depende de gateway; o PKG precisa de novos testes físicos. Os itens abaixo são marcados por você e não significam validação automática.</p>
             <div class="first-tests-steps">
-              <label><input type="checkbox" data-test-step> PS4 com GoldHEN ativo e BX Dashboard v0.22 instalado</label>
+              <label><input type="checkbox" data-test-step> PS4 com GoldHEN ativo e BX Dashboard v0.23 instalado</label>
               <label><input type="checkbox" data-test-step> Servidor HTTPS/WSS protegido configurado, com tokens privados</label>
               <label><input type="checkbox" data-test-step> Arquivo privado de configuração copiado para o PS4</label>
               <label><input type="checkbox" data-test-step> Código de oito dígitos exibido pelo Pair Test no PS4</label>
@@ -482,10 +482,10 @@
           </details>
           <details class="relay-config" id="pairSection">
             <summary>Vincular PS4 — conexão experimental</summary>
-            <p class="field-note"><strong>Comunicação independente PS4 ↔ celular (v0.22):</strong> com o serviço ELF atualizado e iniciado manualmente no PS4, após aprovar o vínculo você verá aqui se a porta local TCP 9295 do Remote Play respondeu. Esse teste não exige Mac e não transmite vídeo ou áudio; apenas valida um pré-requisito da ponte nativa.</p>
-            <p class="field-note">Pode testar o pareamento HTTP com o BX Dashboard v0.22 no PS4 ou com um console simulado. A interface nativa já foi confirmada em hardware, mas a ligação não transmite jogos. A aprovação do vínculo não habilita vídeo, áudio ou controle real.</p>
+            <p class="field-note"><strong>Comunicação independente PS4 ↔ celular (v0.23):</strong> com o serviço ELF atualizado e iniciado manualmente no PS4, após aprovar o vínculo você verá aqui se a porta local TCP 9295 do Remote Play respondeu. Esse teste não exige Mac e não transmite vídeo ou áudio; apenas valida um pré-requisito da ponte nativa.</p>
+            <p class="field-note">Pode testar o pareamento HTTP com o BX Dashboard v0.23 no PS4 ou com um console simulado. A interface nativa já foi confirmada em hardware, mas a ligação não transmite jogos. A aprovação do vínculo não habilita vídeo, áudio ou controle real.</p>
             <ol class="pair-steps" aria-label="Passos de vinculação">
-              <li>Abra o <strong>BX Dashboard v0.22</strong> no PS4, com a configuração privada pronta.</li>
+              <li>Abra o <strong>BX Dashboard v0.23</strong> no PS4, com a configuração privada pronta.</li>
               <li>Digite aqui os oito números mostrados na TV.</li>
               <li>Confirme no PS4 com <strong>X</strong>, ou recuse com <strong>O</strong>.</li>
             </ol>
@@ -600,7 +600,7 @@
         if (info.pairingBackend === "cloudflare-durable-object" && info.configured !== true) {
           message("failed", "Servidor HTTPS responde, mas falta a chave privada no Cloudflare.");
         } else {
-          message("ok", "Servidor BX-REMOTE-LINK responde por HTTPS e informa chave configurada. Isso NÃO confirma que o PS4 está conectado. Abra o PKG v0.22 e verifique o código na TV.");
+          message("ok", "Servidor BX-REMOTE-LINK responde por HTTPS e informa chave configurada. Isso NÃO confirma que o PS4 está conectado. Abra o PKG v0.23 e verifique o código na TV.");
         }
       } catch (error) {
         if (request !== current) return;
@@ -647,7 +647,7 @@
   <script src="./game.js?v=0.27"></script>
   <script src="./media-whep.js?v=0.20"></script>
   <script src="./media-controls.js?v=0.23"></script>
-  <script src="./pair-client.js?v=0.25"></script>
+  <script src="./pair-client.js?v=0.28"></script>
   <script src="./first-tests.js"></script>
   <script src="./pkg-updates.js?v=0.21"></script>
   <script src="./input-transport.js?v=0.27"></script>
@@ -655,6 +655,6 @@
   <script src="./p2p-viewer.js?v=0.27"></script>
   <script src="./site-ui.js?v=0.22"></script>
   <script src="./diagnostics.js?v=0.25"></script>
-  <script src="./command-center.js?v=0.26"></script>
+  <script src="./command-center.js?v=0.28"></script>
 </body>
 </html>
