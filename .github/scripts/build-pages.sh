@@ -36,6 +36,7 @@ assets=(
   first-tests.js
   touch-layout.css
   site-v2.css
+  site-ui.js
   relay-lab.html
   ps4-probe.txt
   update.txt
