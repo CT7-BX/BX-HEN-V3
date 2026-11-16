@@ -14,7 +14,7 @@ body{background:
   #08090e;
 }
 body:not(.bridge-page) .intro{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:24px;align-items:end;margin-bottom:14px}
-body:not(.bridge-page) .intro .bx-eyebrow{grid-column:1/-1}
+body:not(.bridge-page) .intro .bx-eyebrow{grid-column:1/-1}\nbody:not(.bridge-page) .intro h1,body:not(.bridge-page) .intro p:last-child{grid-column:1/-1}
 body:not(.bridge-page) .intro p:last-child{max-width:820px}
 body:not(.bridge-page) .intro h1{
   font-size:clamp(2.15rem,4.2vw,3.8rem);
