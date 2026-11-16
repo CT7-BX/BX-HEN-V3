@@ -504,6 +504,9 @@
       }));
     },
     onAttach: (stream, owner) => {
+      // A new media source must start muted to allow autoplay on Safari/iOS.
+      // Do not mute again when an audio track joins the SAME stream.
+      if (stream && video.srcObject !== stream) video.muted = true;
       video.srcObject = stream;
       mediaAttached = Boolean(stream);
       $("emptyState").hidden = mediaAttached;
