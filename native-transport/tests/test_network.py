@@ -41,7 +41,7 @@ class NetworkTests(unittest.TestCase):
                         fd=4096;self.send(bridge,self.packet(1,1,fd,b=kind));self.assertEqual(self.read(bridge)[0][3],0)
                         if kind==socket.SOCK_DGRAM:
                             self.send(bridge,self.packet(3,2,fd));self.assertEqual(self.read(bridge)[0][3],0)
-                        self.send(bridge,self.packet(4,3,fd,b=port,c=0x7f000001))
+                        self.send(bridge,self.packet(4,3,fd,b=port,c=struct.unpack("<I",socket.inet_aton("127.0.0.1"))[0]))
                         h,_=self.read(bridge)
                         if kind==socket.SOCK_STREAM:
                             self.assertEqual(h[0],130);h,_=self.read(bridge)
@@ -51,7 +51,7 @@ class NetworkTests(unittest.TestCase):
                         h,_=self.read(bridge);self.assertEqual(h[3],len(payload))
                         result=b''
                         while len(result)<len(payload):
-                            h,data=self.read(bridge);self.assertEqual(h[0],129);result+=data
+                            h,data=self.read(bridge);self.assertEqual(h[0],129);self.assertEqual(socket.inet_ntoa(struct.pack("<I",h[5])),"127.0.0.1");result+=data
                         self.assertEqual(result,payload)
                     finally:bridge.stdin.close();bridge.wait(timeout=5)
                 worker.join(timeout=6);self.assertFalse(worker.is_alive());self.assertFalse(failures)

@@ -114,3 +114,9 @@ v06 physically returned invalid-ID from native `sceHttpsLoadCert` even with CRLF
 The isolated client verifies certificates and hostname with the embedded official roots, permits HTTPS only, disables redirects/proxy discovery, limits the response to 256 KiB, and has a five-second request deadline. It resets request pointers and frees authentication headers after each poll while retaining libcurl's connection cache. Never enable verbose logging. Protocol sequence/retry handling remains in the existing transport.
 
 `tls-dependencies.json` pins the prebuilt test bundle and its exact dependency sources. This is an experimental candidate, not a claim that these package versions have completed a production dependency/security review. CI includes the source/license archives and package recipes. Host TLS tests use synthetic data and temporary certificates: binary roundtrip, wrong CA, wrong hostname, no redirect, oversized response and header injection rejection. Hardware confirmation still required.
+
+### v08 registration loopback wire-order correction
+
+Physical v07 report confirms `session_active`, HTTP 200, no transport error. The player reports R01 while preparing registration search. A regression test using the actual WASM client's `sin_addr.s_addr` wire bytes (`7f 00 00 01`) reproduces a local bridge rejection before the fix. The bridge had treated a network-order address as a host-order number and accepted the reversed octets instead.
+
+v08 requires numeric wire value `0x0100007f`, corrects DNS reply bytes and socket name/data push addresses, and rejects reversed `01 00 00 7f` as well as LAN destinations. The adapter itself still connects only to the console loopback. Updated host TCP/UDP tests derive address fields from `inet_aton` and verify return addresses. This fixes the reproduced interoperability defect; real PS4 registration remains pending.

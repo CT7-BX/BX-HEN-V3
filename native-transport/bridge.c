@@ -49,8 +49,9 @@ int bx_bridge_handle(BXBridge *b,const uint8_t *p,size_t length) {
     if(fd<0 || fd>65535)return 0;
     type=p[0];s=find(b,fd);port=read32(p+16);host=read32(p+20);
     /* Input addresses must be loopback or unspecified. No LAN, DNS, FTP,
-       arbitrary internet targets or broadcast. 127.0.0.1 = 0x7f000001. */
-    if((type==4 || type==6) && host!=0 && host!=0x7f000001u)
+       arbitrary internet targets or broadcast. The WASM client sends sin_addr.s_addr
+       as a little-endian uint32: 127.0.0.1 bytes 7f 00 00 01 = 0x0100007f. */
+    if((type==4 || type==6) && host!=0 && host!=0x0100007fu)
         return !id || output(b,128,id,fd,-1,13,0,NULL,0);
     if(type==1) {
         int kind=(int32_t)read32(p+16);
@@ -64,11 +65,11 @@ int bx_bridge_handle(BXBridge *b,const uint8_t *p,size_t length) {
         result=0;error=0;
     } else if(type==9) {
         /* Only numeric loopback is resolved, never external hostnames. */
-        static const char target[]="127.0.0.1";uint8_t addr[4]={1,0,0,127};
+        static const char target[]="127.0.0.1";uint8_t addr[4]={127,0,0,1};
         if(!((n==sizeof(target)-1 || n==sizeof(target)) &&
              !memcmp(p+28,target,sizeof(target)-1) && (n!=sizeof(target) || p[28+n-1]==0)))
             goto reply;
-        return !id || output(b,128,id,fd,0x7f000001,0,0,addr,sizeof(addr));
+        return !id || output(b,128,id,fd,0x0100007f,0,0,addr,sizeof(addr));
     } else if(type==2) {
         if(s)close_one(b,s);
         result=0;error=0;
@@ -89,7 +90,7 @@ int bx_bridge_handle(BXBridge *b,const uint8_t *p,size_t length) {
         if(s->type==2 && result>=0 && (uint32_t)result!=n){result=-1;error=5;}
     } else if(type==8) {
         port=0;result=b->ops.name(b->context,s->socket,&port);error=result<0?5:0;
-        if(result>=0)return !id || output(b,128,id,fd,(int)port,0,0x7f000001u,NULL,0);
+        if(result>=0)return !id || output(b,128,id,fd,(int)port,0,0x0100007fu,NULL,0);
     } else if(type==10) {
         result=b->ops.shutdown(b->context,s->socket);error=result<0?5:0;
     } else if(type==7) {
@@ -102,7 +103,7 @@ reply:
 int bx_bridge_data(BXBridge *b,int fd,unsigned port,const void *p,size_t n) {
     BXBridgeSocket *s=find(b,fd);
     if(!s || !allowed(s->type,port))return 0;
-    return output(b,129,0,fd,0,(int)port,0x7f000001u,p,n);
+    return output(b,129,0,fd,0,(int)port,0x0100007fu,p,n);
 }
 
 int bx_bridge_eof(BXBridge *b,int fd) {
