@@ -5,6 +5,6 @@
     {"name":"openssl-3.5.2.tar.gz","url":"https://github.com/openssl/openssl/releases/download/openssl-3.5.2/openssl-3.5.2.tar.gz","sha256":"c53a47e5e441c930c3928cf7bf6fb00e5d129b630e0aa873b08258656e7345ec","license":"Apache-2.0"},
     {"name":"libpsl-0.21.5.tar.gz","url":"https://github.com/rockdaboot/libpsl/releases/download/0.21.5/libpsl-0.21.5.tar.gz","sha256":"1dcc9ceae8b128f3c0b3f654decd0e1e891afc6ff81098f227ef260449dae208","license":"MIT"},
     {"name":"zstd-1.5.6.tar.gz","url":"https://github.com/facebook/zstd/releases/download/v1.5.6/zstd-1.5.6.tar.gz","sha256":"8c29e06cf42aacc1eafc4077ae2ec6c6fcb96a626157e0593d5e82a34fd403c1","license":"BSD-3-Clause"},
-    {"name":"zlib-1.3.2.tar.gz","url":"https://zlib.net/zlib-1.3.2.tar.gz","sha256":"bb329a0a2cd0274d05519d61c667c062e06990d72e125ee2dfa8de64f0119d16","license":"Zlib"}
+    {"name":"zlib-1.3.2.tar.gz","url":"https://zlib.net/fossils/zlib-1.3.2.tar.gz","sha256":"bb329a0a2cd0274d05519d61c667c062e06990d72e125ee2dfa8de64f0119d16","license":"Zlib"}
   ]
 }
