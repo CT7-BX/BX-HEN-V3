@@ -9,5 +9,10 @@
   function registration(value){if(!value||value.ps5||!(/^[0-9a-f]{32}$/i.test(value.registKey))||!(/^[0-9a-f]{32}$/i.test(value.morning)))throw new Error('Registro PS4 inválido');return {registKey:value.registKey,morning:value.morning,ps5:false};}
   function nals(bytes){const starts=[];for(let i=0;i+3<bytes.length;i++){if(bytes[i]===0&&bytes[i+1]===0&&((bytes[i+2]===1)||(bytes[i+2]===0&&bytes[i+3]===1))){const skip=bytes[i+2]===1?3:4;starts.push({at:i,data:i+skip});i+=skip-1;}}
     return starts.map((s,i)=>({type:bytes[s.data]&31,body:bytes.slice(s.data,i+1<starts.length?starts[i+1].at:bytes.length),packet:bytes.slice(s.at,i+1<starts.length?starts[i+1].at:bytes.length)}));}
-  return Object.freeze({gamepad,registration,nals});
+  async function waitForPayload(readStatus,{now=Date.now,sleep=ms=>new Promise(r=>setTimeout(r,ms)),timeoutMs=15000}={}){
+    const deadline=now()+timeoutMs;
+    while(now()<deadline){if((await readStatus()).nativeOnline===true)return;await sleep(500);}
+    throw new Error('payload_offline');
+  }
+  return Object.freeze({gamepad,registration,nals,waitForPayload});
 });

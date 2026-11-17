@@ -31,6 +31,11 @@ export class BXNativeRoom {
       if(!await authorized(request,this.env.BX_PLAYER_KEY))return json({error:'unauthorized'},401);
       this.close();return json({stopped:true});
     }
+    if(path==='/session-status' && request.method==='GET'){
+      if(!await authorized(request,this.env.BX_PLAYER_KEY))return json({error:'unauthorized'},401);
+      const s=this.session,now=Date.now();
+      return json({nativeOnline:Boolean(s && s.expiresAt>now && s.readyAt>0 && now-s.readyAt<15000)});
+    }
     if(path==='/exchange' && request.method==='POST'){
       if(!await authorized(request,this.env.BX_CONSOLE_KEY))return json({error:'unauthorized'},401);
       const raw=await boundedBody(request),s=this.session;
@@ -58,7 +63,7 @@ export class BXNativeRoom {
 export default {
   async fetch(request,env){const url=new URL(request.url);
     if(url.protocol!=='https:' || url.search || url.hash)return json({error:'forbidden'},403);
-    if(['/session','/exchange','/socket'].includes(url.pathname)){
+    if(['/session','/session-status','/exchange','/socket'].includes(url.pathname)){
       const origin=request.headers.get('Origin');if(origin && origin!==url.origin)return json({error:'origin'},403);
       if(!env.NATIVE_ROOM || !env.BX_PLAYER_KEY || !env.BX_CONSOLE_KEY)return json({error:'not_configured'},503);
       return env.NATIVE_ROOM.get(env.NATIVE_ROOM.idFromName('owner-console')).fetch(request);

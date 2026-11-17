@@ -13,3 +13,12 @@ test('WebSocket opts into ArrayBuffer before accept on current compatibility dat
   const p=new Uint8Array(28);p[0]=1;server.events.message({data:p.buffer});assert.equal(r.session.exchange.queue.length,1);
  }finally{r.close();globalThis.WebSocketPair=originalPair;globalThis.Response=OriginalResponse;}
 });
+test('relay socket alone does not prove payload presence; authenticated exchanges expire from status',async()=>{const {r,call}=room();try{
+ assert.equal((await call('/session-status','GET',CONSOLE)).status,401);
+ await call('/session','POST',PLAYER);
+ assert.deepEqual(await (await call('/session-status','GET',PLAYER)).json(),{nativeOnline:false});
+ await call('/exchange','POST',CONSOLE,frame(0,1));
+ assert.deepEqual(await (await call('/session-status','GET',PLAYER)).json(),{nativeOnline:true});
+ r.session.readyAt=Date.now()-16000;
+ assert.deepEqual(await (await call('/session-status','GET',PLAYER)).json(),{nativeOnline:false});
+ }finally{r.close();}});
