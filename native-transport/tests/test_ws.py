@@ -9,7 +9,7 @@ class WebSocketTests(unittest.TestCase):
   for name in ['trusted','untrusted']:
    subprocess.run(['openssl','req','-x509','-newkey','rsa:2048','-nodes','-keyout',str(cls.root/(name+'.key')),'-out',str(cls.root/(name+'.pem')),'-days','1','-subj','/CN=localhost','-addext','subjectAltName=DNS:localhost'],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
   base=Path(__file__).resolve().parents[1];prefix=Path(os.environ['BX_HOST_CURL_PREFIX']);cls.exe=cls.root/'driver'
-  subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Wno-misleading-indentation','-I'+str(prefix/'include'),str(base/'ws_client.c'),str(base/'https_client.c'),str(base/'tests/ws_driver.c'),str(prefix/'lib/libcurl.a'),'-lssl','-lcrypto','-lpthread','-ldl','-o',str(cls.exe)],check=True)
+  subprocess.run(['cc','-DBX_WS_TEST_DIAGNOSTICS','-std=c11','-Wall','-Wextra','-Wno-misleading-indentation','-I'+str(prefix/'include'),str(base/'ws_client.c'),str(base/'https_client.c'),str(base/'tests/ws_driver.c'),str(prefix/'lib/libcurl.a'),'-lssl','-lcrypto','-lpthread','-ldl','-o',str(cls.exe)],check=True)
   class Handler(http.server.BaseHTTPRequestHandler):
    protocol_version="HTTP/1.1"
    def log_message(self,*args):pass

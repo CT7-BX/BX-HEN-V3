@@ -37,6 +37,9 @@ int bx_ws_receive(BXWebSocket *w,uint8_t *data,size_t capacity,size_t *length){
  w->tls.stage="wss_receive";code=curl_ws_recv(w->tls.handle,data+w->received,capacity-w->received,&n,&meta);
  if(code==CURLE_AGAIN)return 0;if(code!=CURLE_OK||!meta){w->tls.code=code;return -1;}
  flags=(unsigned)meta->flags;left=meta->bytesleft;offset=meta->offset;
+#ifdef BX_WS_TEST_DIAGNOSTICS
+ fprintf(stderr,"ws flags=%u offset=%lld left=%lld n=%zu accumulated=%zu frame=%zu\n",flags,(long long)offset,(long long)left,n,w->received,w->frame_received);
+#endif
  if(flags&CURLWS_CLOSE){w->tls.code=CURLE_GOT_NOTHING;return -1;}
  if(flags&(CURLWS_PING|CURLWS_PONG))return 0;
  if((flags&CURLWS_TEXT)||(!w->message_started&&!(flags&CURLWS_BINARY))||offset!=(curl_off_t)w->frame_received||left<0||n>capacity-w->received||left>(curl_off_t)(capacity-w->received-n)){
