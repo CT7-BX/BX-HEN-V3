@@ -12,3 +12,5 @@ recorded in `.github/workflows/native-transport.yml` and `payload.mk`.
 
 This statement applies to the native payload component, not to unrelated BX-HEN
 code or the rest of the repository. Chiaki WASM retains its upstream AGPL license.
+
+The v07 experimental HTTPS candidate statically links payload PacBrew libraries. Exact versions, source URLs, hashes and license identifiers are in `tls-dependencies.json`; `tls-corresponding-source.tar.gz` includes their original source/license archives and pinned package recipes. The curl, Apache-2.0, MIT, BSD-3-Clause and Zlib notices apply to those respective components.

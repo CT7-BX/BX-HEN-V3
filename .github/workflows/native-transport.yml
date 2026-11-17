@@ -11,6 +11,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Install host TLS test dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev
       - name: Validate binary protocol and partial writes
         run: |
           cc -std=c11 -Wall -Wextra -Werror -pedantic native-transport/bridge.c native-transport/tests/bridge_test.c -o /tmp/bridge-test
@@ -84,15 +86,27 @@ jobs:
           chmod +x /tmp/ps4-payload-sdk/bin/orbis-*
           echo "PS4_PAYLOAD_SDK=/tmp/ps4-payload-sdk" >> "$GITHUB_ENV"
           echo "LLVM_CONFIG=/usr/bin/llvm-config-18" >> "$GITHUB_ENV"
+      - name: Install verified payload TLS libraries
+        run: |
+          curl --fail --location --retry 3 -o /tmp/payload-libs.tar.gz https://github.com/ps4-payload-dev/pacbrew/releases/download/v0.3.3/ps4-payload-dev.tar.gz
+          echo '4664f8e80208fca2a1ab6869e37b003aee8622a3c7685142908304ae395943b2  /tmp/payload-libs.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/payload-libs.tar.gz --strip-components=2 -C /tmp/ps4-payload-sdk opt/ps4-payload-sdk/target/user/homebrew
       - name: Compile real PS4 socket transport ELF
         run: |
           make -C native-transport
           readelf -h native-transport/bx-rp-transport.elf
           readelf -d native-transport/bx-rp-transport.elf | tee native-transport/payload-dynamic.txt
           grep -q libSceLibcInternal native-transport/payload-dynamic.txt
+          if grep -qE "libSce(Ssl|Http)" native-transport/payload-dynamic.txt; then echo "Unexpected native HTTP/TLS dependency"; exit 1; fi
           cp native-transport/COPYING native-transport/PAYLOAD-SDK-COPYING
           tar --exclude=.git -czf native-transport/payload-sdk-corresponding-source.tar.gz -C /tmp/payload-sdk-source .
           sha256sum native-transport/bx-rp-transport.elf > native-transport/transport.sha256
+      - name: Include corresponding TLS source and license archives
+        run: |
+          python3 native-transport/fetch-tls-sources.py /tmp/bx-tls-sources
+          git clone https://github.com/ps4-payload-dev/pacbrew.git /tmp/bx-tls-sources/pacbrew-recipes
+          git -C /tmp/bx-tls-sources/pacbrew-recipes checkout e86e8d85365769aeab4aac2672635b71e66a76fd
+          tar --exclude=.git -czf native-transport/tls-corresponding-source.tar.gz -C /tmp/bx-tls-sources .
       - uses: actions/upload-artifact@v4
         with:
           name: bx-native-payload-sdk-build
@@ -101,6 +115,7 @@ jobs:
             native-transport/transport.sha256
             native-transport/PAYLOAD-SDK-COPYING
             native-transport/payload-sdk-corresponding-source.tar.gz
+            native-transport/tls-corresponding-source.tar.gz
             native-transport/payload-dynamic.txt
           if-no-files-found: error
 
@@ -155,5 +170,6 @@ jobs:
             native-transport/*.pkg
             native-transport/PAYLOAD-SDK-COPYING
             native-transport/payload-sdk-corresponding-source.tar.gz
+            native-transport/tls-corresponding-source.tar.gz
             native-transport/payload-dynamic.txt
           if-no-files-found: error

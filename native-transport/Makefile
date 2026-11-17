@@ -9,7 +9,7 @@ all: bx-rp-transport.elf
 $(OUT)/%.o: %.c bridge.h socket_adapter.h account_id.h
 	@mkdir -p $(OUT)
 	$(CC) $(CFLAGS) $< -o $@
-bx-rp-transport.elf: main.c bridge.c socket_adapter.c payload.mk tls_roots.h bridge.h socket_adapter.h ../native-pair/pair_config.c ../native-pair/pair_protocol.c
+bx-rp-transport.elf: main.c https_client.c https_client.h bridge.c socket_adapter.c payload.mk tls_roots.h bridge.h socket_adapter.h ../native-pair/pair_config.c ../native-pair/pair_protocol.c
 	$(MAKE) -f payload.mk
 PLATFORM := $(if $(filter Darwin,$(shell uname -s)),macos,linux)
 CONTENT_ID := IV0000-BRPM00002_00-BXNATIVESTREAM01

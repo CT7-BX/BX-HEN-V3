@@ -13,6 +13,9 @@
 #include <orbis/Ssl.h>
 #include <orbis/Http.h>
 #include "tls_roots.h"
+#ifdef BX_TRANSPORT_CURL
+#include "https_client.h"
+#endif
 #define MAX_BATCH (256u*1024u)
 #define CONFIG "/user/data/bx-rp-transport.cfg"
 #define STOP "/data/bx-rp-transport.stop"
@@ -33,9 +36,15 @@ static int stopped(void){struct stat st;return stat(STOP,&st)==0;}
 static void report(const char *phase,int status){
     /* No packets, PSN identifiers, PINs, URLs or secrets in the report. */
     FILE *f=fopen("/data/bx-rp-transport-report.txt","w");if(!f)return;
-    fprintf(f,"BX Native Transport experimental\nphase=%s\nhttp=%d\nstartup=ps4-payload-sdk\nbuild=v06\ntls_backend=libSceSsl2\nphysicalValidation=required\nerror_stage=%s\nerror_code=0x%08x\nssl_error=0x%08x\nssl_verify=0x%08x\nssl_context=%d\nhttp_context=%d\n",phase,status,error_stage,(unsigned)error_code,(unsigned)ssl_error,ssl_verify,diagnostic_ssl,diagnostic_http);fclose(f);
+    fprintf(f,"BX Native Transport experimental\nphase=%s\nhttp=%d\nstartup=ps4-payload-sdk\nbuild=v07\ntls_backend=libcurl-openssl\nphysicalValidation=required\nerror_stage=%s\nerror_code=0x%08x\nssl_error=0x%08x\nssl_verify=0x%08x\nssl_context=%d\nhttp_context=%d\n",phase,status,error_stage,(unsigned)error_code,(unsigned)ssl_error,ssl_verify,diagnostic_ssl,diagnostic_http);fclose(f);
 }
 static int read_config(BXPairConfig *cfg){char text[1024]={0};size_t n;int valid;FILE *f=fopen(CONFIG,"rb");if(!f)return 0;n=fread(text,1,sizeof(text)-1,f);valid=!ferror(f)&&n>0&&n<sizeof(text)-1;fclose(f);if(valid)valid=bx_pair_parse_config(text,cfg);memset(text,0,sizeof(text));return valid;}
+#ifdef BX_TRANSPORT_CURL
+typedef struct HTTP {int net,pool,ssl,http,tmpl;BXHttpsClient client;} HTTP;
+static void close_http(HTTP *h){bx_https_close(&h->client);if(h->net)sceNetTerm();h->net=0;h->pool=h->ssl=h->http=h->tmpl=-1;}
+static int open_http(HTTP *h){char roots[sizeof(bx_tls_root_0)+sizeof(bx_tls_root_1)];memset(h,0,sizeof(*h));h->pool=h->ssl=h->http=h->tmpl=-1;if(checked("sceNetInit",sceNetInit())<0)return 0;h->net=1;snprintf(roots,sizeof(roots),"%s%s",bx_tls_root_0,bx_tls_root_1);if(!bx_https_init(&h->client,roots,strlen(roots))){error_stage=h->client.stage;error_code=h->client.code;return 0;}h->tmpl=0;return 1;}
+static int exchange(HTTP *h,const BXPairConfig *cfg,size_t *length,int *status){char url[256];int ok;if(snprintf(url,sizeof(url),"%s/exchange",cfg->relay_origin)>=(int)sizeof(url))return -1;ok=bx_https_post(&h->client,url,cfg->console_token,outgoing,used,incoming,MAX_BATCH,length,status);error_stage=h->client.stage;error_code=h->client.code;return ok?1:-1;}
+#else
 typedef struct HTTP {int net,pool,ssl,http,tmpl;} HTTP;
 static void close_http(HTTP *h){if(h->tmpl>=0)sceHttpDeleteTemplate(h->tmpl);if(h->http>=0)sceHttpTerm(h->http);if(h->ssl>=0)sceSslTerm(h->ssl);if(h->pool>=0)sceNetPoolDestroy(h->pool);if(h->net)sceNetTerm();h->net=0;h->pool=h->ssl=h->http=h->tmpl=-1;}
 static int open_http(HTTP *h){memset(h,0,sizeof(*h));h->pool=h->ssl=h->http=h->tmpl=-1;if(checked("sceNetInit",sceNetInit())<0)return 0;h->net=1;h->pool=checked("sceNetPoolCreate",sceNetPoolCreate("bx_rp_transport",1024*1024,0));if(h->pool<0)return 0;h->ssl=checked("sceSslInit",sceSslInit(512*1024));diagnostic_ssl=h->ssl;if(h->ssl<0)return 0;h->http=checked("sceHttpInit",sceHttpInit(h->pool,h->ssl,512*1024));diagnostic_http=h->http;if(h->http<0)return 0;if(checked("sceHttpsLoadCert",sceHttpsLoadCert(h->http,BX_TLS_ROOT_COUNT,(void*)bx_tls_roots,NULL,NULL))<0)return 0;h->tmpl=checked("sceHttpCreateTemplate",sceHttpCreateTemplate(h->http,"BX-Native-Transport/0.1",ORBIS_HTTP_VERSION_1_1,1));return h->tmpl>=0;}
@@ -55,9 +64,10 @@ static int exchange(HTTP *h,const BXPairConfig *cfg,size_t *length,int *status){
 done:
     if(request>=0)sceHttpDeleteRequest(request);if(connection>=0)sceHttpDeleteConnection(connection);memset(auth,0,sizeof(auth));return result;
 }
+#endif
 static int validate(size_t length){size_t at=16;unsigned i,n;if(length<16 || memcmp(incoming,"BXN1",4))return 0;n=rd(incoming+12);if(n>1024)return 0;for(i=0;i<n;i++){size_t bytes;if(at+4>length)return 0;bytes=rd(incoming+at);at+=4;if(bytes<28 || bytes>65535 || bytes>length-at || rd(incoming+at+24)!=bytes-28)return 0;at+=bytes;}return at==length;}
 int main(void){
-    BXPairConfig cfg;HTTP http={0,-1,-1,-1,-1};BXBridge bridge;int failures=0;
+    BXPairConfig cfg;HTTP http={.pool=-1,.ssl=-1,.http=-1,.tmpl=-1};BXBridge bridge;int failures=0;
     report("payload_entered",0);
     if(!read_config(&cfg)){report("configuration_required",0);for(;;)sleep(1);}
     {int lock=open("/data/bx-rp-transport.running",O_WRONLY|O_CREAT|O_EXCL,0600);if(lock<0){report("already_running_or_stale_lock",0);for(;;)sleep(1);}close(lock);}

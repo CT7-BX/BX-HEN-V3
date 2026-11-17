@@ -106,3 +106,11 @@ v04 replaced the previous invalid-ID error with `0x8095f00c` during send. v05 ex
 ### v06 certificate-format compatibility candidate
 
 v05 physically entered but `sceHttpsLoadCert` returned `0x8095f006`; no authenticated relay exchange occurred. v06 preserves the official pinned roots and uses CRLF PEM line endings, following the hardware-compatible serialization documented in Xyhlo/SSPI `app/NativeHttp.cs` (read-only reference; no application code copied). It reports the numeric owned SSL/HTTP context IDs and `relay_idle` after a successful no-session HTTP 200. Whether formatting causes the v05 error remains unconfirmed until hardware retest. No keys, identities or packet contents enter the report.
+
+### v07 isolated HTTPS client
+
+v06 physically returned invalid-ID from native `sceHttpsLoadCert` even with CRLF PEM (SSL ID 263, HTTP ID 894). v07 switches the exchange to bounded libcurl/OpenSSL from payload PacBrew v0.3.3. Native SCE HTTP code remains behind the non-default build path for diagnosis; default ELF must not import SCE HTTP/SSL. Socket bridging and BX-HEN remain unchanged.
+
+The isolated client verifies certificates and hostname with the embedded official roots, permits HTTPS only, disables redirects/proxy discovery, limits the response to 256 KiB, and has a five-second request deadline. It resets request pointers and frees authentication headers after each poll while retaining libcurl's connection cache. Never enable verbose logging. Protocol sequence/retry handling remains in the existing transport.
+
+`tls-dependencies.json` pins the prebuilt test bundle and its exact dependency sources. This is an experimental candidate, not a claim that these package versions have completed a production dependency/security review. CI includes the source/license archives and package recipes. Host TLS tests use synthetic data and temporary certificates: binary roundtrip, wrong CA, wrong hostname, no redirect, oversized response and header injection rejection. Hardware confirmation still required.
