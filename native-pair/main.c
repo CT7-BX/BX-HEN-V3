@@ -31,6 +31,7 @@
 #include "resident_install.h"
 #include "native_ui.h"
 #include "native_diag.h"
+#include "pair_retry.h"
 
 #define REPORT_PATH "/data/bx-remote-pairing-report.txt"
 #define CONFIG_PATH "/user/data/bx-remote-pair.cfg"
@@ -313,6 +314,19 @@ static int poll_decision(int handle, uint32_t *last_buttons) {
     return 0;
 }
 
+/* Keep OPTIONS responsive while backing off after temporary HTTPS failures.
+ * No background retries and no replay of approval/start requests.
+ */
+static int wait_retry_or_cancel(int pad, uint32_t *last_buttons, unsigned failures) {
+    unsigned elapsed = 0, delay = bx_pair_retry_delay_ms(failures);
+    while (elapsed < delay) {
+        if (poll_decision(pad, last_buttons) == -2) return 0;
+        usleep(100000);
+        elapsed += 100;
+    }
+    return 1;
+}
+
 static void offer_update(const HttpContext *http, const BXUpdateManifest *update,
                          int pad, uint32_t *last_buttons) {
     char pkg_path[BX_OTA_PATH_MAX];
@@ -512,7 +526,21 @@ int main(void) {
     /* Only authenticated HTTPS originating from this PS4 homebrew can initiate. */
     stage = "heartbeat";
     bx_ui_stage("VERIFICANDO SERVIDOR");
-    result = call_api(&http, &config, "/v1/pair/heartbeat", "{}", response, &status);
+    /* Idempotent heartbeat only: bounded retries for temporary outages. */
+    for (i = 0; i < 3; ++i) {
+        result = call_api(&http, &config, "/v1/pair/heartbeat",
+                          "{}", response, &status);
+        if (result == 1) break;
+        if (!bx_pair_should_retry(result, status, (unsigned)(i+1), 2u))
+            break;
+        bx_ui_stage("RECUPERANDO HTTPS");
+        notice("BX-REMOTE: HTTPS oscilou. Tentativa limitada de reconexao...");
+        if (!wait_retry_or_cancel(pad, &last_buttons, (unsigned)(i+1))) {
+            final = "cancelled";
+            goto finish;
+        }
+        bx_ui_stage("VERIFICANDO SERVIDOR");
+    }
     if (result != 1) { final = "heartbeat_failed"; goto finish; }
     stage = "start";
     bx_ui_stage("GERANDO CODIGO");
@@ -531,21 +559,31 @@ int main(void) {
     for (round = 0; round < POLL_ROUNDS; ++round) {
         result = call_api(&http, &config, "/v1/pair/heartbeat", "{}", response, &status);
         if (result != 1) {
-            if (status != 401 && status != 403 &&
-                ++poll_network_failures <= MAX_POLL_NETWORK_RETRIES) {
-                notice("BX-REMOTE: Conexao oscilou. Repetindo verificacao HTTPS...");
-                usleep(400000);
-                --round; /* Do not shorten the 2-minute pairing window. */
+            if (bx_pair_should_retry(result, status,
+                      (unsigned)++poll_network_failures, MAX_POLL_NETWORK_RETRIES)) {
+                bx_ui_stage("RECUPERANDO HTTPS");
+                notice("BX-REMOTE: Rede instavel. Reconectando HTTPS...");
+                if (!wait_retry_or_cancel(pad, &last_buttons,
+                                            (unsigned)poll_network_failures)) {
+                    final = "cancelled"; goto finish;
+                }
+                bx_ui_stage("AGUARDANDO VINCULO");
+                --round; /* Do not consume a pairing poll on brief failure. */
                 continue;
             }
             final = "heartbeat_lost"; break;
         }
         result = call_api(&http, &config, "/v1/pair/pending", NULL, response, &status);
         if (result != 1) {
-            if (status != 401 && status != 403 &&
-                ++poll_network_failures <= MAX_POLL_NETWORK_RETRIES) {
-                notice("BX-REMOTE: Falha temporaria no vinculo. Tentando novamente...");
-                usleep(400000);
+            if (bx_pair_should_retry(result, status,
+                      (unsigned)++poll_network_failures, MAX_POLL_NETWORK_RETRIES)) {
+                bx_ui_stage("RECUPERANDO HTTPS");
+                notice("BX-REMOTE: Vinculo temporariamente indisponivel...");
+                if (!wait_retry_or_cancel(pad, &last_buttons,
+                                            (unsigned)poll_network_failures)) {
+                    final = "cancelled"; goto finish;
+                }
+                bx_ui_stage("AGUARDANDO VINCULO");
                 --round;
                 continue;
             }
