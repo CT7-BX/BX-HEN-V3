@@ -55,23 +55,43 @@ jobs:
           if-no-files-found: error
 
   native-elf:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - name: Download verified OpenOrbis SDK
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends clang lld
+          sudo apt-get install -y --no-install-recommends clang-18 lld-18 llvm-18 unzip
+          sudo ln -sf /usr/bin/clang-18 /usr/local/bin/clang
+          sudo ln -sf /usr/bin/ld.lld-18 /usr/local/bin/ld.lld
           curl --fail --location --retry 3 -o /tmp/sdk.tar.gz https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.4/toolchain-llvm-18.tar.gz
           echo '3c7cd5bb593ca74fa1c13fd59f3938dc0fc07985167f7275063019e63abe4526  /tmp/sdk.tar.gz' | sha256sum -c -
           mkdir -p /tmp/openorbis
           tar -xzf /tmp/sdk.tar.gz -C /tmp/openorbis
           echo "OO_PS4_TOOLCHAIN=/tmp/openorbis/OpenOrbis/PS4Toolchain" >> "$GITHUB_ENV"
+      - name: Install pinned payload SDK and 13.52 startup
+        run: |
+          curl --fail --location --retry 3 -o /tmp/payload-sdk.zip https://github.com/ps4-payload-dev/sdk/releases/download/v0.9/ps4-payload-sdk.zip
+          echo '3190e88255a72161e5ce2f22a8ae8f638a2c5a9d1ff1e0209ed692d36b4d9ec5  /tmp/payload-sdk.zip' | sha256sum -c -
+          unzip -q /tmp/payload-sdk.zip -d /tmp
+          git clone https://github.com/ps4-payload-dev/sdk.git /tmp/payload-sdk-source
+          git -C /tmp/payload-sdk-source checkout 573b4a0d0d5fa8695cfeee5f5e2f0447c550035d
+          make -C /tmp/payload-sdk-source/crt LLVM_CONFIG=llvm-config-18 DESTDIR=/tmp/ps4-payload-sdk install
+          ln -sf /usr/bin/clang-18 /tmp/ps4-payload-sdk/bin/clang
+          ln -sf /usr/bin/clang++-18 /tmp/ps4-payload-sdk/bin/clang++
+          ln -sf /usr/bin/ld.lld-18 /tmp/ps4-payload-sdk/bin/ld.lld
+          chmod +x /tmp/ps4-payload-sdk/bin/orbis-*
+          echo "PS4_PAYLOAD_SDK=/tmp/ps4-payload-sdk" >> "$GITHUB_ENV"
+          echo "LLVM_CONFIG=/usr/bin/llvm-config-18" >> "$GITHUB_ENV"
       - name: Compile real PS4 socket transport ELF
         run: |
           make -C native-transport
           readelf -h native-transport/bx-rp-transport.elf
+          readelf -d native-transport/bx-rp-transport.elf | tee native-transport/payload-dynamic.txt
+          grep -q libSceLibcInternal native-transport/payload-dynamic.txt
+          cp /tmp/payload-sdk-source/COPYING native-transport/PAYLOAD-SDK-COPYING
+          tar --exclude=.git -czf native-transport/payload-sdk-corresponding-source.tar.gz -C /tmp/payload-sdk-source .
           sha256sum native-transport/bx-rp-transport.elf > native-transport/transport.sha256
       - uses: actions/setup-dotnet@v4
         with:
@@ -99,4 +119,7 @@ jobs:
             native-transport/bx-rp-transport.elf
             native-transport/transport.sha256
             native-transport/*.pkg
+            native-transport/PAYLOAD-SDK-COPYING
+            native-transport/payload-sdk-corresponding-source.tar.gz
+            native-transport/payload-dynamic.txt
           if-no-files-found: error

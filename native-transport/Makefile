@@ -9,14 +9,8 @@ all: bx-rp-transport.elf
 $(OUT)/%.o: %.c bridge.h socket_adapter.h account_id.h
 	@mkdir -p $(OUT)
 	$(CC) $(CFLAGS) $< -o $@
-$(OUT)/pair_config.o: ../native-pair/pair_config.c
-	@mkdir -p $(OUT)
-	$(CC) $(CFLAGS) $< -o $@
-$(OUT)/pair_protocol.o: ../native-pair/pair_protocol.c
-	@mkdir -p $(OUT)
-	$(CC) $(CFLAGS) $< -o $@
-bx-rp-transport.elf: $(OBJECTS)
-	$(LD) $(OBJECTS) -o $@ -m elf_x86_64 -pie --script $(SDK)/link.x --eh-frame-hdr -L$(SDK)/lib $(LIBS) $(SDK)/lib/crt1.o
+bx-rp-transport.elf: main.c bridge.c socket_adapter.c payload.mk bridge.h socket_adapter.h ../native-pair/pair_config.c ../native-pair/pair_protocol.c
+	$(MAKE) -f payload.mk
 PLATFORM := $(if $(filter Darwin,$(shell uname -s)),macos,linux)
 CONTENT_ID := IV0000-BRPM00002_00-BXNATIVESTREAM01
 $(OUT)/launcher.elf: $(OUT)/launcher.o $(OUT)/account_id.o

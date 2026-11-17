@@ -28,7 +28,7 @@ static int stopped(void){struct stat st;return stat(STOP,&st)==0;}
 static void report(const char *phase,int status){
     /* No packets, PSN identifiers, PINs, URLs or secrets in the report. */
     FILE *f=fopen("/data/bx-rp-transport-report.txt","w");if(!f)return;
-    fprintf(f,"BX Native Transport experimental\nphase=%s\nhttp=%d\nphysicalValidation=required\n",phase,status);fclose(f);
+    fprintf(f,"BX Native Transport experimental\nphase=%s\nhttp=%d\nstartup=ps4-payload-sdk\nphysicalValidation=required\n",phase,status);fclose(f);
 }
 static int read_config(BXPairConfig *cfg){char text[1024]={0};size_t n;int valid;FILE *f=fopen(CONFIG,"rb");if(!f)return 0;n=fread(text,1,sizeof(text)-1,f);valid=!ferror(f)&&n>0&&n<sizeof(text)-1;fclose(f);if(valid)valid=bx_pair_parse_config(text,cfg);memset(text,0,sizeof(text));return valid;}
 typedef struct HTTP {int net,pool,ssl,http,tmpl;} HTTP;
@@ -52,6 +52,7 @@ done:
 static int validate(size_t length){size_t at=16;unsigned i,n;if(length<16 || memcmp(incoming,"BXN1",4))return 0;n=rd(incoming+12);if(n>1024)return 0;for(i=0;i<n;i++){size_t bytes;if(at+4>length)return 0;bytes=rd(incoming+at);at+=4;if(bytes<28 || bytes>65535 || bytes>length-at || rd(incoming+at+24)!=bytes-28)return 0;at+=bytes;}return at==length;}
 int main(void){
     BXPairConfig cfg;HTTP http={0,-1,-1,-1,-1};BXBridge bridge;int failures=0;
+    report("payload_entered",0);
     if(!read_config(&cfg)){report("configuration_required",0);for(;;)sleep(1);}
     {int lock=open("/data/bx-rp-transport.running",O_WRONLY|O_CREAT|O_EXCL,0600);if(lock<0){report("already_running_or_stale_lock",0);for(;;)sleep(1);}close(lock);}
     bx_bridge_init(&bridge,&bx_socket_ops,NULL,emit);empty();report("starting",0);

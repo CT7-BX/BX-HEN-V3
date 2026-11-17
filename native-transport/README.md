@@ -82,3 +82,15 @@ submódulos e COPYING. A licença/atribuições originais são mantidas.
 novos ficam na configuração privada do serviço, nunca no Git. O arquivo
 `relay/assets.mjs` versionado é um placeholder: `build-assets.py` gera os assets
 públicos do cliente compilado para upload via API, sem incluir credenciais.
+
+## Correção de inicialização do LaunchPad
+
+Na inspeção FTP do PS4 do usuário, a configuração e o ELF eram iguais aos
+entregues, mas não havia relatório nem marcador de execução. “Carregou” no
+LaunchPad não confirmou entrada em main(). O ELF anterior usava o CRT de app
+OpenOrbis. O serviço agora usa ps4-payload-sdk v0.9 com CRT fixado em
+573b4a0d0d5fa8695cfeee5f5e2f0447c550035d, que inclui suporte 13.52. O PKG
+continua OpenOrbis. Apenas as declarações orbis são reutilizadas no payload;
+libc, entrada, resolvedor e link são do SDK de payloads. O artefato inclui a
+licença GPL e a fonte do SDK. A mudança ainda exige teste físico de inicialização.
+Referência: https://github.com/ps4-payload-dev/sdk/tree/573b4a0d0d5fa8695cfeee5f5e2f0447c550035d
