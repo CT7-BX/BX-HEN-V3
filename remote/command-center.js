@@ -16,7 +16,7 @@
       state:"Em desenvolvimento", status:"planned",
       description:"Ligação direta e independente, sem Mac ou Android intermediário. O transporte real de vídeo/áudio e comandos ainda não existe.",
       steps:Object.freeze([
-        "Instalar o PKG BX v0.23 no PS4 e preparar a configuração privada.",
+        "Instalar o PKG BX v0.25 no PS4 e preparar a configuração privada.",
         "Iniciar o serviço ELF residente e aprovar o vínculo HTTPS na TV.",
         "Usar Testar comunicação PS4 ↔ celular para validar somente o diagnóstico.",
         "Aguardar a implementação real do cliente Remote Play e do transporte de mídia."
