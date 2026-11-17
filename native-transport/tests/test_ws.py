@@ -16,7 +16,7 @@ class WebSocketTests(unittest.TestCase):
    def do_GET(self):
     if self.headers.get('Authorization')!='Bearer '+'a'*64:self.send_error(401);return
     accept=base64.b64encode(hashlib.sha1((self.headers['Sec-WebSocket-Key']+'258EAFA5-E914-47DA-95CA-C5AB0DC85B11').encode()).digest()).decode()
-    self.send_response(101);self.send_header('Upgrade','websocket');self.send_header('Connection','Upgrade');self.send_header('Sec-WebSocket-Accept',accept);self.end_headers();self.connection.settimeout(15)
+    self.close_connection=True;self.send_response(101);self.send_header('Upgrade','websocket');self.send_header('Connection','Upgrade');self.send_header('Sec-WebSocket-Accept',accept);self.end_headers();self.connection.settimeout(15)
     def exact(n):
      value=self.rfile.read(n)
      if len(value)!=n:raise ValueError('short frame')
@@ -37,6 +37,14 @@ class WebSocketTests(unittest.TestCase):
       messages.append(data)
      for data in messages:
       send(2,data[:30000],False);send(9,b'ping');send(0,data[30000:])
+     # Remain in WebSocket mode until the client finishes reading and closes.
+     # Auto-pongs must never be fed back into the HTTP request parser.
+     for _ in range(8):
+      h=exact(2)
+      if h[0]!=138 or h[1]!=132:raise ValueError('expected masked pong')
+      mask=exact(4);payload=exact(4)
+      if bytes(v^mask[j%4] for j,v in enumerate(payload))!=b'ping':raise ValueError('bad pong')
+     self.rfile.read(1)
     except Exception as error:cls.errors.append(str(error))
   cls.server=http.server.ThreadingHTTPServer(('127.0.0.1',0),Handler);ctx=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER);ctx.load_cert_chain(cls.root/'trusted.pem',cls.root/'trusted.key');cls.server.socket=ctx.wrap_socket(cls.server.socket,server_side=True)
   cls.thread=threading.Thread(target=cls.server.serve_forever,daemon=True);cls.thread.start()
