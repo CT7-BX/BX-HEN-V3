@@ -1,0 +1,14 @@
+{
+  "service": "bx-native-stream",
+  "compatibility_date": "2026-11-16",
+  "main_module": "worker.mjs",
+  "modules": ["worker.mjs", "protocol.mjs", "assets.mjs"],
+  "durable_object": {"binding": "NATIVE_ROOM", "class_name": "BXNativeRoom", "sqlite_migration": "v1"},
+  "private_secret_names": ["BX_CONSOLE_KEY", "BX_PLAYER_KEY"],
+  "asset_generator": "wasm-client/build-assets.py",
+  "public_url": "https://bx-native-stream.4rt949zpj8.workers.dev/",
+  "public_health": "https://bx-native-stream.4rt949zpj8.workers.dev/health",
+  "existing_services_modified": false,
+  "billing_plan_modified": false,
+  "physical_ps4_validation": false
+}

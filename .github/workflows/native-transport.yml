@@ -100,4 +100,3 @@ jobs:
             native-transport/transport.sha256
             native-transport/*.pkg
           if-no-files-found: error
-
