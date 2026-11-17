@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/CSystem77/Chiaki-NG-Web.git",
+  "commit": "70669b47a16376768001db229e3e8c3baf3e5238",
+  "license": "AGPL-3.0",
+  "emscripten": "3.1.74",
+  "purpose": "Remote Play protocol client in the phone browser; no desktop proxy at runtime"
+}

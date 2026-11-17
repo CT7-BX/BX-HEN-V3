@@ -1,0 +1,49 @@
+name: BX Native Remote Play — transport and WASM
+on:
+  pull_request:
+    paths: ['native-transport/**', 'wasm-client/**', '.github/workflows/native-transport.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  transport-tests:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate binary protocol and partial writes
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -pedantic native-transport/bridge.c native-transport/tests/bridge_test.c -o /tmp/bridge-test
+          /tmp/bridge-test
+          python3 -m unittest discover -s native-transport/tests -p 'test_*.py' -v
+  wasm:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch pinned Remote Play client and required submodules
+        run: |
+          git clone --no-checkout https://github.com/CSystem77/Chiaki-NG-Web.git _chiaki
+          git -C _chiaki checkout 70669b47a16376768001db229e3e8c3baf3e5238
+          git -C _chiaki submodule update --init --recursive third-party/nanopb third-party/jerasure third-party/gf-complete third-party/curl
+          test "$(git -C _chiaki rev-parse HEAD)" = "70669b47a16376768001db229e3e8c3baf3e5238"
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '3.1.74'
+      - name: Build real Remote Play WASM client
+        run: bash _chiaki/scripts/build-wasm.sh
+      - name: Include complete checked-out client source and license
+        run: |
+          mkdir -p _client
+          cp _chiaki/build-wasm/wasm/chiaki.js _chiaki/build-wasm/wasm/chiaki.wasm _client/
+          if test -f _chiaki/build-wasm/wasm/chiaki.worker.js; then cp _chiaki/build-wasm/wasm/chiaki.worker.js _client/; fi
+          cp _chiaki/COPYING _client/CHIAKI-COPYING
+          cp wasm-client/upstream.json _client/
+          tar --exclude='.git' --exclude='build-wasm' --exclude='tools' -czf _client/chiaki-corresponding-source.tar.gz -C _chiaki .
+          cd _client
+          sha256sum chiaki.js chiaki.wasm chiaki-corresponding-source.tar.gz > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bx-real-remoteplay-wasm-experimental
+          path: _client/
+          if-no-files-found: error
