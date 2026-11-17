@@ -98,7 +98,7 @@ test("Android v0.5 is a modern device and public HTTPS diagnostic, not a fake st
   const build=read("android-gateway/app/build.gradle");
   const manifest=read("android-gateway/app/src/main/AndroidManifest.xml");
   const ci=read(".github/workflows/android-gateway-build.yml");
-  assert.match(build,/versionCode 4/);
+  assert.match(build,/versionCode 5/);
   assert.match(build,/0\.5\.0-diagnostic/);
   assert.match(ci,/BX-Android-Gateway-Diagnostic-v0\.5/);
   assert.ok(android.includes('startCard("01   /   SISTEMA E DESEMPENHO")'));
