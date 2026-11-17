@@ -12,13 +12,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install host TLS test dependencies
-        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev libssl-dev
+      - name: Build pinned host WebSocket TLS test library
+        run: |
+          curl --fail --location --retry 3 -o /tmp/curl.tar.xz https://curl.se/download/curl-8.13.0.tar.xz
+          echo '4a093979a3c2d02de2fbc00549a32771007f2e78032c6faa5ecd2f7a9e152025  /tmp/curl.tar.xz' | sha256sum -c -
+          tar -xJf /tmp/curl.tar.xz -C /tmp
+          cd /tmp/curl-8.13.0
+          ./configure --prefix=/tmp/bx-host-curl --enable-websockets --disable-shared --with-openssl --without-libpsl --without-zstd --without-brotli --without-zlib --disable-ldap --disable-ldaps --disable-docs --disable-manual
+          make -j2 install > /tmp/bx-curl-build.log 2>&1 || { tail -80 /tmp/bx-curl-build.log; exit 1; }
+          echo 'BX_HOST_CURL_PREFIX=/tmp/bx-host-curl' >> "$GITHUB_ENV"
       - name: Validate binary protocol and partial writes
         run: |
           cc -std=c11 -Wall -Wextra -Werror -pedantic native-transport/bridge.c native-transport/tests/bridge_test.c -o /tmp/bridge-test
           /tmp/bridge-test
           cc -std=c11 -Wall -Wextra -Werror -pedantic native-transport/account_id.c native-transport/tests/account_id_test.c -o /tmp/account-test
           /tmp/account-test
+          cc -std=c11 -Wall -Wextra -Werror -pedantic native-transport/stream_state.c native-transport/tests/stream_state_test.c -o /tmp/stream-state-test
+          /tmp/stream-state-test
           node --test native-transport/relay/*.test.mjs wasm-client/*.test.cjs
           python3 -m unittest discover -s native-transport/tests -p 'test_*.py' -v
   wasm:
@@ -94,6 +105,10 @@ jobs:
       - name: Compile real PS4 socket transport ELF
         run: |
           make -C native-transport
+          make -C native-transport -f payload.mk MODE=stream
+          readelf -d native-transport/bx-rp-stream-v10.elf > native-transport/stream-dynamic.txt
+          if grep -qE "libSce(Ssl|Http)" native-transport/stream-dynamic.txt; then exit 1; fi
+          sha256sum native-transport/bx-rp-stream-v10.elf > native-transport/stream.sha256
           readelf -h native-transport/bx-rp-transport.elf
           readelf -d native-transport/bx-rp-transport.elf | tee native-transport/payload-dynamic.txt
           grep -q libSceLibcInternal native-transport/payload-dynamic.txt
@@ -113,6 +128,9 @@ jobs:
           path: |
             native-transport/bx-rp-transport.elf
             native-transport/transport.sha256
+            native-transport/bx-rp-stream-v10.elf
+            native-transport/stream.sha256
+            native-transport/stream-dynamic.txt
             native-transport/PAYLOAD-SDK-COPYING
             native-transport/payload-sdk-corresponding-source.tar.gz
             native-transport/tls-corresponding-source.tar.gz

@@ -4,12 +4,22 @@ $(error PS4_PAYLOAD_SDK must point to the payload SDK with pinned 13.52 CRT)
 endif
 include $(PS4_PAYLOAD_SDK)/toolchain/orbis.mk
 .DEFAULT_GOAL := all
+ifeq ($(MODE),stream)
+OUT := build/stream
+TARGET := bx-rp-stream-v10.elf
+MAIN := stream_main
+EXTRA := $(OUT)/ws_client.o $(OUT)/stream_state.o
+else
 OUT := build/payload
+TARGET := bx-rp-transport.elf
+MAIN := main
+EXTRA :=
+endif
 CFLAGS += -std=gnu11 -Wall -Wextra -DBX_TRANSPORT_PS4 -DBX_TRANSPORT_CURL -Ibuild/compat -I$(PS4_PAYLOAD_SDK)/target/user/homebrew/include
-# Load HTTP before its modern SSL backend; never mix SSL1 context IDs with SSL2.
+# Static verified TLS libraries; no native SCE HTTP/SSL imports.
 LDFLAGS += -L$(PS4_PAYLOAD_SDK)/target/user/homebrew/lib -lcurl -lpsl -lssl -lcrypto -lzstd -lz -pthread
-OBJECTS := $(OUT)/main.o $(OUT)/https_client.o $(OUT)/bridge.o $(OUT)/socket_adapter.o $(OUT)/pair_config.o $(OUT)/pair_protocol.o
-all: bx-rp-transport.elf
+OBJECTS := $(OUT)/$(MAIN).o $(OUT)/https_client.o $(EXTRA) $(OUT)/bridge.o $(OUT)/socket_adapter.o $(OUT)/pair_config.o $(OUT)/pair_protocol.o
+all: $(TARGET)
 build/compat/orbis/Net.h:
 	@test -n "$(OO_PS4_TOOLCHAIN)"
 	mkdir -p build/compat
@@ -23,5 +33,5 @@ $(OUT)/pair_config.o: ../native-pair/pair_config.c | build/compat/orbis/Net.h
 $(OUT)/pair_protocol.o: ../native-pair/pair_protocol.c | build/compat/orbis/Net.h
 	mkdir -p $(OUT)
 	$(CC) $(CFLAGS) -c $< -o $@
-bx-rp-transport.elf: $(OBJECTS)
+$(TARGET): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
