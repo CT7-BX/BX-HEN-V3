@@ -5,10 +5,16 @@ on:
     branches: [main]
     paths:
       - "native-pair/**"
+      - "ps4-agent/resident/**"
+      - "ps4-agent/tools/make_icon.py"
+      - "ps4-agent/tests/**"
       - ".github/workflows/native-pair-build.yml"
   pull_request:
     paths:
       - "native-pair/**"
+      - "ps4-agent/resident/**"
+      - "ps4-agent/tools/make_icon.py"
+      - "ps4-agent/tests/**"
       - "relay/**"
       - "remote/pair-client.js"
       - ".github/workflows/native-pair-build.yml"
@@ -45,6 +51,11 @@ jobs:
           cc -std=c11 -Wall -Wextra -Werror -pedantic \
             native-pair/sha256.c native-pair/tests/sha256_test.c -o /tmp/bx-sha256
           /tmp/bx-sha256
+          cc -std=c11 -Wall -Wextra -Werror -pedantic \
+            -Inative-pair/tests/stubs -Dmkdir=bx_test_mkdir -Dremove=bx_test_remove \
+            native-pair/ota_download.c native-pair/sha256.c native-pair/tests/ota_timeout_test.c \
+            -o /tmp/bx-ota-timeout
+          /tmp/bx-ota-timeout
           node --check native-pair/tools/generate_setup.mjs
           node --test native-pair/tests/generate_setup.test.mjs
           python3 -m unittest discover -s ps4-agent/tests -p 'test_*.py' -v

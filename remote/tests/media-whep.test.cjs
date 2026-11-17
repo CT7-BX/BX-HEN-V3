@@ -208,3 +208,32 @@ test("main screen exposes WHEP controls separately from HTTP pairing and WSS sim
   assert.match(html, /id="pairSection"/);
   assert.match(html, /id="relaySection"/);
 });
+
+// Headers arriving do not mean the SDP body has finished arriving.
+for (const cancel of [false, true]) {
+  test(`WHEP stalled SDP body ${cancel ? "cancels promptly" : "times out"} and releases session`, { timeout: 1000 }, async () => {
+    const peer = new FakePeer(), calls = [];
+    let bodyStarted;
+    const reading = new Promise(resolve => { bodyStarted = resolve; });
+    const receiver = createReceiver({
+      endpoint: base, requestTimeoutMs: 30,
+      createPeer: () => peer, createStream: () => new FakeStream(),
+      fetcher: async (url, options) => {
+        calls.push({ url, options });
+        if (options.method === "DELETE") return { status: 200 };
+        return { ...goodResponse(), text: () => {
+          bodyStarted();
+          return new Promise(() => {}); // Ignores AbortSignal deliberately.
+        } };
+      }
+    });
+    const started = receiver.start();
+    const rejected = assert.rejects(started, cancel ? /cancelled/ : /gateway_timeout/);
+    await reading;
+    if (cancel) receiver.stop();
+    await rejected;
+    assert.equal(peer.closed, true);
+    assert.equal(peer.remoteDescription, undefined);
+    assert.equal(calls.filter(call => call.options.method === "DELETE").length, 1);
+  });
+}

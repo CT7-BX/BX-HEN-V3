@@ -231,7 +231,29 @@
         const resource = resourceUrl(response.headers.get("location"), url);
         if (!resource) throw new Error("invalid_session_url");
         session = resource;
-        const answer = await response.text();
+        /* The fetch timeout ends when headers arrive. Bound body reading too:
+         * a gateway can return 201 and then never finish its SDP response.
+         * Race cancellation explicitly even for readers ignoring AbortSignal.
+         */
+        const answer = await new Promise((resolve, reject) => {
+          let bodyTimer = null;
+          const finish = (error, value) => {
+            if (bodyTimer !== null) clearTimeout(bodyTimer);
+            controller.signal.removeEventListener("abort", cancelled);
+            if (error) reject(error);
+            else resolve(value);
+          };
+          const cancelled = () => finish(new Error("cancelled"));
+          controller.signal.addEventListener("abort", cancelled, { once: true });
+          if (controller.signal.aborted) { cancelled(); return; }
+          bodyTimer = setTimeout(() => {
+            finish(new Error("gateway_timeout"));
+            controller.abort();
+          }, requestTimeoutMs);
+          Promise.resolve().then(() => response.text()).then(
+            body => finish(null, body), error => finish(error)
+          );
+        });
         if (!/^v=0\r?\n/.test(answer) || answer.length > 200000) throw new Error("invalid_sdp");
         if (!active) throw new Error("cancelled");
         await current.setRemoteDescription({ type: "answer", sdp: answer });

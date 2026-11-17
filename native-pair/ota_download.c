@@ -94,6 +94,8 @@ int bx_ota_fetch_verified(int tmpl, const BXUpdateManifest *m,
         if(sceHttpSetConnectTimeOut(request,7000000)<0 ||
            sceHttpSetResolveTimeOut(request,7000000)<0 ||
            sceHttpSetSendTimeOut(request,7000000)<0) {code=-4;goto done;}
+        /* OpenOrbis declares this setter void; do not test a return value. */
+        sceHttpSetRecvTimeOut(request,7000000);
         code=sceHttpSendRequest(request,NULL,0);
         if(code<0)goto done;
         code=sceHttpGetStatusCode(request,&status);
