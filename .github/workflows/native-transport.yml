@@ -1,7 +1,7 @@
 name: BX Native Remote Play — transport and WASM
 on:
   pull_request:
-    paths: ['native-transport/**', 'wasm-client/**', '.github/workflows/native-transport.yml']
+    paths: ['native-transport/**', 'wasm-client/**', 'native-pair/pair_config.*', 'native-pair/pair_protocol.*', 'ps4-agent/tools/make_icon.py', '.github/workflows/native-transport.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -15,6 +15,8 @@ jobs:
         run: |
           cc -std=c11 -Wall -Wextra -Werror -pedantic native-transport/bridge.c native-transport/tests/bridge_test.c -o /tmp/bridge-test
           /tmp/bridge-test
+          cc -std=c11 -Wall -Wextra -Werror -pedantic native-transport/account_id.c native-transport/tests/account_id_test.c -o /tmp/account-test
+          /tmp/account-test
           node --test native-transport/relay/*.test.mjs wasm-client/*.test.cjs
           python3 -m unittest discover -s native-transport/tests -p 'test_*.py' -v
   wasm:
@@ -98,3 +100,4 @@ jobs:
             native-transport/transport.sha256
             native-transport/*.pkg
           if-no-files-found: error
+

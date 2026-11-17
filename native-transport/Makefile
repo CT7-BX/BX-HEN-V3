@@ -6,7 +6,7 @@ CFLAGS := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables -std=c11 -Wall 
 OBJECTS := $(OUT)/main.o $(OUT)/bridge.o $(OUT)/socket_adapter.o $(OUT)/pair_config.o $(OUT)/pair_protocol.o
 LIBS := -lc -lkernel -lSceNet -lSceSsl -lSceHttp
 all: bx-rp-transport.elf
-$(OUT)/%.o: %.c bridge.h socket_adapter.h
+$(OUT)/%.o: %.c bridge.h socket_adapter.h account_id.h
 	@mkdir -p $(OUT)
 	$(CC) $(CFLAGS) $< -o $@
 $(OUT)/pair_config.o: ../native-pair/pair_config.c
@@ -19,8 +19,8 @@ bx-rp-transport.elf: $(OBJECTS)
 	$(LD) $(OBJECTS) -o $@ -m elf_x86_64 -pie --script $(SDK)/link.x --eh-frame-hdr -L$(SDK)/lib $(LIBS) $(SDK)/lib/crt1.o
 PLATFORM := $(if $(filter Darwin,$(shell uname -s)),macos,linux)
 CONTENT_ID := IV0000-BRPM00002_00-BXNATIVESTREAM01
-$(OUT)/launcher.elf: $(OUT)/launcher.o
-	$(LD) $< -o $@ -m elf_x86_64 -pie --script $(SDK)/link.x --eh-frame-hdr -L$(SDK)/lib -lc -lkernel -lSceSysUtil $(SDK)/lib/crt1.o
+$(OUT)/launcher.elf: $(OUT)/launcher.o $(OUT)/account_id.o
+	$(LD) $^ -o $@ -m elf_x86_64 -pie --script $(SDK)/link.x --eh-frame-hdr -L$(SDK)/lib -lc -lkernel -lSceSysUtil -lSceUserService $(SDK)/lib/crt1.o
 eboot.bin: $(OUT)/launcher.elf
 	"$(SDK)/bin/$(PLATFORM)/create-fself" -in=$< -out=$(OUT)/launcher.oelf --eboot $@ --paid 0x3800000000000011
 sce_sys/param.sfo:
