@@ -3,10 +3,11 @@ var Module={};
 (()=>{
   const $=id=>document.getElementById(id),core=BXNativeCore;
   let ready=false,linked=false,running=false,reg=null,secret='',decoder=null,audio=null,channels=2,rate=48000,nextAudio=0,frames=0,audioFrames=0,time=0,codec='',savedSps=null,savedPps=null,ticker=null;
+  let inputFocused=document.hasFocus();
   const fingers=new Map(),stickValues={left:[0,0],right:[0,0]},stickOwners=new Map();
   const status=text=>{$('status').textContent=text;};
   const call=(name,types,args)=>Module.ccall(name,'number',types,args);
-  function controls(neutral=false){if(!ready||!running)return;let state=core.gamepad(neutral?null:Array.from(navigator.getGamepads?.()??[]).find(p=>p?.connected&&p.mapping==='standard'));
+  function controls(neutral=false){if(!ready||!running)return;neutral=neutral||!inputFocused;let state=core.gamepad(neutral?null:core.connectedPads(navigator).find(p=>p.mapping==='standard'));
     if(!neutral){for(const id of fingers.values()){if(id<16)state.buttons|=1<<id;else if(id===16)state.l2=255;else state.r2=255;}for(let i=0;i<2;i++){const a=stickValues.left[i],b=stickValues.right[i];if(a)state.axes[i]=Math.round(a*32767);if(b)state.axes[i+2]=Math.round(b*32767);}}
     call('chiaki_wasm_session_set_controller',Array(10).fill('number'),[state.buttons,state.l2,state.r2,...state.axes,0,0,0]);
   }
@@ -45,5 +46,31 @@ var Module={};
   const buttons=[['×',0],['○',1],['□',2],['△',3],['←',4],['→',5],['↑',6],['↓',7],['L1',8],['R1',9],['L3',10],['R3',11],['OPTIONS',12],['SHARE',13],['Touchpad',14],['PS',15],['L2',16],['R2',17]];
   for(const [label,bit] of buttons){const button=document.createElement('button');button.textContent=label;button.onpointerdown=event=>{event.preventDefault();button.setPointerCapture(event.pointerId);fingers.set(event.pointerId,bit);controls();};for(const type of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(type,event=>{fingers.delete(event.pointerId);controls();});$('keys').append(button);}
   for(const side of ['left','right']){const element=$(side+'Stick');const update=event=>{const r=element.getBoundingClientRect(),x=(event.clientX-r.left-r.width/2)/(r.width/2),y=(event.clientY-r.top-r.height/2)/(r.height/2),scale=Math.max(1,Math.hypot(x,y));stickValues[side]=[x/scale,y/scale];controls();};element.onpointerdown=e=>{if(stickOwners.has(side))return;e.preventDefault();stickOwners.set(side,e.pointerId);element.setPointerCapture(e.pointerId);update(e);};element.onpointermove=e=>{if(stickOwners.get(side)===e.pointerId)update(e);};for(const type of ['pointerup','pointercancel','lostpointercapture'])element.addEventListener(type,e=>{if(stickOwners.get(side)===e.pointerId){stickOwners.delete(side);stickValues[side]=[0,0];controls();}});}
-  window.addEventListener('blur',clearInput);window.addEventListener('pagehide',()=>{void stop();});document.addEventListener('visibilitychange',()=>{if(document.hidden)void stop('Sessão encerrada ao sair da tela.');});
+  function controllerStatus(){
+    const pads=core.connectedPads(navigator),pad=pads.find(p=>p.mapping==='standard');
+    let text='Conecte o controle ao aparelho por Bluetooth ou USB e pressione um botão.';
+    if(typeof navigator.getGamepads!=='function')text='Este navegador não disponibiliza controle físico. Use os controles de toque.';
+    else if(pad){const state=core.gamepad(pad),active=state.buttons||state.l2||state.r2||state.axes.some(Boolean);text=active?'Entrada do controle detectada neste aparelho. A resposta no PS4 precisa ser confirmada durante o jogo.':'Controle reconhecido neste aparelho. Pressione um botão ou mova um analógico para testar.';}
+    else if(pads.length)text='Controle detectado sem mapeamento padrão. Use os controles de toque neste navegador.';
+    if($('controllerStatus').textContent!==text)$('controllerStatus').textContent=text;
+  }
+  const area=$('playerArea');
+  const nativeFullscreen=()=>document.fullscreenElement||document.webkitFullscreenElement;
+  function displayState(){const expanded=!!nativeFullscreen()||area.classList.contains('expanded');$('fullscreen').textContent=expanded?'Sair da tela cheia':'Tela cheia';$('fullscreen').setAttribute('aria-pressed',String(expanded));}
+  function expandedFallback(value){area.classList.toggle('expanded',value);document.body.classList.toggle('game-expanded',value);displayState();}
+  $('fullscreen').onclick=async()=>{
+    try{
+      if(nativeFullscreen()){const exit=document.exitFullscreen||document.webkitExitFullscreen;if(exit)await exit.call(document);}
+      else if(area.classList.contains('expanded'))expandedFallback(false);
+      else {const enter=area.requestFullscreen||area.webkitRequestFullscreen;if(enter){try{await enter.call(area);}catch{expandedFallback(true);}}else expandedFallback(true);}
+      $('displayStatus').textContent=area.classList.contains('expanded')?'Modo ampliado: este navegador pode manter suas barras visíveis.':'';
+    }catch{$('displayStatus').textContent='Não foi possível alterar a tela. Tente novamente.';}
+    displayState();
+  };
+  document.addEventListener('fullscreenchange',displayState);document.addEventListener('webkitfullscreenchange',displayState);
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'){expandedFallback(false);$('displayStatus').textContent='';}});
+  window.addEventListener('gamepadconnected',controllerStatus);window.addEventListener('gamepaddisconnected',()=>{clearInput();controllerStatus();});
+  setInterval(controllerStatus,250);controllerStatus();
+  window.addEventListener('focus',()=>{inputFocused=true;});
+  window.addEventListener('blur',()=>{inputFocused=false;clearInput();});window.addEventListener('pagehide',()=>{void stop();});document.addEventListener('visibilitychange',()=>{if(document.hidden)void stop('Sessão encerrada ao sair da tela.');});
 })();
