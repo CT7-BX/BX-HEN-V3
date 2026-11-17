@@ -93,6 +93,14 @@ export default {
     if(['/session','/session-status','/exchange','/socket','/console-stream'].includes(url.pathname)){
       const origin=request.headers.get('Origin');if(origin && origin!==url.origin)return json({error:'origin'},403);
       if(!env.NATIVE_ROOM || !env.BX_PLAYER_KEY || !env.BX_CONSOLE_KEY)return json({error:'not_configured'},503);
+      // Opt-in regional backend: all transport endpoints move together. Static
+      // assets and the existing DO path remain unchanged unless configured.
+      if(env.BX_REGIONAL_ORIGIN){
+        let regional;try{regional=new URL(env.BX_REGIONAL_ORIGIN);}catch{return json({error:'invalid_regional_backend'},503);}
+        if(regional.protocol!=='https:'||regional.origin!==env.BX_REGIONAL_ORIGIN||regional.origin===url.origin)return json({error:'invalid_regional_backend'},503);
+        const destination=new URL(url.pathname,regional);
+        return fetch(new Request(destination,request),{redirect:'manual'});
+      }
       return env.NATIVE_ROOM.get(env.NATIVE_ROOM.idFromName('owner-console')).fetch(request);
     }
     if(url.pathname==='/health')return json({transport:'experimental',physicalValidation:false,sessionRequired:true});

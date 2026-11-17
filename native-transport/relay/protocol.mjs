@@ -11,7 +11,7 @@ export function parse(raw){
   if(b.length<16 || b.length>MAX_BATCH || b[0]!==66||b[1]!==88||b[2]!==78||b[3]!==49)throw new Error('bad_envelope');
   const v=new DataView(b.buffer,b.byteOffset,b.byteLength),count=v.getUint32(12,true),packets=[];let at=16;
   if(count>1024)throw new Error('packet_limit');
-  for(let i=0;i<count;i++){if(at+4>b.length)throw new Error('truncated');const n=v.getUint32(at,true);at+=4;if(n<28||n>65535||at+n>b.length)throw new Error('bad_packet');const p=b.slice(at,at+n),h=new DataView(p.buffer);if(h.getUint32(24,true)!==n-28)throw new Error('bad_packet_length');packets.push(p);at+=n;}
+  for(let i=0;i<count;i++){if(at+4>b.length)throw new Error('truncated');const n=v.getUint32(at,true);at+=4;if(n<28||n>65535||at+n>b.length)throw new Error('bad_packet');const p=new Uint8Array(b.subarray(at,at+n)),h=new DataView(p.buffer);if(h.getUint32(24,true)!==n-28)throw new Error('bad_packet_length');packets.push(p);at+=n;}
   if(at!==b.length)throw new Error('trailing_data');return {epoch:v.getUint32(4,true),seq:v.getUint32(8,true),packets};
 }
 export class Exchange {

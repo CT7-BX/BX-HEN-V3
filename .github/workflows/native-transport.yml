@@ -1,7 +1,7 @@
 name: BX Native Remote Play — transport and WASM
 on:
   pull_request:
-    paths: ['native-transport/**', 'wasm-client/**', 'native-pair/pair_config.*', 'native-pair/pair_protocol.*', 'ps4-agent/tools/make_icon.py', '.github/workflows/native-transport.yml']
+    paths: ['native-transport/**', 'wasm-client/**', 'native-pair/pair_config.*', 'native-pair/pair_protocol.*', 'ps4-agent/tools/make_icon.py', 'relay/native-stream-server.mjs', 'relay/tests/native-stream-server.test.mjs', '.github/workflows/native-transport.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -23,6 +23,8 @@ jobs:
           ./configure --prefix=/tmp/bx-host-curl --enable-websockets --disable-shared --with-openssl --without-libpsl --without-zstd --without-brotli --without-zlib --disable-ldap --disable-ldaps --disable-docs --disable-manual
           make -j2 install > /tmp/bx-curl-build.log 2>&1 || { tail -80 /tmp/bx-curl-build.log; exit 1; }
           echo 'BX_HOST_CURL_PREFIX=/tmp/bx-host-curl' >> "$GITHUB_ENV"
+      - name: Install existing relay WebSocket dependency
+        run: npm install --prefix relay --ignore-scripts --no-package-lock
       - name: Validate binary protocol and partial writes
         run: |
           cc -std=c11 -Wall -Wextra -Werror -pedantic native-transport/bridge.c native-transport/tests/bridge_test.c -o /tmp/bridge-test
@@ -33,7 +35,7 @@ jobs:
           /tmp/stream-state-test
           cc -std=c11 -Wall -Wextra -Werror -pedantic wasm-client/net-queue-test.c -o /tmp/net-queue-test
           /tmp/net-queue-test
-          node --test native-transport/relay/*.test.mjs wasm-client/*.test.cjs
+          node --test native-transport/relay/*.test.mjs wasm-client/*.test.cjs relay/tests/native-stream-server.test.mjs
           python3 -m unittest discover -s native-transport/tests -p 'test_*.py' -v
   wasm:
     runs-on: ubuntu-22.04

@@ -22,3 +22,12 @@ test('relay socket alone does not prove payload presence; authenticated exchange
  r.session.readyAt=Date.now()-16000;
  assert.deepEqual(await (await call('/session-status','GET',PLAYER)).json(),{nativeOnline:false});
  }finally{r.close();}});
+
+test('regional routing moves all transport endpoints together without putting credentials in URLs',async()=>{
+ const old=globalThis.fetch,seen=[];globalThis.fetch=async(request,options)=>{seen.push({url:request.url,key:request.headers.get('Authorization'),origin:request.headers.get('Origin'),redirect:options.redirect});return new Response('regional');};
+ try{const env={BX_PLAYER_KEY:PLAYER,BX_CONSOLE_KEY:CONSOLE,BX_REGIONAL_ORIGIN:'https://regional.example',NATIVE_ROOM:{get(){throw new Error('DO path must not be used');}}};
+ for(const path of ['/session','/session-status','/socket','/exchange','/console-stream']){const r=await worker.fetch(new Request(BASE+path,{headers:{Origin:BASE,Authorization:'Bearer '+PLAYER}}),env);assert.equal(await r.text(),'regional');}
+ assert.equal(seen.length,5);for(const r of seen){assert.ok(r.url.startsWith('https://regional.example/'));assert.equal(new URL(r.url).search,'');assert.equal(r.key,'Bearer '+PLAYER);assert.equal(r.origin,BASE);assert.equal(r.redirect,'manual');}
+ for(const bad of ['http://regional.example','https://regional.example/path',BASE,'https://user:pass@regional.example']){env.BX_REGIONAL_ORIGIN=bad;assert.equal((await worker.fetch(new Request(BASE+'/session'),env)).status,503);}
+ }finally{globalThis.fetch=old;}
+});
