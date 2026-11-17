@@ -93,7 +93,8 @@ int bx_ota_fetch_verified(int tmpl, const BXUpdateManifest *m,
         if(request<0) {code=request;goto done;}
         if(sceHttpSetConnectTimeOut(request,7000000)<0 ||
            sceHttpSetResolveTimeOut(request,7000000)<0 ||
-           sceHttpSetSendTimeOut(request,7000000)<0) {code=-4;goto done;}
+           sceHttpSetSendTimeOut(request,7000000)<0 ||
+           sceHttpSetRecvTimeOut(request,7000000)<0) {code=-4;goto done;}
         code=sceHttpSendRequest(request,NULL,0);
         if(code<0)goto done;
         code=sceHttpGetStatusCode(request,&status);
