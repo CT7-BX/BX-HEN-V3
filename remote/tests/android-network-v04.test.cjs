@@ -21,9 +21,9 @@ test("Android v0.4 draws a native, accessible, modular mobile dashboard",()=>{
   assert.match(app,/setTextIsSelectable\(true\)/);
   assert.match(app,/onSaveInstanceState\(Bundle outState\)/);
   assert.match(app,/copyButton\.setEnabled\(false\)/);
-  assert.match(build,/versionCode 4/);
-  assert.match(build,/0\.4\.0-diagnostic/);
-  assert.match(workflow,/BX-Android-Gateway-Diagnostic-v0\.4/);
+  assert.match(build,/versionCode 5/);
+  assert.match(build,/0\.5\.0-diagnostic/);
+  assert.match(workflow,/BX-Android-Gateway-Diagnostic-v0\.5/);
 });
 
 test("network health checks are user initiated, bounded, async and public only",()=>{
@@ -42,7 +42,7 @@ test("network health checks are user initiated, bounded, async and public only",
   assert.match(app,/onDestroy\(\)/);
   assert.match(app,/connection\.disconnect\(\)/);
   assert.match(app,/runOnUiThread\(\(\) -> \{/);
-  assert.match(app,/O PS4 NÃO foi testado por este botão/);
+  assert.match(app,/O PS4 NÃO foi testado./);
   assert.doesNotMatch(app,/Authorization|console_token|PSN_PASSWORD|startForegroundService|createVirtualDisplay\(/);
 });
 
