@@ -1,16 +1,22 @@
-# BX Android Gateway — diagnóstico experimental v0.4
+# BX Android Gateway — diagnóstico experimental v0.5
 
 Este subprojeto Android nativo é o **primeiro teste de compatibilidade para aparelhos antigos**, preparado para Android 7 (API 24) ou superior. **Não é ainda um cliente Remote Play, um gateway WebRTC, nem um aplicativo que transmita jogos.** O BX atual continua sem o transporte PS4 → Android → iPhone.
 
-## Interface v0.4 — três áreas nativas
+## Interface v0.5 — três áreas nativas
 
 O aplicativo apresenta três cartões: **Diagnóstico local**, **Central BX** e **Segurança e limites**. A análise usa um indicador de prontidão com descrição conservadora, separa os dados técnicos numa área de texto selecionável, permite copiar o relatório apenas após o usuário iniciar a verificação e mantém o resultado ao girar a tela. O esquema preto/vermelho usa componentes Android nativos e usa somente a permissão normal INTERNET para uma verificação HTTPS iniciada manualmente.
 
 A nova interface não torna o APK um cliente Remote Play. A temperatura medida é uma leitura pontual, não um monitor automático de segurança para uso por 24 horas.
 
-## Novo painel e conexão v0.4
+## Novo painel e conexão v0.5
 
 A abertura tem cabeçalho gradiente, três cartões com ações de diagnóstico, conectividade e central BX. O teste HTTPS roda fora da thread de interface, tem tamanho máximo de resposta, bloqueia múltiplas tentativas simultâneas e cancela o resultado quando a tela é destruída. A falha de conexão não impede o relatório local; um servidor público disponível não comprova conexão com o PS4. O app não mantém conexões permanentemente nem representa uma sessão real Remote Play.
+
+## Interface v0.5 e testes HTTPS estáveis
+
+A interface ganhou uma faixa compacta de estados independentes **HTTPS / PS4 / MÍDIA**: o estado do servidor público é real, enquanto PS4 e mídia permanecem como não verificados. O diagnóstico HTTPS é manual, usa no máximo três tentativas e só repete falhas temporárias (timeout, 408, 429, 5xx). Erros TLS não são repetidos ou mascarados. Fechar o aplicativo interrompe o teste e desconecta a requisição em andamento.
+
+Esse teste nunca envia identificadores, códigos de pareamento ou credenciais. O gateway **continua diagnóstico**, sem transmissão de jogos, áudio ou controles.
 
 ## O que a versão faz
 
@@ -26,7 +32,7 @@ O aplicativo declara somente `android.permission.INTERNET` para o botão **Testa
 
 ## Instalação e teste
 
-A versão APK experimental é compilada pela workflow [BX Android Gateway — diagnóstico experimental](../.github/workflows/android-gateway-build.yml). Abra a execução concluída com sucesso, baixe o artefato `BX-Android-Gateway-Diagnostic-v0.4` e confira seu SHA-256. O APK contido é **debug**; não há distribuição estável nem função de Remote Play neste estágio.
+A versão APK experimental é compilada pela workflow [BX Android Gateway — diagnóstico experimental](../.github/workflows/android-gateway-build.yml). Abra a execução concluída com sucesso, baixe o artefato `BX-Android-Gateway-Diagnostic-v0.5` e confira seu SHA-256. O APK contido é **debug**; não há distribuição estável nem função de Remote Play neste estágio.
 
 O botão **Analisar dispositivo** mostra os dados localmente. Use **Copiar relatório local** se quiser compartilhá-los de forma voluntária, revisando antes o modelo do celular incluído no texto.
 
