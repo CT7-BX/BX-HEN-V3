@@ -279,7 +279,7 @@ static void draw_frame(uint32_t *dst) {
     stroke_card(dst,75,961,1767,85,color(25,23,33),border,17);
     text(dst,102,981,"X  APROVAR/SEGUIR     O  RECUSAR     TRIANGULO  SERVICO",
          3,white,86);
-    text(dst,106,1020,"OPTIONS CANCELA/ENCERRA   /   VIDEO E CONTROLES DIRETOS PENDENTES",
+    text(dst,106,1020,"OPTIONS CANCELA/ENCERRA   /   STREAMING DIRETO AINDA INDISPONIVEL",
          2,muted,89);
     (void)canvas;
 }
