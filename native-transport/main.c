@@ -43,7 +43,7 @@ static int exchange(HTTP *h,const BXPairConfig *cfg,size_t *length,int *status){
     connection=checked("sceHttpCreateConnectionWithURL",sceHttpCreateConnectionWithURL(h->tmpl,url,true));if(connection<0)goto done;
     request=checked("sceHttpCreateRequestWithURL",sceHttpCreateRequestWithURL(connection,ORBIS_METHOD_POST,url,used));if(request<0)goto done;
     if(checked("sceHttpAddRequestHeader",sceHttpAddRequestHeader(request,"Authorization",auth,0))<0 || checked("sceHttpAddRequestHeader",sceHttpAddRequestHeader(request,"Content-Type","application/octet-stream",0))<0 || checked("sceHttpSetConnectTimeOut",sceHttpSetConnectTimeOut(request,3000000))<0 || checked("sceHttpSetResolveTimeOut",sceHttpSetResolveTimeOut(request,3000000))<0 || checked("sceHttpSetSendTimeOut",sceHttpSetSendTimeOut(request,3000000))<0)goto done;
-    if(checked("sceHttpSetRecvTimeOut",sceHttpSetRecvTimeOut(request,3000000))<0)goto done;
+    sceHttpSetRecvTimeOut(request,3000000); /* SDK declares no return value. */
     if(checked("sceHttpSendRequest",sceHttpSendRequest(request,outgoing,used))<0 || checked("sceHttpGetStatusCode",sceHttpGetStatusCode(request,status))<0)goto done;
     if(*status!=200)goto done;
     while(at<MAX_BATCH){n=checked("sceHttpReadData",sceHttpReadData(request,incoming+at,MAX_BATCH-at));if(n<0)goto done;if(!n)break;at+=(size_t)n;}
@@ -85,3 +85,4 @@ int main(void){
     /* Avoid the unvalidated OpenOrbis libc exit path. */
     for(;;)sleep(1);
 }
+
