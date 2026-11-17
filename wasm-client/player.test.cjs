@@ -63,3 +63,40 @@ test('saved device profile reconnects and starts playback after page reload with
  await next.element('forgetDevice').onclick();assert.equal(saved.value,null);assert.equal(next.element('connect').disabled,true);assert.equal(next.requests.some(r=>r.method==='DELETE'),false);
 });
 test('storage failure preserves manual import and active connection',async()=>{const h=harness({value:null,failSave:true});await beginPlayback(h);await h.element('saveDevice').onclick();assert.match(h.element('savedStatus').textContent,/Não foi possível salvar/);assert.equal(h.element('connect').disabled,true);assert.equal(h.element('export').disabled,false);});
+
+test('duplicate start is ignored and stop cancels an audio resume still in progress',async()=>{
+ const h=harness();let resume,closed=0;
+ h.context.window.AudioContext=class{state='suspended';resume(){return new Promise(resolve=>{resume=resolve;});}async close(){closed++;}};
+ h.element('playerKey').value='a'.repeat(64);await h.element('connect').onclick();
+ await h.element('import').onchange({target:{files:[{size:100,text:async()=>JSON.stringify({registKey:'a'.repeat(32),morning:'b'.repeat(32)})}]}});
+ const pending=h.element('play').onclick();assert.equal(h.element('play').disabled,true);
+ await h.element('play').onclick();h.element('stop').onclick();await flush();resume();await pending;
+ assert.equal(h.calls.filter(c=>c.name==='chiaki_wasm_session_start').length,0);assert.equal(h.intervals.has(33),false);assert.equal(closed,1);
+});
+function videoHarness(h){
+ const decoders=[];h.context.VideoDecoder=class{decodeQueueSize=0;constructor(callbacks){this.callbacks=callbacks;decoders.push(this);}configure(){}decode(){}reset(){}close(){}};
+ h.context.EncodedVideoChunk=class{constructor(value){Object.assign(this,value);}};h.context.Module.HEAPU8=new Uint8Array(128);
+ const key=[0,0,1,0x67,100,0,40,0,0,1,0x68,1,0,0,1,0x65,2];
+ return {decoders,feed(){h.context.Module.HEAPU8.set(key);h.context.Module.onVideo(0,key.length);}};
+}
+test('late decoder callbacks from an ended session cannot draw or terminate the new session',async()=>{
+ const h=harness(),v=videoHarness(h);await beginPlayback(h);v.feed();const old=v.decoders[0];
+ h.context.Module.onEvent('quit',0);await flush();await h.element('play').onclick();v.feed();let closed=0;
+ old.callbacks.output({displayWidth:640,displayHeight:360,close(){closed++;}});old.callbacks.error(new Error('old decoder'));
+ await flush();assert.equal(closed,1);assert.equal(h.intervals.has(33),true);assert.equal(h.calls.filter(c=>c.name==='chiaki_wasm_session_stop').length,1);
+});
+test('video reuses the canvas dimensions and always releases decoded frames',async()=>{
+ const h=harness(),v=videoHarness(h);await beginPlayback(h);v.feed();const canvas=h.element('screen');let width=0,height=0,resizes=0,draws=0,closed=0;
+ Object.defineProperty(canvas,'width',{get:()=>width,set:x=>{width=x;resizes++;}});Object.defineProperty(canvas,'height',{get:()=>height,set:x=>{height=x;resizes++;}});canvas.getContext=()=>({drawImage(){draws++;}});
+ for(let i=0;i<3;i++)v.decoders[0].callbacks.output({displayWidth:640,displayHeight:360,close(){closed++;}});
+ assert.equal(resizes,2);assert.equal(draws,3);assert.equal(closed,3);
+ h.document.hidden=true;v.decoders[0].callbacks.output({close(){closed++;}});assert.equal(closed,4);assert.equal(draws,3);
+});
+test('background and playback end stop and disconnect all scheduled audio sources',async()=>{
+ const h=harness(),sources=[];
+ h.context.window.AudioContext=class{state='running';currentTime=0;destination={};async resume(){}async close(){}createBuffer(){return {getChannelData:()=>new Float32Array(2)};}createBufferSource(){const s={stops:0,disconnects:0,connect(){},start(){},stop(){this.stops++;},disconnect(){this.disconnects++;}};sources.push(s);return s;}};
+ h.context.Module.HEAPU8=new Uint8Array(16);h.context.Module.HEAP16=new Int16Array(8);
+ await beginPlayback(h);h.context.Module.onAudio(0,2);assert.equal(sources.length,1);
+ h.document.hidden=true;h.events.get('document:visibilitychange')();assert.equal(sources[0].stops,1);assert.equal(sources[0].disconnects,1);
+ h.document.hidden=false;h.context.Module.onAudio(0,2);h.context.Module.onEvent('quit',0);await flush();assert.equal(sources[1].stops,1);assert.equal(sources[1].disconnects,1);
+});

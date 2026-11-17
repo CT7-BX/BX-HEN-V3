@@ -6,7 +6,9 @@ var Module={};
   let inputFocused=document.hasFocus(),registering=false,registrationDiagnostic=null;
   let waitForKeyframe=false,lastMetricsAt=Date.now(),lastMetricsFrames=0;
   const deviceStore=BXDeviceStore.create(globalThis.indexedDB);
-  let savedProfile=null,linking=false,oneClickBusy=false;
+  let savedProfile=null,linking=false,oneClickBusy=false,starting=false,playbackGeneration=0;
+  const audioSources=new Set();
+  function clearAudio(){for(const source of audioSources){try{source.stop();}catch{}try{source.disconnect();}catch{}}audioSources.clear();nextAudio=0;}
   const fingers=new Map(),stickValues={left:[0,0],right:[0,0]},stickOwners=new Map();
   const status=text=>{$('status').textContent=text;};
   const call=(name,types,args)=>Module.ccall(name,'number',types,args);
@@ -20,9 +22,9 @@ var Module={};
     try{const response=await fetch('/session-status',{headers:{Authorization:'Bearer '+secret},cache:'no-store',signal:controller.signal});if(!response.ok)throw new Error('status_unavailable');return await response.json();}
     finally{clearTimeout(timer);}
   }
-  function refresh(){$('connect').disabled=!ready||linked||linking||oneClickBusy;$('register').disabled=!linked||registering;$('play').disabled=!linked||!reg||running||registering;$('export').disabled=!reg;$('resumeAudio').hidden=!running||!audio||audio.state!=='suspended';$('connectPlay').disabled=!ready||!savedProfile||running||registering||linking||oneClickBusy;$('saveDevice').disabled=!linked||!reg||!secret||linking||oneClickBusy;$('forgetDevice').disabled=!savedProfile;}
+  function refresh(){$('connect').disabled=!ready||linked||linking||oneClickBusy;$('register').disabled=!linked||registering;$('play').disabled=!linked||!reg||running||starting||registering;$('export').disabled=!reg;$('resumeAudio').hidden=!running||!audio||audio.state!=='suspended';$('connectPlay').disabled=!ready||!savedProfile||running||registering||linking||oneClickBusy;$('saveDevice').disabled=!linked||!reg||!secret||linking||oneClickBusy;$('forgetDevice').disabled=!savedProfile;}
   async function endPlayback(message){
-    clearInput();const active=running;running=false;clearInterval(ticker);ticker=null;
+    playbackGeneration++;starting=false;clearAudio();clearInput();const active=running;running=false;clearInterval(ticker);ticker=null;
     const oldDecoder=decoder,oldAudio=audio;decoder=null;audio=null;nextAudio=0;
     try{oldDecoder?.close();}catch{}if(ready&&active)call('chiaki_wasm_session_stop',[],[]);
     try{await oldAudio?.close();}catch{}refresh();if(message)status(message);
@@ -38,9 +40,10 @@ var Module={};
   Module.onRegist=value=>{registering=false;try{if(!value.ok)throw new Error();reg=core.registration(value);$('pin').value='';$('account').value='';status('Registro Remote Play recebido. Inicie a sessão e confirme imagem, som e controle no PS4.');refresh();}catch{status(registrationDiagnostic?('Registro não concluído. '+registrationDiagnostic.code+' — '+registrationDiagnostic.text):'Registro não concluído (R00). A causa ainda não foi identificada; nenhum jogo foi confirmado.');}refresh();};
   Module.onEvent=(event,reason)=>{if(event==='connected'){status('Protocolo conectado; aguardando vídeo decodificado e áudio.');}else if(event==='quit'){if(linked){const code=Number.isInteger(reason)&&reason>=0&&reason<=255?' Q'+reason:'';void endPlayback('A transmissão terminou'+code+'. A conexão com o payload foi preservada; tente iniciar novamente.');}}else if(event==='pin'){void endPlayback('O PS4 pediu um PIN de login; esta versão ainda não atende esse fluxo. A conexão com o payload foi preservada.');}};
   Module.onAudioSettings=(ch,hz)=>{if((ch===1||ch===2)&&hz>=8000&&hz<=96000){channels=ch;rate=hz;}};
-  Module.onAudio=(ptr,samples)=>{if(!running||!audio||document.hidden||audio.state!=='running'||!Number.isInteger(samples)||samples<1||samples>5760)return;const total=samples*channels;if(ptr<0||ptr+total*2>Module.HEAPU8.length)return;const pcm=Module.HEAP16.slice(ptr>>1,(ptr>>1)+total);if(nextAudio-audio.currentTime>0.25)return;const buffer=audio.createBuffer(channels,samples,rate);for(let c=0;c<channels;c++){const out=buffer.getChannelData(c);for(let i=0;i<samples;i++)out[i]=pcm[i*channels+c]/32768;}const source=audio.createBufferSource();source.buffer=buffer;source.connect(audio.destination);nextAudio=Math.max(audio.currentTime+0.02,nextAudio);source.start(nextAudio);nextAudio+=samples/rate;audioFrames++;metrics();};
+  Module.onAudio=(ptr,samples)=>{if(!running||!audio||document.hidden||audio.state!=='running'||!Number.isInteger(samples)||samples<1||samples>5760)return;const total=samples*channels;if(ptr<0||ptr+total*2>Module.HEAPU8.length)return;const pcm=Module.HEAP16.slice(ptr>>1,(ptr>>1)+total);if(nextAudio-audio.currentTime>0.25)return;const buffer=audio.createBuffer(channels,samples,rate);for(let c=0;c<channels;c++){const out=buffer.getChannelData(c);for(let i=0;i<samples;i++)out[i]=pcm[i*channels+c]/32768;}const source=audio.createBufferSource();source.buffer=buffer;source.connect(audio.destination);audioSources.add(source);source.onended=()=>{audioSources.delete(source);try{source.disconnect();}catch{}};nextAudio=Math.max(audio.currentTime+0.02,nextAudio);source.start(nextAudio);nextAudio+=samples/rate;audioFrames++;metrics();};
   Module.onVideo=(ptr,length)=>{if(!running||length<1||length>2*1024*1024||ptr<0||ptr+length>Module.HEAPU8.length)return;try{let bytes=Module.HEAPU8.slice(ptr,ptr+length);const nals=core.nals(bytes),key=nals.some(n=>n.type===5);for(const nal of nals){if(nal.type===7){savedSps=nal.packet;const s=nal.body;if(s.length>=4)codec='avc1.'+Array.from(s.slice(1,4),n=>n.toString(16).padStart(2,'0')).join('');}if(nal.type===8)savedPps=nal.packet;}
-    if(!decoder){if(!key||!savedSps||!savedPps||!codec)return;decoder=new VideoDecoder({output:frame=>{if(!running||document.hidden){frame.close();return;}const canvas=$('screen');canvas.width=frame.displayWidth;canvas.height=frame.displayHeight;canvas.getContext('2d').drawImage(frame,0,0);frame.close();frames++;metrics();status('Vídeo decodificado recebido. Confirme no aparelho a origem PS4, o som e os controles.');},error:()=>{void endPlayback('Falha ao decodificar H.264 neste aparelho. A conexão com o payload foi preservada.');}});decoder.configure({codec,optimizeForLatency:true});}
+    if(!decoder){if(!key||!savedSps||!savedPps||!codec)return;const generation=playbackGeneration;
+      decoder=new VideoDecoder({output:frame=>{try{if(!running||generation!==playbackGeneration||document.hidden)return;const canvas=$('screen');if(canvas.width!==frame.displayWidth)canvas.width=frame.displayWidth;if(canvas.height!==frame.displayHeight)canvas.height=frame.displayHeight;canvas.getContext('2d').drawImage(frame,0,0);frames++;metrics();if(frames===1)status('Vídeo decodificado recebido. Confirme no aparelho a origem PS4, o som e os controles.');}finally{frame.close();}},error:()=>{if(generation===playbackGeneration)void endPlayback('Falha ao decodificar H.264 neste aparelho. A conexão com o payload foi preservada.');}});decoder.configure({codec,optimizeForLatency:true});}
     if(decoder.decodeQueueSize>4)waitForKeyframe=true;
     if(waitForKeyframe){if(!key)return;decoder.reset();decoder.configure({codec,optimizeForLatency:true});waitForKeyframe=false;}
     if(key&&savedSps&&savedPps){const combined=new Uint8Array(savedSps.length+savedPps.length+bytes.length);combined.set(savedSps);combined.set(savedPps,savedSps.length);combined.set(bytes,savedSps.length+savedPps.length);bytes=combined;}
@@ -54,7 +57,21 @@ var Module={};
       if(result!==0)registering=false;status(result===0?'Registrando no serviço Uso remoto do PS4…':'Não foi possível iniciar o pedido de registro neste navegador.');
     }catch{registering=false;status('Não foi possível verificar a conexão do payload. Tente conectar novamente.');}
     finally{refresh();}};
-  async function startPlayback(preparedAudio=null){if(!linked||!reg){try{await preparedAudio?.close();}catch{}return;}try{audio=preparedAudio||new (window.AudioContext||window.webkitAudioContext)();await audio.resume();audio.onstatechange=refresh;nextAudio=0;frames=audioFrames=time=0;lastMetricsAt=Date.now();lastMetricsFrames=0;waitForKeyframe=false;savedSps=savedPps=null;codec='';const profile=core.videoProfile($('quality').value);running=true;if(call('chiaki_wasm_session_start',['string','string','string','number','number','number','number','number'],['127.0.0.1',reg.registKey,reg.morning,0,profile.preset,profile.fps,0,profile.bitrate])!==0)throw new Error('session_start_failed');ticker=setInterval(()=>controls(),33);refresh();status('Solicitando sessão real do PS4 em '+profile.height+'p / '+profile.bitrate+' kbps…');}catch{await endPlayback('Não foi possível iniciar áudio e sessão. A conexão com o payload foi preservada.');}}
+  async function startPlayback(preparedAudio=null){
+    if(!linked||!reg||running||starting){try{await preparedAudio?.close();}catch{}return;}
+    const generation=++playbackGeneration;starting=true;refresh();let candidate=null;
+    try{
+      candidate=preparedAudio||new (window.AudioContext||window.webkitAudioContext)();await candidate.resume();
+      if(generation!==playbackGeneration||!linked){try{await candidate.close();}catch{}return;}
+      audio=candidate;audio.onstatechange=refresh;nextAudio=0;frames=audioFrames=time=0;lastMetricsAt=Date.now();lastMetricsFrames=0;waitForKeyframe=false;savedSps=savedPps=null;codec='';const profile=core.videoProfile($('quality').value);running=true;
+      if(call('chiaki_wasm_session_start',['string','string','string','number','number','number','number','number'],['127.0.0.1',reg.registKey,reg.morning,0,profile.preset,profile.fps,0,profile.bitrate])!==0)throw new Error('session_start_failed');
+      if(generation!==playbackGeneration||!running)return;
+      ticker=setInterval(()=>controls(),33);status('Solicitando sessão real do PS4 em '+profile.height+'p / '+profile.bitrate+' kbps…');
+    }catch{
+      if(generation===playbackGeneration){if(candidate!==audio){try{await candidate?.close();}catch{}}await endPlayback('Não foi possível iniciar áudio e sessão. A conexão com o payload foi preservada.');}
+      else{try{await candidate?.close();}catch{}}
+    }finally{if(generation===playbackGeneration){starting=false;refresh();}}
+  }
   $('play').onclick=()=>startPlayback();
   $('stop').onclick=()=>{void stop();};
   $('export').onclick=()=>{if(!reg)return;const url=URL.createObjectURL(new Blob([JSON.stringify(reg)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='bx-ps4-registro-privado.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
@@ -102,7 +119,7 @@ var Module={};
   setInterval(controllerStatus,250);controllerStatus();
   window.addEventListener('focus',()=>{inputFocused=true;});
   window.addEventListener('blur',()=>{inputFocused=false;clearInput();});
-  function background(){inputFocused=false;clearInput();if(linked)$('connectionNote').textContent='Sessão mantida ao trocar de tela. O navegador pode suspender vídeo e áudio em segundo plano.';}
+  function background(){inputFocused=false;clearInput();clearAudio();if(running)waitForKeyframe=true;if(linked)$('connectionNote').textContent='Sessão mantida ao trocar de tela. O navegador pode suspender vídeo e áudio em segundo plano.';}
   async function foreground(){
     inputFocused=document.hasFocus();nextAudio=0;if(!linked)return;
     if(audio){try{await audio.resume();}catch{}refresh();}
