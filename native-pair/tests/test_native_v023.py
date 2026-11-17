@@ -1,4 +1,4 @@
-"""PS4 native v0.24: truthful diagnostics, user actions, stability safeguards."""
+"""PS4 native v0.25: truthful diagnostics, user actions, stability safeguards."""
 from pathlib import Path
 import unittest
 
@@ -18,7 +18,7 @@ class NativeV023Tests(unittest.TestCase):
         self.assertIn("bx_diag_progress(stage)", UI)
         self.assertIn("bx_diag_level(stage,0)", UI)
         self.assertIn("ui.progress >= (unsigned)(i+1)", UI)
-        self.assertIn('"VERSION 0.24   BETA"', UI)
+        self.assertIn('"VERSION 0.25   BETA"', UI)
         self.assertIn('"CODIGO TEMPORARIO"', UI)
         self.assertIn("STREAMING DIRETO AINDA INDISPONIVEL", UI)
         for stage in ("config_missing", "network_init_failed",
@@ -49,7 +49,7 @@ class NativeV023Tests(unittest.TestCase):
         self.assertIn("VERSION := 0.24", MAKE)
         self.assertIn("$(OUT)/native_diag.o", MAKE)
         self.assertIn("native_diag.h", MAKE)
-        self.assertIn("CURRENT_UPDATE_MINOR 24u", MAIN)
+        self.assertIn("CURRENT_UPDATE_MINOR 25u", MAIN)
         self.assertIn('RESIDENT_VERSION "0.24\\n"', INSTALL)
         self.assertIn('"BX-REMOTE-SERVICE/0.24"', RESIDENT)
         self.assertNotIn("sceNetBind(", RESIDENT)
