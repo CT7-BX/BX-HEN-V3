@@ -93,6 +93,40 @@ jobs:
           cp native-transport/COPYING native-transport/PAYLOAD-SDK-COPYING
           tar --exclude=.git -czf native-transport/payload-sdk-corresponding-source.tar.gz -C /tmp/payload-sdk-source .
           sha256sum native-transport/bx-rp-transport.elf > native-transport/transport.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bx-native-payload-sdk-build
+          path: |
+            native-transport/bx-rp-transport.elf
+            native-transport/transport.sha256
+            native-transport/PAYLOAD-SDK-COPYING
+            native-transport/payload-sdk-corresponding-source.tar.gz
+            native-transport/payload-dynamic.txt
+          if-no-files-found: error
+
+  package-native:
+    needs: native-elf
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: bx-native-payload-sdk-build
+          path: native-transport
+      - name: Verify separately compiled payload
+        run: |
+          sha256sum -c native-transport/transport.sha256
+          touch native-transport/bx-rp-transport.elf
+      - name: Prepare OpenOrbis app packaging environment
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends clang lld
+          curl --fail --location --retry 3 -o /tmp/sdk.tar.gz https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.4/toolchain-llvm-18.tar.gz
+          echo '3c7cd5bb593ca74fa1c13fd59f3938dc0fc07985167f7275063019e63abe4526  /tmp/sdk.tar.gz' | sha256sum -c -
+          mkdir -p /tmp/openorbis
+          tar -xzf /tmp/sdk.tar.gz -C /tmp/openorbis
+          echo "OO_PS4_TOOLCHAIN=/tmp/openorbis/OpenOrbis/PS4Toolchain" >> "$GITHUB_ENV"
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
