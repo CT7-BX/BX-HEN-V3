@@ -20,7 +20,7 @@ class NativeV023Tests(unittest.TestCase):
         self.assertIn("ui.progress >= (unsigned)(i+1)", UI)
         self.assertIn('"VERSION 0.25   BETA"', UI)
         self.assertIn('"CODIGO TEMPORARIO"', UI)
-        self.assertIn("STREAMING DIRETO AINDA INDISPONIVEL", UI)
+        self.assertIn("VIDEO E CONTROLES DIRETOS PENDENTES", UI)
         for stage in ("config_missing", "network_init_failed",
                       "ota_download_failed", "heartbeat_failed",
                       "approved_pairing_only", "cancelled"):
@@ -46,12 +46,12 @@ class NativeV023Tests(unittest.TestCase):
         self.assertIn("idle_until_ps4_close();", MAIN)
 
     def test_compile_and_elf_version_alignment(self):
-        self.assertIn("VERSION := 0.24", MAKE)
+        self.assertIn("VERSION := 0.25", MAKE)
         self.assertIn("$(OUT)/native_diag.o", MAKE)
         self.assertIn("native_diag.h", MAKE)
         self.assertIn("CURRENT_UPDATE_MINOR 25u", MAIN)
-        self.assertIn('RESIDENT_VERSION "0.24\\n"', INSTALL)
-        self.assertIn('"BX-REMOTE-SERVICE/0.24"', RESIDENT)
+        self.assertIn('RESIDENT_VERSION "0.25\\n"', INSTALL)
+        self.assertIn('"BX-REMOTE-SERVICE/0.25"', RESIDENT)
         self.assertNotIn("sceNetBind(", RESIDENT)
         self.assertNotIn("sceRemoteplay", RESIDENT)
 
