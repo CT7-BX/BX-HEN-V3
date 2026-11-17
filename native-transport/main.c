@@ -22,6 +22,7 @@ static unsigned count,epoch,sequence=1;
 static const char *error_stage="none";
 static int error_code,ssl_error;
 static unsigned ssl_verify;
+static int diagnostic_ssl=-1,diagnostic_http=-1;
 static int checked(const char *stage,int result){if(result<0){error_stage=stage;error_code=result;}return result;}
 static uint32_t rd(const uint8_t *p){return p[0]|((uint32_t)p[1]<<8)|((uint32_t)p[2]<<16)|((uint32_t)p[3]<<24);}
 static void wr(uint8_t *p,uint32_t n){p[0]=(uint8_t)n;p[1]=(uint8_t)(n>>8);p[2]=(uint8_t)(n>>16);p[3]=(uint8_t)(n>>24);}
@@ -32,12 +33,12 @@ static int stopped(void){struct stat st;return stat(STOP,&st)==0;}
 static void report(const char *phase,int status){
     /* No packets, PSN identifiers, PINs, URLs or secrets in the report. */
     FILE *f=fopen("/data/bx-rp-transport-report.txt","w");if(!f)return;
-    fprintf(f,"BX Native Transport experimental\nphase=%s\nhttp=%d\nstartup=ps4-payload-sdk\nbuild=v05\ntls_backend=libSceSsl2\nphysicalValidation=required\nerror_stage=%s\nerror_code=0x%08x\nssl_error=0x%08x\nssl_verify=0x%08x\n",phase,status,error_stage,(unsigned)error_code,(unsigned)ssl_error,ssl_verify);fclose(f);
+    fprintf(f,"BX Native Transport experimental\nphase=%s\nhttp=%d\nstartup=ps4-payload-sdk\nbuild=v06\ntls_backend=libSceSsl2\nphysicalValidation=required\nerror_stage=%s\nerror_code=0x%08x\nssl_error=0x%08x\nssl_verify=0x%08x\nssl_context=%d\nhttp_context=%d\n",phase,status,error_stage,(unsigned)error_code,(unsigned)ssl_error,ssl_verify,diagnostic_ssl,diagnostic_http);fclose(f);
 }
 static int read_config(BXPairConfig *cfg){char text[1024]={0};size_t n;int valid;FILE *f=fopen(CONFIG,"rb");if(!f)return 0;n=fread(text,1,sizeof(text)-1,f);valid=!ferror(f)&&n>0&&n<sizeof(text)-1;fclose(f);if(valid)valid=bx_pair_parse_config(text,cfg);memset(text,0,sizeof(text));return valid;}
 typedef struct HTTP {int net,pool,ssl,http,tmpl;} HTTP;
 static void close_http(HTTP *h){if(h->tmpl>=0)sceHttpDeleteTemplate(h->tmpl);if(h->http>=0)sceHttpTerm(h->http);if(h->ssl>=0)sceSslTerm(h->ssl);if(h->pool>=0)sceNetPoolDestroy(h->pool);if(h->net)sceNetTerm();h->net=0;h->pool=h->ssl=h->http=h->tmpl=-1;}
-static int open_http(HTTP *h){memset(h,0,sizeof(*h));h->pool=h->ssl=h->http=h->tmpl=-1;if(checked("sceNetInit",sceNetInit())<0)return 0;h->net=1;h->pool=checked("sceNetPoolCreate",sceNetPoolCreate("bx_rp_transport",1024*1024,0));if(h->pool<0)return 0;h->ssl=checked("sceSslInit",sceSslInit(512*1024));if(h->ssl<0)return 0;h->http=checked("sceHttpInit",sceHttpInit(h->pool,h->ssl,512*1024));if(h->http<0)return 0;if(checked("sceHttpsLoadCert",sceHttpsLoadCert(h->http,BX_TLS_ROOT_COUNT,(void*)bx_tls_roots,NULL,NULL))<0)return 0;h->tmpl=checked("sceHttpCreateTemplate",sceHttpCreateTemplate(h->http,"BX-Native-Transport/0.1",ORBIS_HTTP_VERSION_1_1,1));return h->tmpl>=0;}
+static int open_http(HTTP *h){memset(h,0,sizeof(*h));h->pool=h->ssl=h->http=h->tmpl=-1;if(checked("sceNetInit",sceNetInit())<0)return 0;h->net=1;h->pool=checked("sceNetPoolCreate",sceNetPoolCreate("bx_rp_transport",1024*1024,0));if(h->pool<0)return 0;h->ssl=checked("sceSslInit",sceSslInit(512*1024));diagnostic_ssl=h->ssl;if(h->ssl<0)return 0;h->http=checked("sceHttpInit",sceHttpInit(h->pool,h->ssl,512*1024));diagnostic_http=h->http;if(h->http<0)return 0;if(checked("sceHttpsLoadCert",sceHttpsLoadCert(h->http,BX_TLS_ROOT_COUNT,(void*)bx_tls_roots,NULL,NULL))<0)return 0;h->tmpl=checked("sceHttpCreateTemplate",sceHttpCreateTemplate(h->http,"BX-Native-Transport/0.1",ORBIS_HTTP_VERSION_1_1,1));return h->tmpl>=0;}
 static int exchange(HTTP *h,const BXPairConfig *cfg,size_t *length,int *status){
     char url[256],auth[80];int connection=-1,request=-1,result=-1,n;size_t at=0;*length=0;*status=0;
     if(snprintf(url,sizeof(url),"%s/exchange",cfg->relay_origin)>=(int)sizeof(url) || snprintf(auth,sizeof(auth),"Bearer %s",cfg->console_token)>=(int)sizeof(auth))return -1;
@@ -74,7 +75,7 @@ int main(void){
         }
         failures=0;if(!validate(n)){report("invalid_relay_response",status);break;}
         new_epoch=rd(incoming+4);packets=rd(incoming+12);
-        if(!new_epoch){bx_bridge_close(&bridge);bx_bridge_init(&bridge,&bx_socket_ops,NULL,emit);epoch=0;sequence=1;empty();sleep(1);continue;}
+        if(!new_epoch){bx_bridge_close(&bridge);bx_bridge_init(&bridge,&bx_socket_ops,NULL,emit);epoch=0;sequence=1;empty();report("relay_idle",status);sleep(1);continue;}
         if(rd(incoming+8)!=sequence || (epoch && epoch!=new_epoch)){report("sequence_mismatch",status);break;}
         if(!epoch){epoch=new_epoch;report("session_active",status);}
         ++sequence;empty();at=16;

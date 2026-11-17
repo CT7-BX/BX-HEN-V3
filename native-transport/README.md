@@ -102,3 +102,7 @@ v03 reached `sceHttpSendRequest` on the user's PS4 but returned `0x8095f006` (in
 ### Physical diagnostic v05 candidate
 
 v04 replaced the previous invalid-ID error with `0x8095f00c` during send. v05 explicitly loads official ISRG Root X1/X2 into each HTTP context, before creating its template, and fails closed if loading fails. Both anchors were obtained from Let's Encrypt over verified HTTPS; their DER fingerprints are pinned in `tls_roots.h`. A desktop TLS connection to the configured public BX host succeeded using only those roots and hostname validation. That is not PS4 TLS validation. No certificate-ignore callback or verification-disable call is added. Report SSL detail fields are numeric and contain no credentials. Retesting the PS4 is required.
+
+### v06 certificate-format compatibility candidate
+
+v05 physically entered but `sceHttpsLoadCert` returned `0x8095f006`; no authenticated relay exchange occurred. v06 preserves the official pinned roots and uses CRLF PEM line endings, following the hardware-compatible serialization documented in Xyhlo/SSPI `app/NativeHttp.cs` (read-only reference; no application code copied). It reports the numeric owned SSL/HTTP context IDs and `relay_idle` after a successful no-session HTTP 200. Whether formatting causes the v05 error remains unconfirmed until hardware retest. No keys, identities or packet contents enter the report.

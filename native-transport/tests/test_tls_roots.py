@@ -16,6 +16,7 @@ class TrustAnchorTests(unittest.TestCase):
             match = re.search(r'static char bx_tls_root_' + str(i) + r'\[\] =\n(.*?);', source, re.S)
             self.assertIsNotNone(match)
             pem = ''.join(json.loads(line) for line in match[1].splitlines() if line)
+            self.assertNotRegex(pem, r'(?<!\r)\n', 'NanoSSL PEM requires CRLF line endings')
             der = ssl.PEM_cert_to_DER_cert(pem)
             self.assertEqual(hashlib.sha256(der).hexdigest(), fingerprint)
             context.load_verify_locations(cadata=pem)
