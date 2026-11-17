@@ -1,6 +1,15 @@
-# BX-REMOTE-PLAY — PKG PS4 v0.24 (experimental)
+# BX-REMOTE-PLAY — PKG PS4 v0.25 (experimental)
 
-## v0.24 — interface nativa e reconexão
+## v0.25 — conexões mais estáveis e novo HUD
+
+O painel VideoOut ganhou um indicador de **saúde HTTPS** que distingue recuperação da rede, etapas confirmadas e falhas. O desenho segue leve, usando os próprios pixels do PS4, sem fontes externas e sem renderizar quadros idênticos.
+
+O pareamento passou a ter **tentativas limitadas com intervalos progressivos** na primeira verificação HTTPS e durante consultas idempotentes de heartbeat/pending. Em quedas temporárias, revalida o servidor; erros permanentes (401, 403, 404 e respostas inválidas) não geram repetição. OPTIONS pode cancelar a espera. O código de vínculo e a aprovação **nunca** são reenviados automaticamente, evitando operações duplicadas.
+
+A v0.25 continua um PKG de diagnóstico e vínculo. Não transmite vídeo/áudio/controles de jogos. A compilação OpenOrbis e os testes de contrato não substituem testes no PS4 real.
+
+
+## Histórico v0.24 — interface nativa e reconexão
 
 O aplicativo nativo ganhou um painel VideoOut redesenhado (degradê, cartões arredondados, código em destaque, progresso de configuração/rede/vínculo e dicas de recuperação) preservando o Title ID e o fluxo de autorização.
 

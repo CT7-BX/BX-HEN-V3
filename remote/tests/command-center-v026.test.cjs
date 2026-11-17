@@ -94,13 +94,13 @@ test("major redesign includes accessible modes, live status, safety and iPhone m
   assert.match(html,/id="bridgeProbeRequest"/);
 });
 
-test("Android v0.4 is a modern device and public HTTPS diagnostic, not a fake streamer",()=>{
+test("Android v0.5 is a modern device and public HTTPS diagnostic, not a fake streamer",()=>{
   const build=read("android-gateway/app/build.gradle");
   const manifest=read("android-gateway/app/src/main/AndroidManifest.xml");
   const ci=read(".github/workflows/android-gateway-build.yml");
-  assert.match(build,/versionCode 4/);
-  assert.match(build,/0\.4\.0-diagnostic/);
-  assert.match(ci,/BX-Android-Gateway-Diagnostic-v0\.4/);
+  assert.match(build,/versionCode 5/);
+  assert.match(build,/0\.5\.0-diagnostic/);
+  assert.match(ci,/BX-Android-Gateway-Diagnostic-v0\.5/);
   assert.ok(android.includes('startCard("01   /   SISTEMA E DESEMPENHO")'));
   assert.ok(android.includes('startCard("02   /   CONECTIVIDADE HTTPS")'));
   assert.ok(android.includes('startCard("03   /   PRÓXIMOS PASSOS")'));
@@ -111,7 +111,7 @@ test("Android v0.4 is a modern device and public HTTPS diagnostic, not a fake st
   assert.doesNotMatch(android,/startForegroundService|createVirtualDisplay\(/);
   assert.match(gateway,/gateway-hero/);
   assert.match(gateway,/Voltar à central de modos do BX/);
-  assert.match(gateway,/APK experimental v0\.4/);
+  assert.match(gateway,/APK experimental v0\.5/);
   assert.match(gateway,/href="\.\/#bxCommandCenter"/);
 });
 

@@ -12,7 +12,7 @@ const workflow = read(".github/workflows/android-gateway-build.yml");
 const gateway = read("remote/gateway.html");
 const web = read("remote/diagnostics.js");
 
-test("Android v0.4 draws a native, accessible, modular mobile dashboard",()=>{
+test("Android v0.5 draws a native, accessible, modular mobile dashboard",()=>{
   assert.match(app,/ANDROID GATEWAY/);
   assert.match(app,/GradientDrawable\.Orientation\.TL_BR/);
   for(const title of ["SISTEMA E DESEMPENHO","CONECTIVIDADE HTTPS","PRÓXIMOS PASSOS"])
@@ -21,9 +21,9 @@ test("Android v0.4 draws a native, accessible, modular mobile dashboard",()=>{
   assert.match(app,/setTextIsSelectable\(true\)/);
   assert.match(app,/onSaveInstanceState\(Bundle outState\)/);
   assert.match(app,/copyButton\.setEnabled\(false\)/);
-  assert.match(build,/versionCode 4/);
-  assert.match(build,/0\.4\.0-diagnostic/);
-  assert.match(workflow,/BX-Android-Gateway-Diagnostic-v0\.4/);
+  assert.match(build,/versionCode 5/);
+  assert.match(build,/0\.5\.0-diagnostic/);
+  assert.match(workflow,/BX-Android-Gateway-Diagnostic-v0\.5/);
 });
 
 test("network health checks are user initiated, bounded, async and public only",()=>{
@@ -32,17 +32,17 @@ test("network health checks are user initiated, bounded, async and public only",
   assert.ok(web.includes(endpoint));
   assert.match(app,/networkButton\.setOnClickListener\(v -> checkPublicServer\(\)\)/);
   assert.match(app,/new Thread\(\(\) -> \{/);
-  assert.match(app,/setConnectTimeout\(5000\)/);
-  assert.match(app,/setReadTimeout\(5000\)/);
+  assert.match(app,/setConnectTimeout\(4000\)/);
+  assert.match(app,/setReadTimeout\(4000\)/);
   assert.match(app,/bytes\.size\(\) \+ n > 4096/);
   assert.match(app,/setInstanceFollowRedirects\(false\)/);
   assert.match(app,/new JSONObject/);
   assert.match(app,/json\.optBoolean\("configured", false\)/);
   assert.match(app,/if \(checkingNetwork \|\| destroyed\) return/);
   assert.match(app,/onDestroy\(\)/);
-  assert.match(app,/connection\.disconnect\(\)/);
+  assert.match(app,/conn\.disconnect\(\)/);
   assert.match(app,/runOnUiThread\(\(\) -> \{/);
-  assert.match(app,/O PS4 NÃO foi testado por este botão/);
+  assert.match(app,/O PS4 NÃO foi testado./);
   assert.doesNotMatch(app,/Authorization|console_token|PSN_PASSWORD|startForegroundService|createVirtualDisplay\(/);
 });
 
@@ -52,6 +52,6 @@ test("permissions are limited to INTERNET and no streaming or private console ac
   assert.match(manifest,/usesCleartextTraffic="false"/);
   assert.doesNotMatch(app,/RECORD_AUDIO|CAMERA|ACCESS_FINE_LOCATION/);
   assert.doesNotMatch(app,/requestPermissions\(/);
-  assert.match(gateway,/APK experimental v0\.4/);
+  assert.match(gateway,/APK experimental v0\.5/);
   assert.match(app,/Streaming PS4 integrado ao BX: NÃO IMPLEMENTADO/);
 });

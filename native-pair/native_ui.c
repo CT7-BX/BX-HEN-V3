@@ -1,5 +1,5 @@
 /*
- * BX-REMOTE-PLAY native PS4 dashboard v0.24.
+ * BX-REMOTE-PLAY native PS4 dashboard v0.25.
  * Real RGB CPU framebuffer via OpenOrbis VideoOut, not the website, a
  * notification overlay, or a screenshot. No external fonts/graphics assets.
  * Fail open: pairing remains usable when the display cannot initialize.
@@ -190,6 +190,11 @@ static void draw_frame(uint32_t *dst) {
     const uint32_t stateColor=ui.level==BX_DIAG_FAILURE?danger:
          ui.level==BX_DIAG_GOOD?teal:rose;
     const char *markers[4]={"CONFIG","REDE","VINCULO","FIM"};
+    const char *linkLabel =
+        ui.level==BX_DIAG_FAILURE ? "VERIFICACAO FALHOU" :
+        ui.level==BX_DIAG_WARNING ? "RECUPERACAO OU AVISO" :
+        ui.level==BX_DIAG_GOOD ? "ETAPA CONFIRMADA" :
+        "AGUARDANDO VERIFICACAO";
     int i;
     background_gradient(dst);
 
@@ -198,13 +203,20 @@ static void draw_frame(uint32_t *dst) {
     rounded(dst,71,41,66,66,17,red);
     text(dst,82,56,"BX",4,white,2);
     text(dst,159,43,"BX REMOTE PLAY",6,white,19);
-    text(dst,161,97,"PS4 CONNECTION LAB   /   NATIVE DASHBOARD",2,muted,50);
+    text(dst,161,97,"CENTRAL DE VINCULO  /  PS4 LOCAL",2,muted,50);
     stroke_card(dst,1453,47,390,57,raised,border,18);
-    text(dst,1482,63,"VERSION 0.24   BETA",3,rose,20);
+    text(dst,1482,63,"VERSION 0.25   BETA",3,rose,20);
     fill(dst,70,146,1773,2,border);
 
     text(dst,79,187,"CENTRAL DO CONSOLE",5,white,28);
     text(dst,80,238,"CONECTIVIDADE, VINCULO E DIAGNOSTICO",2,muted,46);
+
+    /* Stable HUD banner: state is based on this console's diagnostic stage.
+       Neither an HTTPS reply nor a pairing ACK represents active gameplay. */
+    stroke_card(dst,1134,171,708,85,raised,border,18);
+    rounded(dst,1152,190,10,46,5,stateColor);
+    text(dst,1180,181,"ESTABILIDADE HTTPS",2,rose,32);
+    text(dst,1180,213,linkLabel,3,stateColor,35);
 
     /* Four concise status cards; labels are not interactive menu buttons. */
     for(i=0;i<4;++i) {
@@ -230,6 +242,9 @@ static void draw_frame(uint32_t *dst) {
     rounded(dst,626,306,321,43,13,color(75,34,52));
     text(dst,649,318,"ESTADO DA CONEXAO",2,rose,27);
     text(dst,628,375,phase,5,stateColor,39);
+    if(ui.level==BX_DIAG_WARNING) {
+        text(dst,1380,391,"RECONEXAO LIMITADA",2,rose,28);
+    }
     text(dst,629,445,"PROGRESSO LOCAL DO VINCULO",2,muted,43);
     for(i=0;i<4;++i) {
         const int x=629+i*291;
@@ -264,7 +279,7 @@ static void draw_frame(uint32_t *dst) {
     stroke_card(dst,75,961,1767,85,color(25,23,33),border,17);
     text(dst,102,981,"X  APROVAR/SEGUIR     O  RECUSAR     TRIANGULO  SERVICO",
          3,white,86);
-    text(dst,106,1020,"OPTIONS ENCERRAR   /   STREAMING DIRETO AINDA INDISPONIVEL",
+    text(dst,106,1020,"OPTIONS CANCELA/ENCERRA   /   STREAMING DIRETO AINDA INDISPONIVEL",
          2,muted,89);
     (void)canvas;
 }

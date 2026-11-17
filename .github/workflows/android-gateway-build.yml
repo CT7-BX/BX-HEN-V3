@@ -28,6 +28,13 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Test bounded public HTTPS retry policy on JVM
+        run: |
+          mkdir -p /tmp/bx-gateway-tests
+          javac -d /tmp/bx-gateway-tests \
+            android-gateway/app/src/main/java/com/ct7bx/gateway/NetworkResilience.java \
+            android-gateway/tests/NetworkResilienceTest.java
+          java -cp /tmp/bx-gateway-tests NetworkResilienceTest
       - name: Build diagnostics APK
         run: gradle --no-daemon --stacktrace --project-dir android-gateway :app:assembleDebug
       - name: Validate unsigned debug package
@@ -36,7 +43,7 @@ jobs:
           sha256sum android-gateway/app/build/outputs/apk/debug/app-debug.apk > android-gateway/app/build/outputs/apk/debug/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: BX-Android-Gateway-Diagnostic-v0.4
+          name: BX-Android-Gateway-Diagnostic-v0.5
           path: |
             android-gateway/app/build/outputs/apk/debug/app-debug.apk
             android-gateway/app/build/outputs/apk/debug/SHA256SUMS.txt

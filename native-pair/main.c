@@ -1,5 +1,5 @@
 /*
- * BX-REMOTE-PLAY PS4 Pairing Proof v0.24
+ * BX-REMOTE-PLAY PS4 Pairing Proof v0.25
  *
  * NEW, SEPARATE PKG. Not the existing HTTPS diagnostic.
  * Foreground-only console-side HTTP pairing test, with local DualShock consent.
@@ -31,6 +31,7 @@
 #include "resident_install.h"
 #include "native_ui.h"
 #include "native_diag.h"
+#include "pair_retry.h"
 
 #define REPORT_PATH "/data/bx-remote-pairing-report.txt"
 #define CONFIG_PATH "/user/data/bx-remote-pair.cfg"
@@ -47,7 +48,7 @@
 #define CONFIG_AUTO_RECHECK_TICKS 50 /* re-read .cfg every five seconds */
 #define UPDATE_MANIFEST_URL "https://ct7-bx.github.io/BX-REMOTE-PLAY/remote/update.txt"
 #define CURRENT_UPDATE_MAJOR 0u
-#define CURRENT_UPDATE_MINOR 24u
+#define CURRENT_UPDATE_MINOR 25u
 
 typedef struct HttpContext {
     int initialized_net;
@@ -81,7 +82,7 @@ static void report(const char *stage, int code, int status) {
         f=fopen(location,"w");
         if (!f) return;
     }
-    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.24\n");
+    fprintf(f, "BX-REMOTE-PLAY native pairing test 0.25\n");
     fprintf(f, "stage=%s\n", stage ? stage : "unknown");
     fprintf(f, "result_code=%d\nhttp_status=%d\n", code, status);
     fprintf(f, "recovery=%s\n", bx_diag_hint(stage, status));
@@ -144,7 +145,7 @@ static int open_http(HttpContext *ctx) {
     if (ctx->ssl < 0) return 0;
     ctx->http = sceHttpInit(ctx->pool, ctx->ssl, HTTP_MEMORY_BYTES);
     if (ctx->http < 0) return 0;
-    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.24",
+    ctx->tmpl = sceHttpCreateTemplate(ctx->http, "BX-REMOTE-PLAY-PS4-Pair/0.25",
         ORBIS_HTTP_VERSION_1_1, 1);
     return ctx->tmpl >= 0;
 }
@@ -313,6 +314,19 @@ static int poll_decision(int handle, uint32_t *last_buttons) {
     return 0;
 }
 
+/* Keep OPTIONS responsive while backing off after temporary HTTPS failures.
+ * No background retries and no replay of approval/start requests.
+ */
+static int wait_retry_or_cancel(int pad, uint32_t *last_buttons, unsigned failures) {
+    unsigned elapsed = 0, delay = bx_pair_retry_delay_ms(failures);
+    while (elapsed < delay) {
+        if (poll_decision(pad, last_buttons) == -2) return 0;
+        usleep(100000);
+        elapsed += 100;
+    }
+    return 1;
+}
+
 static void offer_update(const HttpContext *http, const BXUpdateManifest *update,
                          int pad, uint32_t *last_buttons) {
     char pkg_path[BX_OTA_PATH_MAX];
@@ -370,13 +384,13 @@ static void offer_resident_setup(int pad, uint32_t *last_buttons) {
     if(marker) {
         size_t read=fread(version,1,sizeof(version)-1,marker);
         fclose(marker);
-        if(read==5 && memcmp(version,"0.24\n",5)==0
+        if(read==5 && memcmp(version,"0.25\n",5)==0
           && stat("/data/payloads/bx-remote-service.elf",&installed)==0) {
             /* Already installed the current resident, skip repeat prompt. */
             return;
         }
     }
-    notice("BX-REMOTE: TRIANGULO ATUALIZA servico ELF 0.24; X segue.");
+    notice("BX-REMOTE: TRIANGULO ATUALIZA servico ELF 0.25; X segue.");
     for (tick=0; tick<140; ++tick) {
         OrbisPadData state;
         uint32_t fresh;
@@ -512,7 +526,21 @@ int main(void) {
     /* Only authenticated HTTPS originating from this PS4 homebrew can initiate. */
     stage = "heartbeat";
     bx_ui_stage("VERIFICANDO SERVIDOR");
-    result = call_api(&http, &config, "/v1/pair/heartbeat", "{}", response, &status);
+    /* Idempotent heartbeat only: bounded retries for temporary outages. */
+    for (i = 0; i < 3; ++i) {
+        result = call_api(&http, &config, "/v1/pair/heartbeat",
+                          "{}", response, &status);
+        if (result == 1) break;
+        if (!bx_pair_should_retry(result, status, (unsigned)(i+1), 2u))
+            break;
+        bx_ui_stage("RECUPERANDO HTTPS");
+        notice("BX-REMOTE: HTTPS oscilou. Tentativa limitada de reconexao...");
+        if (!wait_retry_or_cancel(pad, &last_buttons, (unsigned)(i+1))) {
+            final = "cancelled";
+            goto finish;
+        }
+        bx_ui_stage("VERIFICANDO SERVIDOR");
+    }
     if (result != 1) { final = "heartbeat_failed"; goto finish; }
     stage = "start";
     bx_ui_stage("GERANDO CODIGO");
@@ -531,21 +559,31 @@ int main(void) {
     for (round = 0; round < POLL_ROUNDS; ++round) {
         result = call_api(&http, &config, "/v1/pair/heartbeat", "{}", response, &status);
         if (result != 1) {
-            if (status != 401 && status != 403 &&
-                ++poll_network_failures <= MAX_POLL_NETWORK_RETRIES) {
-                notice("BX-REMOTE: Conexao oscilou. Repetindo verificacao HTTPS...");
-                usleep(400000);
-                --round; /* Do not shorten the 2-minute pairing window. */
+            if (bx_pair_should_retry(result, status,
+                      (unsigned)++poll_network_failures, MAX_POLL_NETWORK_RETRIES)) {
+                bx_ui_stage("RECUPERANDO HTTPS");
+                notice("BX-REMOTE: Rede instavel. Reconectando HTTPS...");
+                if (!wait_retry_or_cancel(pad, &last_buttons,
+                                            (unsigned)poll_network_failures)) {
+                    final = "cancelled"; goto finish;
+                }
+                bx_ui_stage("AGUARDANDO VINCULO");
+                --round; /* Do not consume a pairing poll on brief failure. */
                 continue;
             }
             final = "heartbeat_lost"; break;
         }
         result = call_api(&http, &config, "/v1/pair/pending", NULL, response, &status);
         if (result != 1) {
-            if (status != 401 && status != 403 &&
-                ++poll_network_failures <= MAX_POLL_NETWORK_RETRIES) {
-                notice("BX-REMOTE: Falha temporaria no vinculo. Tentando novamente...");
-                usleep(400000);
+            if (bx_pair_should_retry(result, status,
+                      (unsigned)++poll_network_failures, MAX_POLL_NETWORK_RETRIES)) {
+                bx_ui_stage("RECUPERANDO HTTPS");
+                notice("BX-REMOTE: Vinculo temporariamente indisponivel...");
+                if (!wait_retry_or_cancel(pad, &last_buttons,
+                                            (unsigned)poll_network_failures)) {
+                    final = "cancelled"; goto finish;
+                }
+                bx_ui_stage("AGUARDANDO VINCULO");
                 --round;
                 continue;
             }
