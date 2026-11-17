@@ -1,4 +1,4 @@
-"""Native PS4 v0.24: long-lived HTTPS recovery and modern VideoOut contract.
+"""Native PS4 v0.25: long-lived HTTPS recovery and modern VideoOut contract.
 
 Static checks complement OpenOrbis compile and validation; they cannot replace
 physical tests of wireless dropouts, UI display, or running games.
@@ -36,7 +36,7 @@ class NativeV024Tests(unittest.TestCase):
     def test_pairing_retries_only_allowlisted_poll_requests(self):
         self.assertIn("MAX_POLL_NETWORK_RETRIES 2", MAIN)
         self.assertIn("poll_network_failures = 0", MAIN)
-        self.assertIn("status != 401 && status != 403", MAIN)
+        self.assertIn("bx_pair_should_retry(result, status,", MAIN)
         self.assertIn('"/v1/pair/heartbeat"', MAIN)
         self.assertIn('"/v1/pair/pending"', MAIN)
         self.assertIn("--round;", MAIN)
@@ -47,22 +47,22 @@ class NativeV024Tests(unittest.TestCase):
     def test_native_panel_is_independent_modern_videoout_and_truthful(self):
         for marker in ["background_gradient(", "rounded(", "stroke_card(",
                        "CODE", "CONFIG", "REDE", "VINCULO",
-                       "PROXIMO PASSO", "STREAMING DIRETO AINDA INDISPONIVEL"]:
+                       "PROXIMO PASSO", "VIDEO E CONTROLES DIRETOS PENDENTES"]:
             if marker=="CODE":
                 self.assertIn('"CODIGO TEMPORARIO"', UI)
             else:
                 self.assertIn(marker,UI)
-        self.assertIn('"VERSION 0.24   BETA"', UI)
+        self.assertIn('"VERSION 0.25   BETA"', UI)
         self.assertIn("sceVideoOutSubmitFlip", UI)
         self.assertIn("if(strcmp(ui.status,next)==0)return;", UI)
         self.assertNotIn("getDisplayMedia", UI)
         self.assertNotIn("console_token", UI)
 
     def test_version_alignment_and_release_integrity(self):
-        self.assertIn("VERSION := 0.24", MAKE)
-        self.assertIn("CURRENT_UPDATE_MINOR 24u", MAIN)
-        self.assertIn('RESIDENT_VERSION "0.24\\n"', (ROOT / "resident_install.c").read_text())
-        self.assertIn("pair-test-v0.24",WORKFLOW)
+        self.assertIn("VERSION := 0.25", MAKE)
+        self.assertIn("CURRENT_UPDATE_MINOR 25u", MAIN)
+        self.assertIn('RESIDENT_VERSION "0.25\\n"', (ROOT / "resident_install.c").read_text())
+        self.assertIn("pair-test-v0.25",WORKFLOW)
         self.assertIn("sha256sum -c -",WORKFLOW)
 
 if __name__=="__main__":
