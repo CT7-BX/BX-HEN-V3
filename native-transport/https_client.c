@@ -31,7 +31,7 @@ int bx_https_post(BXHttpsClient *c,const char *url,const char *token,const uint8
  SET(CURLOPT_CONNECTTIMEOUT_MS,3000L);SET(CURLOPT_TIMEOUT_MS,5000L);SET(CURLOPT_NOSIGNAL,1L);SET(CURLOPT_HTTP_VERSION,(long)CURL_HTTP_VERSION_1_1);
  SET(CURLOPT_HTTPHEADER,headers);SET(CURLOPT_POST,1L);SET(CURLOPT_POSTFIELDS,body);SET(CURLOPT_POSTFIELDSIZE_LARGE,(curl_off_t)size);
  SET(CURLOPT_WRITEFUNCTION,receive);SET(CURLOPT_WRITEDATA,&sink);SET(CURLOPT_USERAGENT,"BX-Native-Transport/0.7");
- c->stage="curl_perform";c->code=curl_easy_perform(easy);if(c->code!=CURLE_OK)goto done;
+ c->stage="curl_perform";c->last_ms=0;c->code=curl_easy_perform(easy);{double seconds=0;if(curl_easy_getinfo(easy,CURLINFO_TOTAL_TIME,&seconds)==CURLE_OK && seconds>=0 && seconds<3600)c->last_ms=(unsigned)(seconds*1000);}if(c->code!=CURLE_OK)goto done;
  c->stage="curl_status";c->code=curl_easy_getinfo(easy,CURLINFO_RESPONSE_CODE,&response);if(c->code!=CURLE_OK||response<100||response>599)goto done;
  *status=(int)response;*length=sink.used;ok=response==200;c->stage="none";
 done:

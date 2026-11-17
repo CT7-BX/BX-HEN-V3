@@ -120,3 +120,13 @@ The isolated client verifies certificates and hostname with the embedded officia
 Physical v07 report confirms `session_active`, HTTP 200, no transport error. The player reports R01 while preparing registration search. A regression test using the actual WASM client's `sin_addr.s_addr` wire bytes (`7f 00 00 01`) reproduces a local bridge rejection before the fix. The bridge had treated a network-order address as a host-order number and accepted the reversed octets instead.
 
 v08 requires numeric wire value `0x0100007f`, corrects DNS reply bytes and socket name/data push addresses, and rejects reversed `01 00 00 7f` as well as LAN destinations. The adapter itself still connects only to the console loopback. Updated host TCP/UDP tests derive address fields from `inet_aton` and verify return addresses. This fixes the reproduced interoperability defect; real PS4 registration remains pending.
+
+### v09 stability candidate and external-network status
+
+Both phone and console use outbound TLS to the public relay; the phone does not need a route to the console's private address. This supports the external-network design, but a real 4G/5G gameplay test is still required. No port forwarding or BX-HEN changes are introduced.
+
+The current native exchange is synchronous HTTPS polling. Even on LAN, media and input traverse the relay, and each batch waits for a request/response round trip. That architecture imposes a latency/throughput cost; WebRTC with UDP/DTLS plus TURN fallback is a future transport redesign, not implemented or validated here.
+
+v09 bounds socket draining to the remaining authenticated batch capacity instead of reading until emission overflows and closes the session. TCP bytes are split across batches; datagrams are not shortened to fit a batch remainder. Socket draining rotates its starting slot for fairness. Host tests echo a 48 KiB TCP burst through a 32 KiB per-poll budget and check every emitted packet's budget and address. Protocol/backpressure validation remains strict. Console reports add measured HTTPS poll time and batch byte counts every two seconds; these are transport measurements, not end-to-end input latency.
+
+The player defaults to 360p/30fps at 800 kbps, with optional 540p/1500 and 720p/3000 profiles. It uses the actual Chiaki enum preset IDs (1/2/3), throttles counter rendering, and waits for a keyframe after decoder backlog instead of feeding dependent delta frames after dropping references. Tests use synthetic media/control state. Hardware stability and lag improvement remain unconfirmed until v09 is launched and compared.

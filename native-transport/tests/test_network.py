@@ -26,17 +26,23 @@ class NetworkTests(unittest.TestCase):
             with self.subTest(kind=kind),socket.socket(socket.AF_INET,kind) as server:
                 server.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);server.bind(('127.0.0.1',port));server.settimeout(5)
                 if kind==socket.SOCK_STREAM:server.listen(1)
+                payload=bytes(range(256))*(192 if kind==socket.SOCK_STREAM else 4)
                 failures=[]
                 def echo():
                     try:
                         if kind==socket.SOCK_STREAM:
                             client,_=server.accept()
-                            with client:client.sendall(client.recv(8192))
+                            with client:
+                                left=len(payload)
+                                while left:
+                                    chunk=client.recv(min(8192,left))
+                                    if not chunk:raise RuntimeError('short test send')
+                                    client.sendall(chunk);left-=len(chunk)
                         else:
                             data,addr=server.recvfrom(8192);server.sendto(data,addr)
                     except Exception as error:failures.append(error)
                 worker=threading.Thread(target=echo,daemon=True);worker.start()
-                with subprocess.Popen([self.binary],stdin=subprocess.PIPE,stdout=subprocess.PIPE,bufsize=0) as bridge:
+                with subprocess.Popen([self.binary,"32768"],stdin=subprocess.PIPE,stdout=subprocess.PIPE,bufsize=0) as bridge:
                     try:
                         fd=4096;self.send(bridge,self.packet(1,1,fd,b=kind));self.assertEqual(self.read(bridge)[0][3],0)
                         if kind==socket.SOCK_DGRAM:
@@ -46,7 +52,6 @@ class NetworkTests(unittest.TestCase):
                         if kind==socket.SOCK_STREAM:
                             self.assertEqual(h[0],130);h,_=self.read(bridge)
                         self.assertEqual(h[3],0)
-                        payload=bytes(range(256))*4
                         self.send(bridge,self.packet(5,4,fd,data=payload))
                         h,_=self.read(bridge);self.assertEqual(h[3],len(payload))
                         result=b''

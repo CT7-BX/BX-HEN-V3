@@ -23,6 +23,7 @@ typedef struct BXBridge {
     void *context;
     int (*emit)(void *, const uint8_t *, size_t);
     int failed;
+    size_t receive_cursor;
 } BXBridge;
 void bx_bridge_init(BXBridge *, const BXBridgeOps *, void *, int (*)(void *, const uint8_t *, size_t));
 void bx_bridge_close(BXBridge *);

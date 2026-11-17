@@ -63,22 +63,29 @@ static int send_op(void *ctx,int s,int type,unsigned port,const void *p,size_t n
 static int name_op(void *ctx,int s,unsigned *port){Address a;AddressLength n=sizeof(a);int r;(void)ctx;r=name_socket(s,&a,&n);if(r>=0)*port=port_of(&a);return r;}
 static int shutdown_op(void *ctx,int s){(void)ctx;return stop_send(s);}
 const BXBridgeOps bx_socket_ops={open_op,close_op,bind_op,connect_op,send_op,name_op,shutdown_op};
-int bx_socket_receive(BXBridge *b){
-    size_t i;uint8_t data[16384];int count=0;
-    for(i=0;i<BX_BRIDGE_SOCKETS;i++)if(b->sockets[i].used){
+int bx_socket_receive_limited(BXBridge *b,size_t remaining){
+    size_t i,step,start=b->receive_cursor;uint8_t data[16384];int count=0;
+    for(step=0;step<BX_BRIDGE_SOCKETS;step++){i=(start+step)%BX_BRIDGE_SOCKETS;if(b->sockets[i].used){
         BXBridgeSocket *s=&b->sockets[i];unsigned budget;
         for(budget=0;budget<128;budget++){Address a;AddressLength an=sizeof(a);
-        int n=read_socket(s->socket,data,sizeof(data),&a,&an);
+        size_t capacity;int n;
+        if(remaining<=32){b->receive_cursor=(i+1)%BX_BRIDGE_SOCKETS;return count;}
+        /* Do not truncate a datagram to the small remainder of a batch. */
+        if(s->type==2 && remaining<sizeof(data)+32)break;
+        capacity=remaining-32;if(capacity>sizeof(data))capacity=sizeof(data);
+        n=read_socket(s->socket,data,capacity,&a,&an);
         /* UDP is filtered again on receive, even though the adapter only sends
            to loopback. This cannot be used to read arbitrary LAN traffic. */
         if(n>0 && (s->type==1 || from_loopback(&a))){
             unsigned port=s->type==1?s->port:port_of(&a);
             if(!bx_bridge_data(b,s->fd,port,data,(size_t)n))return -1;
-            ++count;
+            remaining-=(size_t)n+32;++count;
         }
-        if(n==0 && s->type==1 && s->port){if(!bx_bridge_eof(b,s->fd))return -1;break;}
+        if(n==0 && s->type==1 && s->port){if(!bx_bridge_eof(b,s->fd))return -1;remaining-=32;break;}
         if(n<=0)break;
         }
     }
-    return count;
+    }
+    b->receive_cursor=(start+1)%BX_BRIDGE_SOCKETS;return count;
 }
+int bx_socket_receive(BXBridge *b){return bx_socket_receive_limited(b,(size_t)-1);}

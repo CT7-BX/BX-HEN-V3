@@ -6,6 +6,7 @@
     const value=i=>{const n=pad.buttons[i]?.value;return typeof n==='number'&&Number.isFinite(n)?Math.round(Math.max(0,Math.min(1,n))*255):0;};out.l2=value(6);out.r2=value(7);
     out.axes=out.axes.map((_,i)=>{const n=pad.axes[i];return typeof n==='number'&&Number.isFinite(n)?Math.round(Math.max(-1,Math.min(1,Math.abs(n)<0.12?0:n))*32767):0;});return out;
   }
+  function videoProfile(name){const profiles={stable:{preset:1,height:360,fps:30,bitrate:800},balanced:{preset:2,height:540,fps:30,bitrate:1500},quality:{preset:3,height:720,fps:30,bitrate:3000}};return {...(profiles[name]||profiles.stable)};}
   function connectedPads(device){try{return Array.from(device.getGamepads?.()??[]).filter(p=>p?.connected);}catch{return [];}}
   function registrationDiagnostic(message){
     if(typeof message!=='string')return null;
@@ -38,5 +39,5 @@
     while(now()<deadline){if((await readStatus()).nativeOnline===true)return;await sleep(500);}
     throw new Error('payload_offline');
   }
-  return Object.freeze({gamepad,connectedPads,registrationDiagnostic,registration,nals,waitForPayload});
+  return Object.freeze({gamepad,videoProfile,connectedPads,registrationDiagnostic,registration,nals,waitForPayload});
 });

@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <time.h>
 #include <orbis/Net.h>
 #include <orbis/Ssl.h>
 #include <orbis/Http.h>
@@ -24,7 +25,8 @@ static size_t used=16;
 static unsigned count,epoch,sequence=1;
 static const char *error_stage="none";
 static int error_code,ssl_error;
-static unsigned ssl_verify;
+static unsigned ssl_verify,poll_ms,poll_max_ms;
+static size_t batch_out_bytes,batch_in_bytes;
 static int diagnostic_ssl=-1,diagnostic_http=-1;
 static int checked(const char *stage,int result){if(result<0){error_stage=stage;error_code=result;}return result;}
 static uint32_t rd(const uint8_t *p){return p[0]|((uint32_t)p[1]<<8)|((uint32_t)p[2]<<16)|((uint32_t)p[3]<<24);}
@@ -36,14 +38,14 @@ static int stopped(void){struct stat st;return stat(STOP,&st)==0;}
 static void report(const char *phase,int status){
     /* No packets, PSN identifiers, PINs, URLs or secrets in the report. */
     FILE *f=fopen("/data/bx-rp-transport-report.txt","w");if(!f)return;
-    fprintf(f,"BX Native Transport experimental\nphase=%s\nhttp=%d\nstartup=ps4-payload-sdk\nbuild=v08\ntls_backend=libcurl-openssl\nphysicalValidation=required\nerror_stage=%s\nerror_code=0x%08x\nssl_error=0x%08x\nssl_verify=0x%08x\nssl_context=%d\nhttp_context=%d\n",phase,status,error_stage,(unsigned)error_code,(unsigned)ssl_error,ssl_verify,diagnostic_ssl,diagnostic_http);fclose(f);
+    fprintf(f,"BX Native Transport experimental\nphase=%s\nhttp=%d\nstartup=ps4-payload-sdk\nbuild=v09\ntls_backend=libcurl-openssl\nphysicalValidation=required\nerror_stage=%s\nerror_code=0x%08x\nssl_error=0x%08x\nssl_verify=0x%08x\nssl_context=%d\nhttp_context=%d\npoll_ms=%u\npoll_max_ms=%u\nbatch_out_bytes=%zu\nbatch_in_bytes=%zu\n",phase,status,error_stage,(unsigned)error_code,(unsigned)ssl_error,ssl_verify,diagnostic_ssl,diagnostic_http,poll_ms,poll_max_ms,batch_out_bytes,batch_in_bytes);fclose(f);
 }
 static int read_config(BXPairConfig *cfg){char text[1024]={0};size_t n;int valid;FILE *f=fopen(CONFIG,"rb");if(!f)return 0;n=fread(text,1,sizeof(text)-1,f);valid=!ferror(f)&&n>0&&n<sizeof(text)-1;fclose(f);if(valid)valid=bx_pair_parse_config(text,cfg);memset(text,0,sizeof(text));return valid;}
 #ifdef BX_TRANSPORT_CURL
 typedef struct HTTP {int net,pool,ssl,http,tmpl;BXHttpsClient client;} HTTP;
 static void close_http(HTTP *h){bx_https_close(&h->client);if(h->net)sceNetTerm();h->net=0;h->pool=h->ssl=h->http=h->tmpl=-1;}
 static int open_http(HTTP *h){char roots[sizeof(bx_tls_root_0)+sizeof(bx_tls_root_1)];memset(h,0,sizeof(*h));h->pool=h->ssl=h->http=h->tmpl=-1;if(checked("sceNetInit",sceNetInit())<0)return 0;h->net=1;snprintf(roots,sizeof(roots),"%s%s",bx_tls_root_0,bx_tls_root_1);if(!bx_https_init(&h->client,roots,strlen(roots))){error_stage=h->client.stage;error_code=h->client.code;return 0;}h->tmpl=0;return 1;}
-static int exchange(HTTP *h,const BXPairConfig *cfg,size_t *length,int *status){char url[256];int ok;if(snprintf(url,sizeof(url),"%s/exchange",cfg->relay_origin)>=(int)sizeof(url))return -1;ok=bx_https_post(&h->client,url,cfg->console_token,outgoing,used,incoming,MAX_BATCH,length,status);error_stage=h->client.stage;error_code=h->client.code;return ok?1:-1;}
+static int exchange(HTTP *h,const BXPairConfig *cfg,size_t *length,int *status){char url[256];int ok;if(snprintf(url,sizeof(url),"%s/exchange",cfg->relay_origin)>=(int)sizeof(url))return -1;ok=bx_https_post(&h->client,url,cfg->console_token,outgoing,used,incoming,MAX_BATCH,length,status);poll_ms=h->client.last_ms;if(poll_ms>poll_max_ms)poll_max_ms=poll_ms;batch_out_bytes=used;batch_in_bytes=*length;error_stage=h->client.stage;error_code=h->client.code;return ok?1:-1;}
 #else
 typedef struct HTTP {int net,pool,ssl,http,tmpl;} HTTP;
 static void close_http(HTTP *h){if(h->tmpl>=0)sceHttpDeleteTemplate(h->tmpl);if(h->http>=0)sceHttpTerm(h->http);if(h->ssl>=0)sceSslTerm(h->ssl);if(h->pool>=0)sceNetPoolDestroy(h->pool);if(h->net)sceNetTerm();h->net=0;h->pool=h->ssl=h->http=h->tmpl=-1;}
@@ -67,7 +69,7 @@ done:
 #endif
 static int validate(size_t length){size_t at=16;unsigned i,n;if(length<16 || memcmp(incoming,"BXN1",4))return 0;n=rd(incoming+12);if(n>1024)return 0;for(i=0;i<n;i++){size_t bytes;if(at+4>length)return 0;bytes=rd(incoming+at);at+=4;if(bytes<28 || bytes>65535 || bytes>length-at || rd(incoming+at+24)!=bytes-28)return 0;at+=bytes;}return at==length;}
 int main(void){
-    BXPairConfig cfg;HTTP http={.pool=-1,.ssl=-1,.http=-1,.tmpl=-1};BXBridge bridge;int failures=0;
+    BXPairConfig cfg;HTTP http={.pool=-1,.ssl=-1,.http=-1,.tmpl=-1};BXBridge bridge;int failures=0;time_t last_report=0;
     report("payload_entered",0);
     if(!read_config(&cfg)){report("configuration_required",0);for(;;)sleep(1);}
     {int lock=open("/data/bx-rp-transport.running",O_WRONLY|O_CREAT|O_EXCL,0600);if(lock<0){report("already_running_or_stale_lock",0);for(;;)sleep(1);}close(lock);}
@@ -90,8 +92,9 @@ int main(void){
         if(!epoch){epoch=new_epoch;report("session_active",status);}
         ++sequence;empty();at=16;
         for(i=0;i<packets;i++){size_t bytes=rd(incoming+at);at+=4;if(!bx_bridge_handle(&bridge,incoming+at,bytes)){bridge.failed=1;break;}at+=bytes;}
-        if(bridge.failed || bx_socket_receive(&bridge)<0){report("backpressure_or_invalid_packet",status);break;}
-        usleep(10000);
+        if(bridge.failed || bx_socket_receive_limited(&bridge,MAX_BATCH-used)<0){report("backpressure_or_invalid_packet",status);break;}
+        {time_t now=time(NULL);if(now-last_report>=2){report("session_active",status);last_report=now;}}
+        usleep(1000);
     }
     bx_bridge_close(&bridge);close_http(&http);memset(&cfg,0,sizeof(cfg));memset(outgoing,0,sizeof(outgoing));memset(incoming,0,sizeof(incoming));if(stopped())report("stopped",0);
     remove("/data/bx-rp-transport.running");
