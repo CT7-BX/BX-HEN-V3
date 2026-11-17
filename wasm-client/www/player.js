@@ -22,7 +22,7 @@ var Module={};
     try{const response=await fetch(path,{...options,signal:controller.signal});if(!response.ok)throw new Error('request_failed');return json?await response.json():response;}
     finally{clearTimeout(timer);}
   }
-  function payloadStatus(){return request('/session-status',{headers:{Authorization:'Bearer '+secret},cache:'no-store'},true,3000);}
+  function payloadStatus(){if(globalThis.BXDirectTransport?.active())return Promise.resolve({nativeOnline:true});return request('/session-status',{headers:{Authorization:'Bearer '+secret},cache:'no-store'},true,3000);}
   function refresh(){$('connect').disabled=!ready||linked||linking||stopping||oneClickBusy;$('register').disabled=!linked||stopping||registering;$('play').disabled=!linked||stopping||!reg||running||starting||registering;$('export').disabled=!reg;$('resumeAudio').hidden=!running||!audio||audio.state!=='suspended';$('connectPlay').disabled=!ready||!savedProfile||running||starting||stopping||registering||linking||oneClickBusy;$('saveDevice').disabled=!linked||!reg||!secret||linking||oneClickBusy;$('forgetDevice').disabled=!savedProfile;}
   async function endPlayback(message){
     playbackGeneration++;starting=false;clearAudio();clearInput();const active=running;running=false;clearInterval(ticker);ticker=null;
@@ -32,13 +32,13 @@ var Module={};
   }
   function stop(message='Sessão encerrada.'){
     if(stopTask)return stopTask;
-    connectionGeneration++;registering=false;linked=false;stopping=true;const key=secret;secret='';refresh();
+    connectionGeneration++;globalThis.BXDirectTransport?.clear();registering=false;linked=false;stopping=true;const key=secret;secret='';refresh();
     stopTask=(async()=>{
       try{await endPlayback();if(key){try{await request('/session',{method:'DELETE',headers:{Authorization:'Bearer '+key},keepalive:true},false,3000);}catch{}}}
       finally{if(ready)call('chiaki_wasm_fini',[],[]);stopping=false;stopTask=null;refresh();status(message);}
     })();return stopTask;
   }
-  function metrics(){const now=Date.now(),elapsed=now-lastMetricsAt;if(elapsed<400)return;const fps=Math.round((frames-lastMetricsFrames)*1000/elapsed);lastMetricsAt=now;lastMetricsFrames=frames;$('metrics').textContent=`Vídeo: ${fps} fps observados · ${frames} quadros decodificados · Áudio: ${audioFrames} blocos PCM recebidos`;}
+  function metrics(){const now=Date.now(),elapsed=now-lastMetricsAt;if(elapsed<400)return;const fps=Math.round((frames-lastMetricsFrames)*1000/elapsed);lastMetricsAt=now;lastMetricsFrames=frames;const direct=globalThis.BXDirectTransport?.stats();$('metrics').textContent=(direct?'Direto · RTT '+(direct.rttMs??'…')+' ms · ':'')+`Vídeo: ${fps} fps observados · ${frames} quadros decodificados · Áudio: ${audioFrames} blocos PCM recebidos`;}
   Module.onRuntimeInitialized=()=>{ready=true;if(!crossOriginIsolated||typeof SharedArrayBuffer==='undefined'||typeof VideoDecoder==='undefined'){ready=false;status('Este navegador não oferece os recursos necessários para o cliente Native.');return;}refresh();status('Cliente carregado. Autorize o celular para conectar ao payload.');};
   Module.onLog=(level,message)=>{if(!registering)return;const diagnostic=core.registrationDiagnostic(message);if(diagnostic){registrationDiagnostic=diagnostic;$('registrationDiagnostic').textContent=diagnostic.code+' — '+diagnostic.text;}}; // Raw upstream logs never leave this callback or enter the DOM.
   Module.onRegist=value=>{registering=false;try{if(!value.ok)throw new Error();reg=core.registration(value);$('pin').value='';$('account').value='';status('Registro Remote Play recebido. Inicie a sessão e confirme imagem, som e controle no PS4.');refresh();}catch{status(registrationDiagnostic?('Registro não concluído. '+registrationDiagnostic.code+' — '+registrationDiagnostic.text):'Registro não concluído (R00). A causa ainda não foi identificada; nenhum jogo foi confirmado.');}refresh();};
@@ -63,12 +63,14 @@ var Module={};
       const session=await request('/session',{method:'POST',headers:{Authorization:'Bearer '+key}},true);check();
       secret=key;$('playerKey').value='';
       if(call('bx_remote_set_ticket',['string'],[session.ticket])!==0)throw new Error();
-      if(call('chiaki_wasm_init',['string'],['wss://'+location.host+'/socket'])!==0)throw new Error();
+      const direct=$('transport').value==='direct';
+      if(direct){const capability=await request('/direct-status',{method:'POST',headers:{Authorization:'Bearer '+key}},true);check();if(!capability.available)throw new Error('direct_payload_required');globalThis.BXDirectTransport.configure(key);}
+      if(call('chiaki_wasm_init',['string'],['wss://'+location.host+(direct?'/rtc-socket':'/socket')])!==0)throw new Error();
       const deadline=Date.now()+15000;while(!call('chiaki_wasm_net_ready',[],[])){check();if(Date.now()>deadline)throw new Error();await new Promise(r=>setTimeout(r,100));}
       check();status('Servidor conectado. Aguardando resposta do payload no PS4…');
       await core.waitForPayload(async()=>{check();const result=await payloadStatus();check();return result;});check();
       linked=true;status('Payload respondeu ao servidor. Registre ou importe o PS4; nenhum jogo foi confirmado ainda.');refresh();return true;
-    }catch(error){if(current())await stop(error.message==='payload_offline'?'O payload do PS4 não respondeu. Confira /data/bx-rp-transport-report.txt antes de registrar.':'Não foi possível abrir o transporte. Confira a chave, o relay e o payload.');return false;}
+    }catch(error){if(current())await stop(error.message==='direct_payload_required'?'Abra o payload bx-rp-direct-v11.elf para usar o modo direto na mesma rede.':error.message==='payload_offline'?'O payload do PS4 não respondeu. Confira /data/bx-rp-transport-report.txt antes de registrar.':'Não foi possível abrir o transporte. Confira a chave, o relay e o payload.');return false;}
     finally{linking=false;refresh();}
   }
   $('connect').onclick=()=>connect($('playerKey').value.trim());
@@ -145,6 +147,7 @@ var Module={};
   function background(){inputFocused=false;clearInput();clearAudio();if(running)waitForKeyframe=true;if(linked)$('connectionNote').textContent='Sessão mantida ao trocar de tela. O navegador pode suspender vídeo e áudio em segundo plano.';}
   async function foreground(){
     inputFocused=document.hasFocus();nextAudio=0;if(!linked)return;
+    if(globalThis.BXDirectTransport?.active()){$('connectionNote').textContent='Caminho direto ativo. A retomada de áudio depende do navegador.';if(audio){try{await audio.resume();}catch{}}refresh();return;}
     if(audio){try{await audio.resume();}catch{}refresh();}
     try{const state=await payloadStatus();if(linked)$('connectionNote').textContent=state.nativeOnline?'Payload conectado. A página voltou ao primeiro plano.':'O payload não respondeu à verificação. Se o navegador suspendeu a conexão, desconecte e conecte novamente.';}
     catch{if(linked)$('connectionNote').textContent='Não foi possível verificar a conexão ao voltar. Tente novamente mantendo esta tela aberta.';}

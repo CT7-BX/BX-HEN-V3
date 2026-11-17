@@ -15,7 +15,7 @@ async function authorized(request,secret){
 function ticket(){const b=new Uint8Array(32);crypto.getRandomValues(b);return Array.from(b,x=>x.toString(16).padStart(2,'0')).join('');}
 async function boundedBody(request){const reader=request.body?.getReader();if(!reader)return new Uint8Array();let size=0;const chunks=[];try{for(;;){const {value,done}=await reader.read();if(done)break;size+=value.byteLength;if(size>MAX_BATCH)throw new Error('body_limit');chunks.push(value);}const all=new Uint8Array(size);let at=0;for(const chunk of chunks){all.set(chunk,at);at+=chunk.length;}return all;}finally{try{await reader.cancel();}catch{}}}
 export class BXNativeRoom {
-  constructor(ctx,env){this.ctx=ctx;this.env=env;this.session=null;this.queue=Promise.resolve();this.consoleSocket=null;}
+  constructor(ctx,env){this.ctx=ctx;this.env=env;this.session=null;this.queue=Promise.resolve();this.consoleSocket=null;this.directSeenAt=0;}
   close(reason='session_ended'){const s=this.session;this.session=null;if(s){clearTimeout(s.timer);try{s.socket?.close(1000,reason);}catch{}}}
   exchangeResult(raw){
     const s=this.session;
@@ -28,6 +28,38 @@ export class BXNativeRoom {
   async fetch(request){const next=this.queue.then(()=>this.handle(request));this.queue=next.catch(()=>{});return next;}
   async handle(request){
     const url=new URL(request.url),path=url.pathname;
+    if(path.startsWith('/direct-') && request.method==='POST'){
+      const consoleRoute=path==='/direct-poll'||path==='/direct-answer';
+      if(!await authorized(request,consoleRoute?this.env.BX_CONSOLE_KEY:this.env.BX_PLAYER_KEY))return json({error:'unauthorized'},401);
+      const now=Date.now(),s=this.session;
+      if(path==='/direct-status')return json({available:this.directSeenAt>0&&now-this.directSeenAt<5000,scope:'lan'});
+      if(path==='/direct-poll'){
+        this.directSeenAt=now;
+        const offer=s?.directOffer;
+        return new Response(offer&&s.expiresAt>now&&offer.expiresAt>now?offer.id+'\n'+offer.sdp:'',{headers:{'Content-Type':'application/sdp','Cache-Control':'no-store'}});
+      }
+      if(!s||s.expiresAt<=now)return json({error:'session_required'},409);
+      const bytes=await boundedBody(request);if(bytes.length>16449)return json({error:'signal_limit'},413);
+      let text;try{text=new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{return json({error:'invalid_signal'},400);}
+      const validSdp=value=>value.length<=16384&&/^v=0\r?\n/.test(value)&&!/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(value);
+      if(path==='/direct-offer'){
+        if(!validSdp(text))return json({error:'invalid_offer'},400);
+        s.directOffer={id:ticket(),sdp:text,answer:null,expiresAt:now+30000};return json({id:s.directOffer.id});
+      }
+      const offer=s.directOffer;
+      if(!offer||offer.expiresAt<=now)return json({error:'offer_expired'},410);
+      if(path==='/direct-answer'){
+        if(text.slice(0,64)!==offer.id||text[64]!=='\n')return json({error:'offer_changed'},409);
+        const answer=text.slice(65);if(!validSdp(answer))return json({error:'invalid_answer'},400);
+        if(offer.answer&&offer.answer!==answer)return json({error:'answer_already_set'},409);
+        offer.answer=answer;return json({accepted:true});
+      }
+      if(path==='/direct-result'){
+        if(text!==offer.id)return json({error:'offer_changed'},409);
+        return json(offer.answer?{ready:true,answer:offer.answer}:{ready:false});
+      }
+      return json({error:'not_found'},404);
+    }
     if(path==='/session' && request.method==='POST'){
       if(!await authorized(request,this.env.BX_PLAYER_KEY))return json({error:'unauthorized'},401);
       this.close();let epoch=0;while(!epoch){epoch=crypto.getRandomValues(new Uint32Array(1))[0];}
@@ -90,7 +122,7 @@ export class BXNativeRoom {
 export default {
   async fetch(request,env){const url=new URL(request.url);
     if(url.protocol!=='https:' || url.search || url.hash)return json({error:'forbidden'},403);
-    if(['/session','/session-status','/exchange','/socket','/console-stream'].includes(url.pathname)){
+    if(['/session','/session-status','/exchange','/socket','/console-stream','/direct-status','/direct-offer','/direct-poll','/direct-answer','/direct-result'].includes(url.pathname)){
       const origin=request.headers.get('Origin');if(origin && origin!==url.origin)return json({error:'origin'},403);
       if(!env.NATIVE_ROOM || !env.BX_PLAYER_KEY || !env.BX_CONSOLE_KEY)return json({error:'not_configured'},503);
       // Opt-in regional backend: all transport endpoints move together. Static

@@ -127,3 +127,11 @@ test('authorization request times out and restores connect controls',async()=>{
  h.context.fetch=(path,options)=>new Promise((resolve,reject)=>options.signal.addEventListener('abort',()=>reject(new Error('aborted'))));
  h.element('playerKey').value='a'.repeat(64);const pending=h.element('connect').onclick();assert.equal(typeof timeout,'function');timeout();await pending;assert.equal(h.element('connect').disabled,false);assert.equal(h.calls.some(c=>c.name==='chiaki_wasm_init'),false);
 });
+
+test('direct LAN mode initializes the RTC socket only when the direct payload is available',async()=>{
+ const h=harness();let configured='',cleared=0;h.context.BXDirectTransport={configure:key=>{configured=key;},clear:()=>{cleared++;},stats:()=>null,active:()=>false};const original=h.context.fetch;
+ h.context.fetch=(path,options)=>path==='/direct-status'?Promise.resolve({ok:true,json:async()=>({available:true,scope:'lan'})}):original(path,options);
+ h.element('transport').value='direct';await beginPlayback(h);assert.equal(configured,'a'.repeat(64));assert.equal(h.calls.find(c=>c.name==='chiaki_wasm_init').args[0],'wss://example.test/rtc-socket');
+ h.element('stop').onclick();await flush();assert.equal(cleared,1);
+ const missing=harness();missing.element('transport').value='direct';missing.element('playerKey').value='a'.repeat(64);await missing.element('connect').onclick();assert.match(missing.element('status').textContent,/bx-rp-direct-v11/);assert.equal(missing.calls.some(c=>c.name==='chiaki_wasm_init'),false);
+});

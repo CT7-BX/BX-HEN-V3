@@ -8,7 +8,7 @@ root=Path(sys.argv[1]);out=Path(sys.argv[2]);source=sys.argv[3]
 if not (source.startswith('https://github.com/CT7-BX/BX-REMOTE-PLAY/releases/download/') or source.startswith('https://github.com/CT7-BX/BX-REMOTE-PLAY/actions/runs/')):
     raise SystemExit('Source must be an official project release asset')
 assets={}
-for name,mime in [('index.html','text/html; charset=utf-8'),('core.js','application/javascript'),('device-store.js','application/javascript'),('player.js','application/javascript'),('chiaki.js','application/javascript'),('chiaki.worker.js','application/javascript'),('chiaki.wasm','application/wasm'),('CHIAKI-COPYING','text/plain; charset=utf-8')]:
+for name,mime in [('index.html','text/html; charset=utf-8'),('core.js','application/javascript'),('device-store.js','application/javascript'),('player.js','application/javascript'),('direct.js','application/javascript'),('chiaki.js','application/javascript'),('chiaki.worker.js','application/javascript'),('chiaki.wasm','application/wasm'),('CHIAKI-COPYING','text/plain; charset=utf-8')]:
     file=root/name
     if not file.exists():
         if name.endswith('.worker.js'):continue

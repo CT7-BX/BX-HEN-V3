@@ -120,10 +120,21 @@ jobs:
           make -C lib -j2 > /tmp/bx-ps4-curl-build.log 2>&1 || { tail -80 /tmp/bx-ps4-curl-build.log; exit 1; }
           mkdir -p "$GITHUB_WORKSPACE/native-transport/build/stream-tls"
           cp lib/.libs/libcurl.a "$GITHUB_WORKSPACE/native-transport/build/stream-tls/"
+      - name: Fetch verified free direct RTC source
+        run: python3 native-transport/direct/fetch-source.py native-transport/build/direct/deps
       - name: Compile real PS4 socket transport ELF
         run: |
           make -C native-transport
           make -C native-transport -f payload.mk MODE=stream STREAM_CURL_DIR=build/stream-tls
+          make -C native-transport -f payload.mk MODE=direct
+          readelf -d native-transport/bx-rp-direct-v11.elf > native-transport/direct-dynamic.txt
+          if grep -qE "libSce(Ssl|Http|Pad|UserService)" native-transport/direct-dynamic.txt; then exit 1; fi
+          sha256sum native-transport/bx-rp-direct-v11.elf > native-transport/direct.sha256
+          mkdir -p native-transport/build/direct/deps/bx-source/native-transport native-transport/build/direct/deps/bx-source/native-pair
+          cp native-transport/direct_main.c native-transport/bridge.* native-transport/socket_adapter.* native-transport/https_client.* native-transport/tls_roots.h native-transport/payload.mk native-transport/COPYING native-transport/build/direct/deps/bx-source/native-transport/
+          cp -R native-transport/direct native-transport/build/direct/deps/bx-source/native-transport/
+          cp native-pair/pair_config.* native-pair/pair_protocol.* native-transport/build/direct/deps/bx-source/native-pair/
+          tar -czf native-transport/direct-corresponding-source.tar.gz -C native-transport/build/direct/deps .
           readelf -d native-transport/bx-rp-stream-v10.elf > native-transport/stream-dynamic.txt
           if grep -qE "libSce(Ssl|Http)" native-transport/stream-dynamic.txt; then exit 1; fi
           sha256sum native-transport/bx-rp-stream-v10.elf > native-transport/stream.sha256
@@ -151,6 +162,10 @@ jobs:
             native-transport/bx-rp-stream-v10.elf
             native-transport/stream.sha256
             native-transport/stream-dynamic.txt
+            native-transport/bx-rp-direct-v11.elf
+            native-transport/direct.sha256
+            native-transport/direct-dynamic.txt
+            native-transport/direct-corresponding-source.tar.gz
             native-transport/PAYLOAD-SDK-COPYING
             native-transport/payload-sdk-corresponding-source.tar.gz
             native-transport/tls-corresponding-source.tar.gz
@@ -211,3 +226,24 @@ jobs:
             native-transport/tls-corresponding-source.tar.gz
             native-transport/payload-dynamic.txt
           if-no-files-found: error
+
+  direct-host:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build pinned native DTLS/SCTP fixture
+        run: |
+          python3 native-transport/direct/fetch-source.py native-transport/build/direct/deps
+          python3 native-transport/direct/build-host.py
+      - name: Install pinned browser test runtime
+        run: |
+          npm install --prefix /tmp/bx-direct-playwright --ignore-scripts --no-package-lock playwright@1.62.1
+          node /tmp/bx-direct-playwright/node_modules/playwright/cli.js install --with-deps chromium
+      - name: Verify real browser to native binary WebRTC over UDP
+        env:
+          BX_TEST_NODE_MODULES: /tmp/bx-direct-playwright/node_modules
+        run: node native-transport/direct/browser-test.mjs
