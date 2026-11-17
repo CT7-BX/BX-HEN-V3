@@ -15,6 +15,7 @@ jobs:
         run: |
           cc -std=c11 -Wall -Wextra -Werror -pedantic native-transport/bridge.c native-transport/tests/bridge_test.c -o /tmp/bridge-test
           /tmp/bridge-test
+          node --test native-transport/relay/*.test.mjs wasm-client/*.test.cjs
           python3 -m unittest discover -s native-transport/tests -p 'test_*.py' -v
   wasm:
     runs-on: ubuntu-22.04
@@ -25,8 +26,10 @@ jobs:
         run: |
           git clone --no-checkout https://github.com/CSystem77/Chiaki-NG-Web.git _chiaki
           git -C _chiaki checkout 70669b47a16376768001db229e3e8c3baf3e5238
-          git -C _chiaki submodule update --init --recursive third-party/nanopb third-party/jerasure third-party/gf-complete third-party/curl
+          git -C _chiaki submodule update --init --recursive third-party/nanopb third-party/jerasure third-party/gf-complete
           test "$(git -C _chiaki rev-parse HEAD)" = "70669b47a16376768001db229e3e8c3baf3e5238"
+      - name: Apply bounded relay authentication patch
+        run: python3 wasm-client/patch-auth.py _chiaki
       - uses: mymindstorm/setup-emsdk@v14
         with:
           version: '3.1.74'
@@ -39,6 +42,7 @@ jobs:
           if test -f _chiaki/build-wasm/wasm/chiaki.worker.js; then cp _chiaki/build-wasm/wasm/chiaki.worker.js _client/; fi
           cp _chiaki/COPYING _client/CHIAKI-COPYING
           cp wasm-client/upstream.json _client/
+          cp wasm-client/www/* _client/
           tar --exclude='.git' --exclude='build-wasm' --exclude='tools' -czf _client/chiaki-corresponding-source.tar.gz -C _chiaki .
           cd _client
           sha256sum chiaki.js chiaki.wasm chiaki-corresponding-source.tar.gz > SHA256SUMS
@@ -46,4 +50,31 @@ jobs:
         with:
           name: bx-real-remoteplay-wasm-experimental
           path: _client/
+          if-no-files-found: error
+
+  native-elf:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download verified OpenOrbis SDK
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends clang lld
+          curl --fail --location --retry 3 -o /tmp/sdk.tar.gz https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.4/toolchain-llvm-18.tar.gz
+          echo '3c7cd5bb593ca74fa1c13fd59f3938dc0fc07985167f7275063019e63abe4526  /tmp/sdk.tar.gz' | sha256sum -c -
+          mkdir -p /tmp/openorbis
+          tar -xzf /tmp/sdk.tar.gz -C /tmp/openorbis
+          echo "OO_PS4_TOOLCHAIN=/tmp/openorbis/OpenOrbis/PS4Toolchain" >> "$GITHUB_ENV"
+      - name: Compile real PS4 socket transport ELF
+        run: |
+          make -C native-transport
+          readelf -h native-transport/bx-rp-transport.elf
+          sha256sum native-transport/bx-rp-transport.elf > native-transport/transport.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bx-native-remoteplay-transport-untested
+          path: |
+            native-transport/bx-rp-transport.elf
+            native-transport/transport.sha256
           if-no-files-found: error

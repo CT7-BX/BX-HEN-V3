@@ -70,7 +70,8 @@ int bx_bridge_handle(BXBridge *b,const uint8_t *p,size_t length) {
             goto reply;
         return !id || output(b,128,id,fd,0x7f000001,0,0,addr,sizeof(addr));
     } else if(type==2) {
-        if(s)close_one(b,s);result=0;error=0;
+        if(s)close_one(b,s);
+        result=0;error=0;
     } else if(!s){error=9;
     } else if(type==3) {
         if(s->type!=2){error=95;goto reply;}
@@ -102,4 +103,9 @@ int bx_bridge_data(BXBridge *b,int fd,unsigned port,const void *p,size_t n) {
     BXBridgeSocket *s=find(b,fd);
     if(!s || !allowed(s->type,port))return 0;
     return output(b,129,0,fd,0,(int)port,0x7f000001u,p,n);
+}
+
+int bx_bridge_eof(BXBridge *b,int fd) {
+    BXBridgeSocket *s=find(b,fd);int ok;if(!s)return 0;
+    ok=output(b,131,0,fd,0,0,0,NULL,0);close_one(b,s);return ok;
 }

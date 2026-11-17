@@ -27,5 +27,6 @@ typedef struct BXBridge {
 void bx_bridge_init(BXBridge *, const BXBridgeOps *, void *, int (*)(void *, const uint8_t *, size_t));
 void bx_bridge_close(BXBridge *);
 int bx_bridge_handle(BXBridge *, const uint8_t *, size_t);
+int bx_bridge_eof(BXBridge *, int fd);
 int bx_bridge_data(BXBridge *, int fd, unsigned port, const void *, size_t);
 #endif

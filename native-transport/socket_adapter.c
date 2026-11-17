@@ -66,7 +66,8 @@ const BXBridgeOps bx_socket_ops={open_op,close_op,bind_op,connect_op,send_op,nam
 int bx_socket_receive(BXBridge *b){
     size_t i;uint8_t data[16384];int count=0;
     for(i=0;i<BX_BRIDGE_SOCKETS;i++)if(b->sockets[i].used){
-        BXBridgeSocket *s=&b->sockets[i];Address a;AddressLength an=sizeof(a);
+        BXBridgeSocket *s=&b->sockets[i];unsigned budget;
+        for(budget=0;budget<128;budget++){Address a;AddressLength an=sizeof(a);
         int n=read_socket(s->socket,data,sizeof(data),&a,&an);
         /* UDP is filtered again on receive, even though the adapter only sends
            to loopback. This cannot be used to read arbitrary LAN traffic. */
@@ -74,6 +75,9 @@ int bx_socket_receive(BXBridge *b){
             unsigned port=s->type==1?s->port:port_of(&a);
             if(!bx_bridge_data(b,s->fd,port,data,(size_t)n))return -1;
             ++count;
+        }
+        if(n==0 && s->type==1 && s->port){if(!bx_bridge_eof(b,s->fd))return -1;break;}
+        if(n<=0)break;
         }
     }
     return count;
