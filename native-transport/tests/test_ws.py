@@ -44,6 +44,6 @@ class WebSocketTests(unittest.TestCase):
  def request(self,host='localhost',ca='trusted'):
   return subprocess.run([str(self.exe),'wss://'+host+':'+str(self.server.server_port)+'/console-stream',str(self.root/(ca+'.pem'))],capture_output=True,text=True,timeout=25)
  def test_pipeline_and_fragmented_binary_with_ping(self):
-  result=self.request();self.assertEqual(result.returncode,0,result.stderr+result.stdout);self.assertEqual(result.stdout.strip(),'pipeline_ok');self.assertEqual(self.errors,[])
+  result=self.request();self.assertEqual(result.returncode,0,result.stderr+result.stdout+repr(self.errors));self.assertEqual(result.stdout.strip(),'pipeline_ok');self.assertEqual(self.errors,[])
  def test_wrong_ca(self):self.assertTrue(self.request(ca='untrusted').stdout.startswith('rejected '))
  def test_wrong_hostname(self):self.assertTrue(self.request(host='127.0.0.1').stdout.startswith('rejected '))
