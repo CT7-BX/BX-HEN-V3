@@ -90,7 +90,7 @@ jobs:
           readelf -h native-transport/bx-rp-transport.elf
           readelf -d native-transport/bx-rp-transport.elf | tee native-transport/payload-dynamic.txt
           grep -q libSceLibcInternal native-transport/payload-dynamic.txt
-          cp /tmp/payload-sdk-source/COPYING native-transport/PAYLOAD-SDK-COPYING
+          cp native-transport/COPYING native-transport/PAYLOAD-SDK-COPYING
           tar --exclude=.git -czf native-transport/payload-sdk-corresponding-source.tar.gz -C /tmp/payload-sdk-source .
           sha256sum native-transport/bx-rp-transport.elf > native-transport/transport.sha256
       - uses: actions/setup-dotnet@v4
