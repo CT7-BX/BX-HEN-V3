@@ -84,9 +84,9 @@ test("Android v0.4 reads hardware on demand and keeps report through rotation",(
   const manifest=source("android-gateway/app/src/main/AndroidManifest.xml");
   const build=source("android-gateway/app/build.gradle");
   const workflow=source(".github/workflows/android-gateway-build.yml");
-  assert.match(build,/versionCode 4/);
-  assert.match(build,/versionName '0\.4\.0-diagnostic'/);
-  assert.match(workflow,/BX-Android-Gateway-Diagnostic-v0\.4/);
+  assert.match(build,/versionCode 5/);
+  assert.match(build,/versionName '0\.5\.0-diagnostic'/);
+  assert.match(workflow,/BX-Android-Gateway-Diagnostic-v0\.5/);
   for (const marker of [
     "ACTION_BATTERY_CHANGED","BatteryManager.EXTRA_TEMPERATURE",
     "BatteryManager.EXTRA_LEVEL","memory.availMem","memory.lowMemory",
