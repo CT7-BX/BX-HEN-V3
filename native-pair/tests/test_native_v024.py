@@ -47,7 +47,7 @@ class NativeV024Tests(unittest.TestCase):
     def test_native_panel_is_independent_modern_videoout_and_truthful(self):
         for marker in ["background_gradient(", "rounded(", "stroke_card(",
                        "CODE", "CONFIG", "REDE", "VINCULO",
-                       "PROXIMO PASSO", "VIDEO E CONTROLES DIRETOS PENDENTES"]:
+                       "PROXIMO PASSO", "STREAMING DIRETO AINDA INDISPONIVEL"]:
             if marker=="CODE":
                 self.assertIn('"CODIGO TEMPORARIO"', UI)
             else:
