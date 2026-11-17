@@ -20,5 +20,20 @@ int bx_remote_set_ticket(const char *ticket) {
 '''
 s=s.replace('#include <emscripten/websocket.h>','#include <emscripten/emscripten.h>\n#include <emscripten/websocket.h>')
 s=s.replace(needle,addition+needle).replace('attr.protocols = "binary";','attr.protocols = bx_protocols;')
+# The virtual socket layer previously discarded the unread tail of TCP packets.
+header=Path(__file__).with_name('net-queue.h')
+(root/'wasm/src/bx_net_queue.h').write_bytes(header.read_bytes())
+s=s.replace('#include <emscripten/websocket.h>','#include <emscripten/websocket.h>\n#include "bx_net_queue.h"')
+old='\t\t\tsize_t n = p->len < len ? p->len : len;\n\t\t\tmemcpy(buf, p->data, n);'
+new='\t\t\tsize_t n = bx_net_consume(p->data, &p->len, buf, len, s->kind == FD_TCP);'
+assert s.count(old)==1
+s=s.replace(old,new)
+old='\t\t\ts->q_head = p->next;'
+# This occurrence belongs to dequeue_recv, not enqueue eviction.
+start=s.index('static ssize_t dequeue_recv(')
+prefix,tail=s[:start],s[start:]
+assert tail.count(old)==1
+tail=tail.replace(old,'\t\t\tif(p->len)\n\t\t\t\treturn (ssize_t)n;\n'+old,1)
+s=prefix+tail
 p.write_text(s)
 p=root/'wasm/CMakeLists.txt';s=p.read_text();assert '_chiaki_wasm_init' in s;s=s.replace('_chiaki_wasm_init','_bx_remote_set_ticket\n\t_chiaki_wasm_init');p.write_text(s)

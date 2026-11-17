@@ -31,6 +31,8 @@ jobs:
           /tmp/account-test
           cc -std=c11 -Wall -Wextra -Werror -pedantic native-transport/stream_state.c native-transport/tests/stream_state_test.c -o /tmp/stream-state-test
           /tmp/stream-state-test
+          cc -std=c11 -Wall -Wextra -Werror -pedantic wasm-client/net-queue-test.c -o /tmp/net-queue-test
+          /tmp/net-queue-test
           node --test native-transport/relay/*.test.mjs wasm-client/*.test.cjs
           python3 -m unittest discover -s native-transport/tests -p 'test_*.py' -v
   wasm:
