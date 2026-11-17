@@ -66,6 +66,8 @@ public final class MainActivity extends Activity {
     private volatile boolean checkingNetwork;
     private volatile boolean destroyed;
     private Thread networkThread;
+    private volatile HttpURLConnection activeHealthConnection;
+    private TextView networkSummary;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,7 +104,7 @@ public final class MainActivity extends Activity {
         label("BX   /   MOBILE SYSTEMS", 12, Color.rgb(255, 170, 190),
             Typeface.BOLD, 9);
         label("ANDROID GATEWAY", 29, WHITE, Typeface.BOLD, 8);
-        label("Painel de diagnóstico   •   versão 0.4",
+        label("Painel de diagnóstico   •   versão 0.5",
             14, Color.rgb(234, 208, 222), Typeface.NORMAL, 18);
         label("Seu Android. Sua rede. Uma futura ponte para o PS4.",
             15, WHITE, Typeface.BOLD, 9);
@@ -110,6 +112,18 @@ public final class MainActivity extends Activity {
             "ainda não está implementado.", 12, Color.rgb(219, 189, 204),
             Typeface.NORMAL, 0);
         layout = rootLayout;
+
+        /* Compact local-only link status; never equate server reachability
+           with an active Remote Play session or a PS4 online signal. */
+        LinearLayout badges = new LinearLayout(this);
+        badges.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        badgeParams.bottomMargin = dp(16);
+        rootLayout.addView(badges, badgeParams);
+        networkSummary = statusBadge(badges, "HTTPS", "NÃO TESTADO", true);
+        statusBadge(badges, "PS4", "NÃO VERIFICADO", false);
+        statusBadge(badges, "MÍDIA", "NÃO INTEGRADA", false);
 
         startCard("01   /   SISTEMA E DESEMPENHO");
         label("Compatibilidade do dispositivo", 19, WHITE, Typeface.BOLD, 10);
@@ -147,7 +161,7 @@ public final class MainActivity extends Activity {
 
         startCard("02   /   CONECTIVIDADE HTTPS");
         label("Verificar servidor BX", 19, WHITE, Typeface.BOLD, 8);
-        label("Teste pontual de internet até o endpoint HTTPS público do BX. " +
+        label("Teste HTTPS manual com reconexão curta para falhas temporárias. " +
             "Não acessa o PS4, não usa token e não fica monitorando em segundo plano.",
             13, MUTED, Typeface.NORMAL, 12);
         networkStatus = label("NÃO VERIFICADO  •  toque para testar",
@@ -196,71 +210,128 @@ public final class MainActivity extends Activity {
         if (checkingNetwork || destroyed) return;
         checkingNetwork = true;
         networkButton.setEnabled(false);
-        networkStatus.setText("VERIFICANDO...  •  HTTPS público, sem credenciais");
+        networkStatus.setText("TESTANDO HTTPS  •  até três tentativas controladas");
+        networkSummary.setText("VERIFICANDO");
         networkThread = new Thread(() -> {
-            HttpURLConnection connection = null;
-            String outcome = "Falha no diagnóstico de rede.";
+            String outcome = "Falha ao verificar o servidor HTTPS.";
+            boolean reachable = false;
             long start = SystemClock.elapsedRealtime();
-            try {
-                connection = (HttpURLConnection) new URL(HEALTH_URL).openConnection();
-                connection.setRequestMethod("GET");
-                connection.setConnectTimeout(5000);
-                connection.setReadTimeout(5000);
-                connection.setUseCaches(false);
-                connection.setInstanceFollowRedirects(false);
-                connection.setRequestProperty("Accept", "application/json");
-                int code = connection.getResponseCode();
-                if (code == 200) {
-                    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-                    try (InputStream input = connection.getInputStream()) {
-                        byte[] block = new byte[512];
-                        int n;
-                        while ((n = input.read(block)) != -1) {
-                            if (bytes.size() + n > 4096)
-                                throw new IOException("health response too large");
-                            bytes.write(block, 0, n);
+            for (int attempt = 1; attempt <= NetworkResilience.MAX_ATTEMPTS; attempt++) {
+                if (destroyed || Thread.currentThread().isInterrupted()) break;
+                HttpURLConnection conn = null;
+                int statusCode = 0;
+                Exception failure = null;
+                try {
+                    conn = (HttpURLConnection) new URL(HEALTH_URL).openConnection();
+                    activeHealthConnection = conn;
+                    if (destroyed || Thread.currentThread().isInterrupted()) break;
+                    conn.setRequestMethod("GET");
+                    conn.setConnectTimeout(4000);
+                    conn.setReadTimeout(4000);
+                    conn.setUseCaches(false);
+                    conn.setInstanceFollowRedirects(false);
+                    conn.setRequestProperty("Accept", "application/json");
+                    statusCode = conn.getResponseCode();
+                    if (statusCode == 200) {
+                        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                        try (InputStream input = conn.getInputStream()) {
+                            byte[] block = new byte[512];
+                            int n;
+                            while ((n = input.read(block)) != -1) {
+                                if (bytes.size() + n > 4096)
+                                    throw new IOException("health response too large");
+                                bytes.write(block, 0, n);
+                            }
                         }
+                        JSONObject json = new JSONObject(bytes.toString("UTF-8"));
+                        if ("ok".equals(json.optString("status")) &&
+                            "control-prototype".equals(json.optString("mode")) &&
+                            json.optBoolean("pairing", false)) {
+                            long elapsed = SystemClock.elapsedRealtime() - start;
+                            reachable = true;
+                            outcome = "SERVIDOR HTTPS RESPONDEU   •   " + elapsed +
+                                " ms em " + attempt + " tentativa(s)\n" +
+                                (json.optBoolean("configured", false)
+                                ? "Serviço público de vínculo configurado."
+                                : "Servidor responde, mas vínculo ainda não configurado.") +
+                                "\nO PS4 NÃO foi testado.";
+                        } else {
+                            outcome = "Servidor respondeu com formato desconhecido. PS4 não verificado.";
+                        }
+                        break;
                     }
-                    JSONObject json = new JSONObject(
-                        bytes.toString("UTF-8"));
-                    if ("ok".equals(json.optString("status")) &&
-                        "control-prototype".equals(json.optString("mode")) &&
-                        json.optBoolean("pairing", false)) {
-                        long elapsed = SystemClock.elapsedRealtime() - start;
-                        outcome = "HTTPS RESPONDEU   •   " + elapsed +
-                            " ms (apenas servidor)\n" +
-                            (json.optBoolean("configured", false)
-                            ? "Serviço de vínculo público configurado."
-                            : "Servidor respondeu, mas vínculo não está configurado.") +
-                            "\nO PS4 NÃO foi testado por este botão.";
-                    } else outcome = "HTTPS respondeu, mas o status não é reconhecido.";
-                } else outcome = "Falha HTTP " + code +
-                    ". Verifique rede e estado do servidor.";
-            } catch (SSLHandshakeException exception) {
-                outcome = "Falha TLS. Confira data/hora e atualizações do Android.";
-            } catch (SocketTimeoutException exception) {
-                outcome = "Tempo esgotado. Verifique Wi-Fi, DNS e sinal da rede.";
-            } catch (Exception exception) {
-                outcome = "Não foi possível alcançar o servidor HTTPS público.";
-            } finally {
-                if (connection != null) connection.disconnect();
+                    outcome = "HTTP " + statusCode +
+                        ". Verifique a internet e o estado do servidor HTTPS.";
+                } catch (SSLHandshakeException error) {
+                    outcome = "Falha TLS. Confira data, hora e certificados do Android.";
+                    break; // Never hide a TLS/certificate error by retrying.
+                } catch (SocketTimeoutException error) {
+                    failure = error;
+                    outcome = "Tempo esgotado. Verifique o Wi-Fi e o sinal da rede.";
+                } catch (IOException error) {
+                    failure = error;
+                    outcome = "Não foi possível alcançar o servidor HTTPS público.";
+                } catch (Exception error) {
+                    outcome = "Resposta não reconhecida. Verifique o servidor BX.";
+                    break;
+                } finally {
+                    if (conn != null) conn.disconnect();
+                    if (activeHealthConnection == conn) activeHealthConnection = null;
+                }
+                if (!NetworkResilience.canRetry(attempt, statusCode, failure)) break;
+                final int next = attempt + 1;
+                runOnUiThread(() -> {
+                    if (!destroyed) networkStatus.setText("RECONEXÃO LIMITADA  •  tentativa " +
+                        next + " de " + NetworkResilience.MAX_ATTEMPTS);
+                });
+                try {
+                    Thread.sleep(NetworkResilience.delayMs(attempt));
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
             }
             final String result = outcome;
+            final boolean verified = reachable;
             runOnUiThread(() -> {
                 if (destroyed) return;
                 checkingNetwork = false;
                 networkButton.setEnabled(true);
                 networkStatus.setText(result);
+                networkSummary.setText(verified ? "RESPONDEU" : "SEM RESPOSTA");
+                networkSummary.setTextColor(verified ?
+                    Color.rgb(141, 232, 181) : Color.rgb(255, 192, 158));
             });
-        }, "bx-public-health-once");
+        }, "bx-health-on-demand");
         networkThread.start();
     }
 
     @Override
     protected void onDestroy() {
         destroyed = true;
+        HttpURLConnection conn = activeHealthConnection;
+        if (conn != null) conn.disconnect();
         if (networkThread != null) networkThread.interrupt();
         super.onDestroy();
+    }
+
+    private TextView statusBadge(LinearLayout parent, String title,
+                                 String status, boolean highlight) {
+        LinearLayout item = new LinearLayout(this);
+        item.setOrientation(LinearLayout.VERTICAL);
+        item.setPadding(dp(9), dp(12), dp(7), dp(12));
+        item.setBackground(roundRect(
+            highlight ? Color.rgb(47, 29, 42) : Color.rgb(24, 25, 33),
+            highlight ? Color.rgb(141, 77, 102) : Color.rgb(66, 55, 68), 13));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(77), 1f);
+        params.setMargins(dp(2), 0, dp(2), 0);
+        parent.addView(item, params);
+        LinearLayout previous = layout;
+        layout = item;
+        label(title, 11, Color.rgb(255, 160, 183), Typeface.BOLD, 7);
+        TextView value = label(status, 10, WHITE, Typeface.BOLD, 0);
+        layout = previous;
+        return value;
     }
 
     private GradientDrawable roundRect(int background, int border, int radius) {
@@ -297,7 +368,7 @@ public final class MainActivity extends Activity {
     private void inspectDevice() {
         copyStatus.setText("");
         StringBuilder result = new StringBuilder(600);
-        result.append("BX Android Gateway — diagnóstico v0.4.0\n");
+        result.append("BX Android Gateway — diagnóstico v0.5.0\n");
         result.append("Sistema: Android ").append(Build.VERSION.RELEASE).append("\n");
         result.append("API: ").append(Build.VERSION.SDK_INT).append("\n");
         result.append("Modelo (relatório local): ").append(Build.MANUFACTURER).append(" ")
