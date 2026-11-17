@@ -6,7 +6,7 @@ var Module={};
   let inputFocused=document.hasFocus(),registering=false,registrationDiagnostic=null;
   let waitForKeyframe=false,lastMetricsAt=Date.now(),lastMetricsFrames=0;
   const deviceStore=BXDeviceStore.create(globalThis.indexedDB);
-  let savedProfile=null,linking=false,oneClickBusy=false,starting=false,playbackGeneration=0;
+  let savedProfile=null,linking=false,oneClickBusy=false,starting=false,playbackGeneration=0,connectionGeneration=0,stopping=false,stopTask=null;
   const audioSources=new Set();
   function clearAudio(){for(const source of audioSources){try{source.stop();}catch{}try{source.disconnect();}catch{}}audioSources.clear();nextAudio=0;}
   const fingers=new Map(),stickValues={left:[0,0],right:[0,0]},stickOwners=new Map();
@@ -17,22 +17,26 @@ var Module={};
     call('chiaki_wasm_session_set_controller',Array(10).fill('number'),[state.buttons,state.l2,state.r2,...state.axes,0,0,0]);
   }
   function clearInput(){fingers.clear();stickValues.left=[0,0];stickValues.right=[0,0];stickOwners.clear();controls(true);}
-  async function payloadStatus(){
-    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),3000);
-    try{const response=await fetch('/session-status',{headers:{Authorization:'Bearer '+secret},cache:'no-store',signal:controller.signal});if(!response.ok)throw new Error('status_unavailable');return await response.json();}
+  async function request(path,options={},json=false,timeout=5000){
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);
+    try{const response=await fetch(path,{...options,signal:controller.signal});if(!response.ok)throw new Error('request_failed');return json?await response.json():response;}
     finally{clearTimeout(timer);}
   }
-  function refresh(){$('connect').disabled=!ready||linked||linking||oneClickBusy;$('register').disabled=!linked||registering;$('play').disabled=!linked||!reg||running||starting||registering;$('export').disabled=!reg;$('resumeAudio').hidden=!running||!audio||audio.state!=='suspended';$('connectPlay').disabled=!ready||!savedProfile||running||registering||linking||oneClickBusy;$('saveDevice').disabled=!linked||!reg||!secret||linking||oneClickBusy;$('forgetDevice').disabled=!savedProfile;}
+  function payloadStatus(){return request('/session-status',{headers:{Authorization:'Bearer '+secret},cache:'no-store'},true,3000);}
+  function refresh(){$('connect').disabled=!ready||linked||linking||stopping||oneClickBusy;$('register').disabled=!linked||stopping||registering;$('play').disabled=!linked||stopping||!reg||running||starting||registering;$('export').disabled=!reg;$('resumeAudio').hidden=!running||!audio||audio.state!=='suspended';$('connectPlay').disabled=!ready||!savedProfile||running||starting||stopping||registering||linking||oneClickBusy;$('saveDevice').disabled=!linked||!reg||!secret||linking||oneClickBusy;$('forgetDevice').disabled=!savedProfile;}
   async function endPlayback(message){
     playbackGeneration++;starting=false;clearAudio();clearInput();const active=running;running=false;clearInterval(ticker);ticker=null;
     const oldDecoder=decoder,oldAudio=audio;decoder=null;audio=null;nextAudio=0;
     try{oldDecoder?.close();}catch{}if(ready&&active)call('chiaki_wasm_session_stop',[],[]);
     try{await oldAudio?.close();}catch{}refresh();if(message)status(message);
   }
-  async function stop(message='Sessão encerrada.'){
-    registering=false;linked=false;await endPlayback();
-    if(secret){try{await fetch('/session',{method:'DELETE',headers:{Authorization:'Bearer '+secret},keepalive:true});}catch{}}
-    if(ready)call('chiaki_wasm_fini',[],[]);secret='';refresh();status(message);
+  function stop(message='Sessão encerrada.'){
+    if(stopTask)return stopTask;
+    connectionGeneration++;registering=false;linked=false;stopping=true;const key=secret;secret='';refresh();
+    stopTask=(async()=>{
+      try{await endPlayback();if(key){try{await request('/session',{method:'DELETE',headers:{Authorization:'Bearer '+key},keepalive:true},false,3000);}catch{}}}
+      finally{if(ready)call('chiaki_wasm_fini',[],[]);stopping=false;stopTask=null;refresh();status(message);}
+    })();return stopTask;
   }
   function metrics(){const now=Date.now(),elapsed=now-lastMetricsAt;if(elapsed<400)return;const fps=Math.round((frames-lastMetricsFrames)*1000/elapsed);lastMetricsAt=now;lastMetricsFrames=frames;$('metrics').textContent=`Vídeo: ${fps} fps observados · ${frames} quadros decodificados · Áudio: ${audioFrames} blocos PCM recebidos`;}
   Module.onRuntimeInitialized=()=>{ready=true;if(!crossOriginIsolated||typeof SharedArrayBuffer==='undefined'||typeof VideoDecoder==='undefined'){ready=false;status('Este navegador não oferece os recursos necessários para o cliente Native.');return;}refresh();status('Cliente carregado. Autorize o celular para conectar ao payload.');};
@@ -49,7 +53,24 @@ var Module={};
     if(key&&savedSps&&savedPps){const combined=new Uint8Array(savedSps.length+savedPps.length+bytes.length);combined.set(savedSps);combined.set(savedPps,savedSps.length);combined.set(bytes,savedSps.length+savedPps.length);bytes=combined;}
     decoder.decode(new EncodedVideoChunk({type:key?'key':'delta',timestamp:time,data:bytes}));time+=33333;
   }catch{void endPlayback('O fluxo de vídeo não pôde ser decodificado. A conexão com o payload foi preservada.');}};
-  async function connect(key){if(linked)return true;if(linking)return false;if(!/^[0-9a-f]{64}$/.test(key)){status('Informe a chave de jogador gerada para este payload.');return false;}linking=true;refresh();try{const response=await fetch('/session',{method:'POST',headers:{Authorization:'Bearer '+key}});if(!response.ok)throw new Error();const session=await response.json();secret=key;$('playerKey').value='';if(call('bx_remote_set_ticket',['string'],[session.ticket])!==0)throw new Error();if(call('chiaki_wasm_init',['string'],['wss://'+location.host+'/socket'])!==0)throw new Error();const deadline=Date.now()+15000;while(!call('chiaki_wasm_net_ready',[],[])){if(Date.now()>deadline)throw new Error();await new Promise(r=>setTimeout(r,100));}status('Servidor conectado. Aguardando resposta do payload no PS4…');await core.waitForPayload(payloadStatus);linked=true;status('Payload respondeu ao servidor. Registre ou importe o PS4; nenhum jogo foi confirmado ainda.');refresh();return true;}catch(error){await stop(error.message==='payload_offline'?'O payload do PS4 não respondeu. Confira /data/bx-rp-transport-report.txt antes de registrar.':'Não foi possível abrir o transporte. Confira a chave, o relay e o payload.');return false;}finally{linking=false;refresh();}}
+  async function connect(key){
+    if(linked)return true;if(linking||stopping)return false;
+    if(!/^[0-9a-f]{64}$/.test(key)){status('Informe a chave de jogador gerada para este payload.');return false;}
+    const generation=++connectionGeneration,current=()=>generation===connectionGeneration;
+    const check=()=>{if(!current())throw new Error('connection_cancelled');};
+    linking=true;refresh();
+    try{
+      const session=await request('/session',{method:'POST',headers:{Authorization:'Bearer '+key}},true);check();
+      secret=key;$('playerKey').value='';
+      if(call('bx_remote_set_ticket',['string'],[session.ticket])!==0)throw new Error();
+      if(call('chiaki_wasm_init',['string'],['wss://'+location.host+'/socket'])!==0)throw new Error();
+      const deadline=Date.now()+15000;while(!call('chiaki_wasm_net_ready',[],[])){check();if(Date.now()>deadline)throw new Error();await new Promise(r=>setTimeout(r,100));}
+      check();status('Servidor conectado. Aguardando resposta do payload no PS4…');
+      await core.waitForPayload(async()=>{check();const result=await payloadStatus();check();return result;});check();
+      linked=true;status('Payload respondeu ao servidor. Registre ou importe o PS4; nenhum jogo foi confirmado ainda.');refresh();return true;
+    }catch(error){if(current())await stop(error.message==='payload_offline'?'O payload do PS4 não respondeu. Confira /data/bx-rp-transport-report.txt antes de registrar.':'Não foi possível abrir o transporte. Confira a chave, o relay e o payload.');return false;}
+    finally{linking=false;refresh();}
+  }
   $('connect').onclick=()=>connect($('playerKey').value.trim());
   $('register').onclick=async()=>{if(registering)return;const pin=$('pin').value,account=$('account').value.trim();if(!/^\d{8}$/.test(pin)||!/^[A-Za-z0-9+/]{11}=$/.test(account)){status('Use o PIN de oito dígitos e o Account-ID de oito bytes em Base64.');return;}registering=true;registrationDiagnostic=null;$('registrationDiagnostic').textContent='Iniciando diagnóstico de registro…';refresh();
     try{if(!(await payloadStatus()).nativeOnline){registering=false;status('O payload parou de responder ao servidor. Confira o relatório no PS4 antes de registrar.');return;}
@@ -58,7 +79,7 @@ var Module={};
     }catch{registering=false;status('Não foi possível verificar a conexão do payload. Tente conectar novamente.');}
     finally{refresh();}};
   async function startPlayback(preparedAudio=null){
-    if(!linked||!reg||running||starting){try{await preparedAudio?.close();}catch{}return;}
+    if(!linked||stopping||!reg||running||starting){try{await preparedAudio?.close();}catch{}return;}
     const generation=++playbackGeneration;starting=true;refresh();let candidate=null;
     try{
       candidate=preparedAudio||new (window.AudioContext||window.webkitAudioContext)();await candidate.resume();
@@ -80,10 +101,11 @@ var Module={};
   $('saveDevice').onclick=async()=>{if(!linked||!reg||!secret)return;try{savedProfile=await deviceStore.save({version:1,playerKey:secret,registration:reg});$('savedStatus').textContent='PS4 salvo somente neste navegador. Na próxima visita, use Conectar e jogar.';}catch{$('savedStatus').textContent='Não foi possível salvar neste navegador. A sessão atual e a exportação continuam disponíveis.';}refresh();};
   $('forgetDevice').onclick=async()=>{try{await deviceStore.clear();savedProfile=null;$('savedStatus').textContent='Dados salvos apagados deste navegador.';}catch{$('savedStatus').textContent='Não foi possível apagar os dados salvos. Tente novamente.';}refresh();};
   $('connectPlay').onclick=async()=>{
-    if(!savedProfile||oneClickBusy||running||!ready)return;const profile=core.deviceProfile(savedProfile);let primed=null;oneClickBusy=true;refresh();
+    if(!savedProfile||oneClickBusy||running||!ready)return;const profile=core.deviceProfile(savedProfile),generation=playbackGeneration;let primed=null;oneClickBusy=true;refresh();
     try{
       // Resume audio during the tap, before waiting for network authorization.
       primed=new (window.AudioContext||window.webkitAudioContext)();await primed.resume();
+      if(generation!==playbackGeneration||stopping)return;
       if(!await connect(profile.playerKey))return;
       reg=profile.registration;refresh();const prepared=primed;primed=null;await startPlayback(prepared);
     }catch{status('Não foi possível conectar e iniciar. O registro salvo foi preservado.');}
@@ -117,6 +139,7 @@ var Module={};
   document.addEventListener('keydown',event=>{if(event.key==='Escape'){expandedFallback(false);$('displayStatus').textContent='';}});
   window.addEventListener('gamepadconnected',controllerStatus);window.addEventListener('gamepaddisconnected',()=>{clearInput();controllerStatus();});
   setInterval(controllerStatus,250);controllerStatus();
+  setInterval(()=>{if(ready&&linked&&!linking&&!stopping&&!call('chiaki_wasm_net_ready',[],[]))void stop('A conexão caiu. O registro foi preservado; use Conectar e jogar para tentar novamente.');},1000);
   window.addEventListener('focus',()=>{inputFocused=true;});
   window.addEventListener('blur',()=>{inputFocused=false;clearInput();});
   function background(){inputFocused=false;clearInput();clearAudio();if(running)waitForKeyframe=true;if(linked)$('connectionNote').textContent='Sessão mantida ao trocar de tela. O navegador pode suspender vídeo e áudio em segundo plano.';}

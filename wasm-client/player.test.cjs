@@ -100,3 +100,30 @@ test('background and playback end stop and disconnect all scheduled audio source
  h.document.hidden=true;h.events.get('document:visibilitychange')();assert.equal(sources[0].stops,1);assert.equal(sources[0].disconnects,1);
  h.document.hidden=false;h.context.Module.onAudio(0,2);h.context.Module.onEvent('quit',0);await flush();assert.equal(sources[1].stops,1);assert.equal(sources[1].disconnects,1);
 });
+
+test('stop during pending authorization cannot initialize a transport after cancellation',async()=>{
+ const h=harness();let release;
+ h.context.fetch=()=>new Promise(resolve=>{release=resolve;});h.element('playerKey').value='a'.repeat(64);
+ const pending=h.element('connect').onclick();h.element('stop').onclick();await flush();
+ release({ok:true,json:async()=>({ticket:'late'})});await pending;
+ assert.equal(h.calls.some(c=>c.name==='chiaki_wasm_init'),false);assert.equal(h.element('connect').disabled,false);assert.match(h.element('status').textContent,/Sessão encerrada/);
+});
+test('disconnect is serialized and blocks a new connection until cleanup completes',async()=>{
+ const h=harness();await beginPlayback(h);const original=h.context.fetch;let release,deletes=0;
+ h.context.fetch=(path,options)=>{if(options?.method==='DELETE'){deletes++;return new Promise(resolve=>{release=resolve;});}return original(path,options);};
+ h.element('stop').onclick();h.element('stop').onclick();await flush();assert.equal(h.element('connect').disabled,true);
+ h.element('playerKey').value='a'.repeat(64);await h.element('connect').onclick();assert.equal(h.requests.filter(r=>r.method==='POST').length,1);assert.equal(deletes,1);
+ release({ok:true});await flush();assert.equal(h.element('connect').disabled,false);
+});
+test('closed WASM transport releases playback and permits saved-profile reconnect without registering again',async()=>{
+ const h=harness();await beginPlayback(h);await h.element('saveDevice').onclick();const original=h.context.Module.ccall;
+ h.context.Module.ccall=(name,...args)=>name==='chiaki_wasm_net_ready'?0:original(name,...args);
+ h.intervals.get(1000)();await flush();assert.equal(h.intervals.has(33),false);assert.equal(h.element('connectPlay').disabled,false);assert.match(h.element('status').textContent,/conexão caiu/);assert.ok(h.saved.value);
+ h.context.Module.ccall=original;await h.element('connectPlay').onclick();assert.equal(h.calls.filter(c=>c.name==='chiaki_wasm_session_start').length,2);assert.equal(h.calls.filter(c=>c.name==='chiaki_wasm_regist').length,0);
+});
+test('authorization request times out and restores connect controls',async()=>{
+ const h=harness();let timeout;
+ h.context.setTimeout=(fn,ms)=>{if(ms===5000)timeout=fn;return 123;};h.context.clearTimeout=()=>{};
+ h.context.fetch=(path,options)=>new Promise((resolve,reject)=>options.signal.addEventListener('abort',()=>reject(new Error('aborted'))));
+ h.element('playerKey').value='a'.repeat(64);const pending=h.element('connect').onclick();assert.equal(typeof timeout,'function');timeout();await pending;assert.equal(h.element('connect').disabled,false);assert.equal(h.calls.some(c=>c.name==='chiaki_wasm_init'),false);
+});
