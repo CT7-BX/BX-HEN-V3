@@ -11,7 +11,7 @@ int sceHttpCreateRequestWithURL(int connection, int method, const char *url, uin
 int sceHttpSetConnectTimeOut(int request, unsigned timeout);
 int sceHttpSetResolveTimeOut(int request, unsigned timeout);
 int sceHttpSetSendTimeOut(int request, unsigned timeout);
-int sceHttpSetRecvTimeOut(int request, unsigned timeout);
+void sceHttpSetRecvTimeOut(int request, unsigned timeout);
 int sceHttpSendRequest(int request, const void *body, size_t length);
 int sceHttpGetStatusCode(int request, int *status);
 int sceHttpReadData(int request, void *buffer, size_t length);

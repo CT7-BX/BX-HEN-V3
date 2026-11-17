@@ -14,7 +14,7 @@ marcada no chat foi usada como evidência de funcionamento.
 | Controle do PS4 | Gamepad/toque, relay simulado, DataChannel com ACK e watchdog; ponte nativa de diagnóstico. | Não há injeção de comandos em jogos. ACK do peer e resposta HTTP não comprovam ação no PS4. Testes de liberação e sessão passam. |
 | Sem PC/Mac | PKG e ELF fazem vínculo/heartbeat/diagnóstico HTTPS; Android mede prontidão. | Sessão de jogo autônoma ainda não implementada. Piloto P2P usa Mac; Android não é gateway de mídia. |
 | LAN e internet | Sondas de porta/DDP, sinalização HTTPS e negociação WebRTC; P2P configura STUN. | Testes locais/simulados passam. Sem sessão PS4 física na LAN ou em outra rede; sem comprovação de travessia de CGNAT/TURN. |
-| Estabilidade PKG/web/Android | Backoff limitado, diagnósticos e limpezas; builds remotos anteriores passaram. | Corrigidos dois caminhos de espera e ampliado gatilho de CI. SDKs PS4/Android e JVM não estão disponíveis localmente; nenhum novo PKG/APK foi compilado nesta auditoria. |
+| Estabilidade PKG/web/Android | Backoff limitado, diagnósticos e limpezas; builds remotos anteriores passaram. | Corrigidos dois caminhos de espera e ampliado gatilho de CI. SDKs PS4/Android e JVM não estão disponíveis localmente; build OpenOrbis remoto acompanhado no PR. |
 | GitHub Actions | Execuções recentes de main e builds v0.25/v0.5 aprovadas; logs de falha anterior inspecionados. | Falha 43993038701 era expectativa `command-center.js?v=0.29`, já corrigida na main. Novo teste OTA entra no workflow nativo; dependências compartilhadas passam a acioná-lo. A execução remota destas alterações deve ser conferida no PR. |
 | Atualização | Parser de título/versão/URL, download com SHA-256 e publicação atômica, instalador AppInstUtil sob consentimento. | Manifesto público v0.25 coincide com digest do asset informado pelo GitHub. Isso não equivale a baixar/recalcular o binário ou instalar no PS4. Adicionado timeout de recebimento ao download; instalação física segue pendente. |
 
@@ -27,8 +27,8 @@ marcada no chat foi usada como evidência de funcionamento.
    vez. O limite é por etapa; não constitui um prazo global de toda a negociação.
    O recurso recebeu nova versão na URL do script para atualização do navegador.
 2. **OTA nativo:** faltava `sceHttpSetRecvTimeOut` antes do envio. Agora aplica
-   sete segundos e interrompe a operação caso a API recuse o limite; request e
-   conexão são liberados. Timeout de recebimento não é prazo global do download.
+   sete segundos antes do envio; request e conexão são liberados em falha de
+   envio. O setter OpenOrbis retorna void. Timeout de recebimento não é prazo global do download.
 3. **CI:** o PKG depende de `ps4-agent/resident`, do gerador de ícone e de testes
    compartilhados. Esses caminhos agora acionam o workflow nativo em push/PR.
    O novo teste executa o downloader de produção com HTTP e filesystem simulados.
@@ -44,12 +44,13 @@ nenhuma função de mídia, controle, pareamento ou atualização.
 - Regressão WHEP antes da correção: teste ficou pendente na leitura do corpo;
   execução interrompida. Depois: timeout e cancelamento passaram.
 - Regressão OTA antes da correção: falhou em `received_timeout == 1`. Depois:
-  passou nos cenários de timeout configurado e API de timeout recusada.
+  passou verificando timeout configurado antes do envio e limpeza após falha.
 - Validação final: **152 testes Node** de web/Worker/relay; **4 testes Node** do
   gerador de configuração; **31 testes Python** (30 nativos + 1 ícone);
   **10 executáveis de teste C** (7 nativos + 3 ps4-agent). Todos passaram.
 - C compilado no host com `-std=c11 -Wall -Wextra -Werror -pedantic`.
-  O mock Http.h não valida assinatura/ABI OpenOrbis; o build real no CI é necessário.
+  O primeiro build real detectou que o setter de timeout retorna void; a chamada
+  e o mock foram corrigidos. Testes host não substituem o build OpenOrbis.
 - Os testes do relay precisaram de permissão para escutar somente em localhost.
   A primeira tentativa restrita falhou com EPERM e foi repetida com sucesso.
 - JVM local ausente: teste Java e build APK não executados aqui. OpenOrbis
