@@ -39,7 +39,7 @@ var Module={};
       status(result===0?'Registrando no serviço Uso remoto do PS4…':'Não foi possível iniciar o pedido de registro neste navegador.');
     }catch{status('Não foi possível verificar a conexão do payload. Tente conectar novamente.');}
     finally{refresh();}};
-  $('play').onclick=async()=>{if(!linked||!reg)return;try{audio=new (window.AudioContext||window.webkitAudioContext)();await audio.resume();frames=audioFrames=time=0;savedSps=savedPps=null;codec='';running=true;call('chiaki_wasm_session_start',['string','string','string','number','number','number','number','number'],['127.0.0.1',reg.registKey,reg.morning,0,720,30,0,3000]);ticker=setInterval(()=>controls(),33);refresh();status('Solicitando sessão real do PS4…');}catch{await stop('Não foi possível iniciar áudio e sessão.');}};
+  $('play').onclick=async()=>{if(!linked||!reg)return;try{audio=new (window.AudioContext||window.webkitAudioContext)();await audio.resume();frames=audioFrames=time=0;savedSps=savedPps=null;codec='';running=true;if(call('chiaki_wasm_session_start',['string','string','string','number','number','number','number','number'],['127.0.0.1',reg.registKey,reg.morning,0,720,30,0,3000])!==0)throw new Error('session_start_failed');ticker=setInterval(()=>controls(),33);refresh();status('Solicitando sessão real do PS4…');}catch{await stop('Não foi possível iniciar áudio e sessão.');}};
   $('stop').onclick=()=>{void stop();};
   $('export').onclick=()=>{if(!reg)return;const url=URL.createObjectURL(new Blob([JSON.stringify(reg)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='bx-ps4-registro-privado.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
   $('import').onchange=async event=>{try{const file=event.target.files[0];if(!file||file.size>2048)throw new Error();reg=core.registration(JSON.parse(await file.text()));status('Registro importado somente neste aparelho.');refresh();}catch{status('Arquivo de registro inválido.');}event.target.value='';};
@@ -56,7 +56,7 @@ var Module={};
   }
   const area=$('playerArea');
   const nativeFullscreen=()=>document.fullscreenElement||document.webkitFullscreenElement;
-  function displayState(){const expanded=!!nativeFullscreen()||area.classList.contains('expanded');$('fullscreen').textContent=expanded?'Sair da tela cheia':'Tela cheia';$('fullscreen').setAttribute('aria-pressed',String(expanded));}
+  function displayState(){const expanded=!!nativeFullscreen()||area.classList.contains('expanded');area.classList.toggle('game-view',expanded);$('fullscreen').textContent=expanded?'Sair da tela cheia':'Tela cheia';$('fullscreen').setAttribute('aria-pressed',String(expanded));}
   function expandedFallback(value){area.classList.toggle('expanded',value);document.body.classList.toggle('game-expanded',value);displayState();}
   $('fullscreen').onclick=async()=>{
     try{

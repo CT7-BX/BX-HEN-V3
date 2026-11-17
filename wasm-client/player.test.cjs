@@ -34,3 +34,5 @@ test('physical controller preview works before PS4 connection, and blur/disconne
   h.events.get('focus')();tick();assert.equal(last()[0],1);
   h.pads[0].connected=false;h.events.get('gamepaddisconnected')();tick();assert.deepEqual(Array.from(last()),Array(10).fill(0));
 });
+
+test('failed WASM session start closes audio and does not keep polling controls',async()=>{const h=harness();h.element('playerKey').value='a'.repeat(64);await h.element('connect').onclick();await h.element('import').onchange({target:{files:[{size:100,text:async()=>JSON.stringify({registKey:'a'.repeat(32),morning:'b'.repeat(32)})}]}});const original=h.context.Module.ccall;h.context.Module.ccall=(name,...args)=>name==='chiaki_wasm_session_start'?-1:original(name,...args);await h.element('play').onclick();assert.equal(h.intervals.has(33),false);assert.match(h.element('status').textContent,/Não foi possível iniciar/);});
