@@ -94,3 +94,7 @@ continua OpenOrbis. Apenas as declarações orbis são reutilizadas no payload;
 libc, entrada, resolvedor e link são do SDK de payloads. O artefato inclui a
 licença GPL e a fonte do SDK. A mudança ainda exige teste físico de inicialização.
 Referência: https://github.com/ps4-payload-dev/sdk/tree/573b4a0d0d5fa8695cfeee5f5e2f0447c550035d
+
+### Physical diagnostic v04 candidate
+
+v03 reached `sceHttpSendRequest` on the user's PS4 but returned `0x8095f006` (invalid SSL ID), before any HTTP status. v04 links HTTP first and the modern `libSceSsl2` backend rather than SSL1, keeping all certificate verification enabled. This addresses a suspected SSL context/backend mismatch; the cause and connection fix require confirmation on that console. It does not establish registration or gameplay. The report includes the build/backend to distinguish old copies.

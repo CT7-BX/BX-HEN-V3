@@ -1,5 +1,4 @@
-/* BX Native Transport: manually launched PS4 process. No GPU hooks, no kernel
- * patches, no inbound TCP listener. HTTPS relay + fixed Remote Play loopback.
+/* BX Native Transport: manually launched PS4 process. No GPU hooks, no inbound TCP listener. HTTPS relay + fixed Remote Play loopback.
  * This executable needs physical validation while a game is running. */
 #include "bridge.h"
 #include "socket_adapter.h"
@@ -31,7 +30,7 @@ static int stopped(void){struct stat st;return stat(STOP,&st)==0;}
 static void report(const char *phase,int status){
     /* No packets, PSN identifiers, PINs, URLs or secrets in the report. */
     FILE *f=fopen("/data/bx-rp-transport-report.txt","w");if(!f)return;
-    fprintf(f,"BX Native Transport experimental\nphase=%s\nhttp=%d\nstartup=ps4-payload-sdk\nphysicalValidation=required\nerror_stage=%s\nerror_code=0x%08x\n",phase,status,error_stage,(unsigned)error_code);fclose(f);
+    fprintf(f,"BX Native Transport experimental\nphase=%s\nhttp=%d\nstartup=ps4-payload-sdk\nbuild=v04\ntls_backend=libSceSsl2\nphysicalValidation=required\nerror_stage=%s\nerror_code=0x%08x\n",phase,status,error_stage,(unsigned)error_code);fclose(f);
 }
 static int read_config(BXPairConfig *cfg){char text[1024]={0};size_t n;int valid;FILE *f=fopen(CONFIG,"rb");if(!f)return 0;n=fread(text,1,sizeof(text)-1,f);valid=!ferror(f)&&n>0&&n<sizeof(text)-1;fclose(f);if(valid)valid=bx_pair_parse_config(text,cfg);memset(text,0,sizeof(text));return valid;}
 typedef struct HTTP {int net,pool,ssl,http,tmpl;} HTTP;
@@ -85,4 +84,3 @@ int main(void){
     /* Avoid the unvalidated OpenOrbis libc exit path. */
     for(;;)sleep(1);
 }
-

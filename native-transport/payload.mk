@@ -6,7 +6,8 @@ include $(PS4_PAYLOAD_SDK)/toolchain/orbis.mk
 .DEFAULT_GOAL := all
 OUT := build/payload
 CFLAGS += -std=gnu11 -Wall -Wextra -DBX_TRANSPORT_PS4 -Ibuild/compat
-LDFLAGS += -lSceSsl -lSceHttp
+# Load HTTP before its modern SSL backend; never mix SSL1 context IDs with SSL2.
+LDFLAGS += -lSceHttp -lSceSsl2
 OBJECTS := $(OUT)/main.o $(OUT)/bridge.o $(OUT)/socket_adapter.o $(OUT)/pair_config.o $(OUT)/pair_protocol.o
 all: bx-rp-transport.elf
 build/compat/orbis/Net.h:
