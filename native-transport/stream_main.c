@@ -33,7 +33,7 @@ int main(void){BXPairConfig cfg;BXBridge bridge;BXWebSocket ws;char url[256],roo
  if(strncmp(cfg.relay_origin,"https://",8)||snprintf(url,sizeof(url),"wss://%s/console-stream",cfg.relay_origin+8)>=(int)sizeof(url)){report("configuration_required",0);goto done;}
  bx_bridge_init(&bridge,&bx_socket_ops,NULL,emit);
  while(!stopped()){
-  size_t tx_size=0,tx_at=0,received=0;int held=0;uint32_t tx_epoch=0,tx_seq=0;uint64_t last_send=0,last_report=0;int connected=0;
+  size_t tx_size=0,tx_at=0,received=0,held_at=16;unsigned held_index=0;int held=0;uint32_t tx_epoch=0,tx_seq=0;uint64_t last_send=0,last_report=0;int connected=0;
   if(!net){if(sceNetInit()<0){report("network_retry",0);sleep(2);continue;}net=1;}
   memset(&ws,0,sizeof(ws));bx_stream_init(&state);empty();
   if(!bx_ws_open(&ws,url,cfg.console_token,roots,strlen(roots))){report("wss_connect_retry",ws.tls.code);bx_ws_close(&ws);sleep(2);continue;}
@@ -46,13 +46,17 @@ int main(void){BXPairConfig cfg;BXBridge bridge;BXWebSocket ws;char url[256],roo
     result=bx_ws_receive(&ws,incoming,sizeof(incoming),&received);if(result<0){connected=0;break;}if(!result)break;
     result=bx_stream_response(&state,incoming,received,now);if(result<0){report("invalid_stream_response",0);connected=0;break;}
     if(!result){bx_bridge_close(&bridge);bx_bridge_init(&bridge,&bx_socket_ops,NULL,emit);empty();if(!tx_at)tx_size=0;last_send=now;report("relay_idle",0);continue;}
-    held=1;
+    held=1;held_at=16;held_index=0;
     }
     /* Accept the ACK before waiting for reply space: this frees a window slot
      * so a full output queue can drain without deadlocking the receiver. */
-    if(rd(incoming+12)>(LIMIT-used)/64u)break;
-    size_t at=16;for(unsigned i=0;i<rd(incoming+12);i++){size_t n=rd(incoming+at);at+=4;if(!bx_bridge_handle(&bridge,incoming+at,n)){connected=0;break;}at+=n;}
-    held=0;
+    while(held_index<rd(incoming+12)&&used<=LIMIT-64&&count<=1022){
+     size_t n=rd(incoming+held_at);held_at+=4;
+     if(!bx_bridge_handle(&bridge,incoming+held_at,n)){connected=0;break;}
+     held_at+=n;held_index++;
+    }
+    if(held_index==rd(incoming+12))held=0;
+    if(held)break;
     if(!connected||bridge.failed){connected=0;break;}
    }
    if(!connected)break;
@@ -61,7 +65,7 @@ int main(void){BXPairConfig cfg;BXBridge bridge;BXWebSocket ws;char url[256],roo
      tx_size=tx_at=0;last_send=now;
    }}
    if(state.pending&&now-state.sent_at[state.receive_seq%BX_STREAM_WINDOW]>10000){report("stream_ack_timeout",0);connected=0;break;}
-   if(state.epoch&&used<LIMIT-65536&&bx_socket_receive_limited(&bridge,LIMIT-used-65536)<0){report("bridge_backpressure",0);connected=0;break;}
+   if(state.epoch&&!held&&used<LIMIT-65536&&count<1024&&bx_socket_receive_limited(&bridge,((LIMIT-used-65536)<(1024u-count)*32u?(LIMIT-used-65536):(1024u-count)*32u))<0){report("bridge_backpressure",0);connected=0;break;}
    if(!tx_size&&bx_stream_can_send(&state)&&(count||now-last_send>=(state.epoch?20u:1000u))){
     wr(outgoing+4,state.epoch);wr(outgoing+8,state.send_seq);wr(outgoing+12,count);memcpy(tx,outgoing,used);tx_size=used;tx_at=0;tx_epoch=state.epoch;tx_seq=state.send_seq;empty();
    }
