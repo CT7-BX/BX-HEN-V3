@@ -12,6 +12,7 @@
 #include <orbis/Net.h>
 #include <orbis/Ssl.h>
 #include <orbis/Http.h>
+#include "tls_roots.h"
 #define MAX_BATCH (256u*1024u)
 #define CONFIG "/user/data/bx-rp-transport.cfg"
 #define STOP "/data/bx-rp-transport.stop"
@@ -19,7 +20,8 @@ static uint8_t outgoing[MAX_BATCH],incoming[MAX_BATCH];
 static size_t used=16;
 static unsigned count,epoch,sequence=1;
 static const char *error_stage="none";
-static int error_code;
+static int error_code,ssl_error;
+static unsigned ssl_verify;
 static int checked(const char *stage,int result){if(result<0){error_stage=stage;error_code=result;}return result;}
 static uint32_t rd(const uint8_t *p){return p[0]|((uint32_t)p[1]<<8)|((uint32_t)p[2]<<16)|((uint32_t)p[3]<<24);}
 static void wr(uint8_t *p,uint32_t n){p[0]=(uint8_t)n;p[1]=(uint8_t)(n>>8);p[2]=(uint8_t)(n>>16);p[3]=(uint8_t)(n>>24);}
@@ -30,12 +32,12 @@ static int stopped(void){struct stat st;return stat(STOP,&st)==0;}
 static void report(const char *phase,int status){
     /* No packets, PSN identifiers, PINs, URLs or secrets in the report. */
     FILE *f=fopen("/data/bx-rp-transport-report.txt","w");if(!f)return;
-    fprintf(f,"BX Native Transport experimental\nphase=%s\nhttp=%d\nstartup=ps4-payload-sdk\nbuild=v04\ntls_backend=libSceSsl2\nphysicalValidation=required\nerror_stage=%s\nerror_code=0x%08x\n",phase,status,error_stage,(unsigned)error_code);fclose(f);
+    fprintf(f,"BX Native Transport experimental\nphase=%s\nhttp=%d\nstartup=ps4-payload-sdk\nbuild=v05\ntls_backend=libSceSsl2\nphysicalValidation=required\nerror_stage=%s\nerror_code=0x%08x\nssl_error=0x%08x\nssl_verify=0x%08x\n",phase,status,error_stage,(unsigned)error_code,(unsigned)ssl_error,ssl_verify);fclose(f);
 }
 static int read_config(BXPairConfig *cfg){char text[1024]={0};size_t n;int valid;FILE *f=fopen(CONFIG,"rb");if(!f)return 0;n=fread(text,1,sizeof(text)-1,f);valid=!ferror(f)&&n>0&&n<sizeof(text)-1;fclose(f);if(valid)valid=bx_pair_parse_config(text,cfg);memset(text,0,sizeof(text));return valid;}
 typedef struct HTTP {int net,pool,ssl,http,tmpl;} HTTP;
 static void close_http(HTTP *h){if(h->tmpl>=0)sceHttpDeleteTemplate(h->tmpl);if(h->http>=0)sceHttpTerm(h->http);if(h->ssl>=0)sceSslTerm(h->ssl);if(h->pool>=0)sceNetPoolDestroy(h->pool);if(h->net)sceNetTerm();h->net=0;h->pool=h->ssl=h->http=h->tmpl=-1;}
-static int open_http(HTTP *h){memset(h,0,sizeof(*h));h->pool=h->ssl=h->http=h->tmpl=-1;if(checked("sceNetInit",sceNetInit())<0)return 0;h->net=1;h->pool=checked("sceNetPoolCreate",sceNetPoolCreate("bx_rp_transport",1024*1024,0));if(h->pool<0)return 0;h->ssl=checked("sceSslInit",sceSslInit(512*1024));if(h->ssl<0)return 0;h->http=checked("sceHttpInit",sceHttpInit(h->pool,h->ssl,512*1024));if(h->http<0)return 0;h->tmpl=checked("sceHttpCreateTemplate",sceHttpCreateTemplate(h->http,"BX-Native-Transport/0.1",ORBIS_HTTP_VERSION_1_1,1));return h->tmpl>=0;}
+static int open_http(HTTP *h){memset(h,0,sizeof(*h));h->pool=h->ssl=h->http=h->tmpl=-1;if(checked("sceNetInit",sceNetInit())<0)return 0;h->net=1;h->pool=checked("sceNetPoolCreate",sceNetPoolCreate("bx_rp_transport",1024*1024,0));if(h->pool<0)return 0;h->ssl=checked("sceSslInit",sceSslInit(512*1024));if(h->ssl<0)return 0;h->http=checked("sceHttpInit",sceHttpInit(h->pool,h->ssl,512*1024));if(h->http<0)return 0;if(checked("sceHttpsLoadCert",sceHttpsLoadCert(h->http,BX_TLS_ROOT_COUNT,(void*)bx_tls_roots,NULL,NULL))<0)return 0;h->tmpl=checked("sceHttpCreateTemplate",sceHttpCreateTemplate(h->http,"BX-Native-Transport/0.1",ORBIS_HTTP_VERSION_1_1,1));return h->tmpl>=0;}
 static int exchange(HTTP *h,const BXPairConfig *cfg,size_t *length,int *status){
     char url[256],auth[80];int connection=-1,request=-1,result=-1,n;size_t at=0;*length=0;*status=0;
     if(snprintf(url,sizeof(url),"%s/exchange",cfg->relay_origin)>=(int)sizeof(url) || snprintf(auth,sizeof(auth),"Bearer %s",cfg->console_token)>=(int)sizeof(auth))return -1;
@@ -43,7 +45,8 @@ static int exchange(HTTP *h,const BXPairConfig *cfg,size_t *length,int *status){
     request=checked("sceHttpCreateRequestWithURL",sceHttpCreateRequestWithURL(connection,ORBIS_METHOD_POST,url,used));if(request<0)goto done;
     if(checked("sceHttpAddRequestHeader",sceHttpAddRequestHeader(request,"Authorization",auth,0))<0 || checked("sceHttpAddRequestHeader",sceHttpAddRequestHeader(request,"Content-Type","application/octet-stream",0))<0 || checked("sceHttpSetConnectTimeOut",sceHttpSetConnectTimeOut(request,3000000))<0 || checked("sceHttpSetResolveTimeOut",sceHttpSetResolveTimeOut(request,3000000))<0 || checked("sceHttpSetSendTimeOut",sceHttpSetSendTimeOut(request,3000000))<0)goto done;
     sceHttpSetRecvTimeOut(request,3000000); /* SDK declares no return value. */
-    if(checked("sceHttpSendRequest",sceHttpSendRequest(request,outgoing,used))<0 || checked("sceHttpGetStatusCode",sceHttpGetStatusCode(request,status))<0)goto done;
+    if(checked("sceHttpSendRequest",sceHttpSendRequest(request,outgoing,used))<0){sceHttpsGetSslError(request,&ssl_error,&ssl_verify);goto done;}
+    if(checked("sceHttpGetStatusCode",sceHttpGetStatusCode(request,status))<0)goto done;
     if(*status!=200)goto done;
     while(at<MAX_BATCH){n=checked("sceHttpReadData",sceHttpReadData(request,incoming+at,MAX_BATCH-at));if(n<0)goto done;if(!n)break;at+=(size_t)n;}
     if(at==MAX_BATCH){uint8_t extra;if(checked("sceHttpReadData",sceHttpReadData(request,&extra,1))!=0)goto done;}
@@ -61,7 +64,7 @@ int main(void){
     while(!stopped()){
         size_t n=0,at;unsigned i,packets,new_epoch;int status;
         if(http.tmpl<0 && !open_http(&http)){close_http(&http);report("network_retry",0);sleep(2);continue;}
-        error_stage="none";error_code=0;
+        error_stage="none";error_code=ssl_error=0;ssl_verify=0;
         if(exchange(&http,&cfg,&n,&status)!=1){
             report("exchange_retry",status);
             if(status==401||status==403){report("credentials_refused",status);break;}

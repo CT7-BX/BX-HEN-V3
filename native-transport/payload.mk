@@ -14,7 +14,7 @@ build/compat/orbis/Net.h:
 	@test -n "$(OO_PS4_TOOLCHAIN)"
 	mkdir -p build/compat
 	cp -R "$(OO_PS4_TOOLCHAIN)/include/orbis" build/compat/
-$(OUT)/%.o: %.c bridge.h socket_adapter.h | build/compat/orbis/Net.h
+$(OUT)/%.o: %.c bridge.h socket_adapter.h tls_roots.h | build/compat/orbis/Net.h
 	mkdir -p $(OUT)
 	$(CC) $(CFLAGS) -c $< -o $@
 $(OUT)/pair_config.o: ../native-pair/pair_config.c | build/compat/orbis/Net.h
