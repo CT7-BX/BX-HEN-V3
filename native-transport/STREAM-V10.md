@@ -7,7 +7,13 @@ A reset barrier discards old in-flight batches before accepting a fresh session.
 Loss of the console stream closes the player's logical session, rather than
 replaying stale control commands. Reconnect with the saved browser profile.
 
-Build separately: `make -f payload.mk MODE=stream` with the same pinned SDK/TLS
+The v10 build uses the pinned curl 8.13.0 source plus `patch-curl-ws.py` to
+preserve data-fragment state across interleaved ping/pong control frames. The
+host test reproduces the failure with the original library. Build the patched
+archive using the commands in the workflow; do not use the old prebuilt curl
+for this candidate.
+
+Build separately: `make -f payload.mk MODE=stream STREAM_CURL_DIR=build/stream-tls` with the same pinned SDK/TLS
 libraries as v09. Output `bx-rp-stream-v10.elf`; the existing launcher PKG still
 embeds v09. Never run both payloads together. Both use the existing configuration,
 lock, stop and report paths. Preserve v09 as a rollback option.

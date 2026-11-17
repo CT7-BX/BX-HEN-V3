@@ -9,6 +9,10 @@ OUT := build/stream
 TARGET := bx-rp-stream-v10.elf
 MAIN := stream_main
 EXTRA := $(OUT)/ws_client.o $(OUT)/stream_state.o
+ifndef STREAM_CURL_DIR
+$(error STREAM_CURL_DIR must point to the verified patched curl archive for v10)
+endif
+LDFLAGS += -L$(STREAM_CURL_DIR)
 else
 OUT := build/payload
 TARGET := bx-rp-transport.elf
