@@ -7,6 +7,29 @@
     out.axes=out.axes.map((_,i)=>{const n=pad.axes[i];return typeof n==='number'&&Number.isFinite(n)?Math.round(Math.max(-1,Math.min(1,Math.abs(n)<0.12?0:n))*32767):0;});return out;
   }
   function connectedPads(device){try{return Array.from(device.getGamepads?.()??[]).filter(p=>p?.connected);}catch{return [];}}
+  function registrationDiagnostic(message){
+    if(typeof message!=='string')return null;
+    const rules=[
+      ['Regist timed out waiting for search response','R03','O serviço Uso remoto não respondeu à busca feita pelo payload.'],
+      ['Regist failed to getaddrinfo','R02','Falhou a resolução do endereço interno do PS4.'],
+      ['Regist failed to create socket for search','R01','Não foi possível abrir o socket de busca.'],
+      ['Regist failed to bind socket','R01','Não foi possível preparar o socket de busca.'],
+      ['Regist eventually failed to connect for search','R01','Falhou a preparação da busca no serviço Uso remoto.'],
+      ['Regist eventually failed to connect for request','R04','Não foi possível abrir a conexão de registro no PS4.'],
+      ['Regist failed to send search','R05','Falhou o envio da busca ao serviço Uso remoto.'],
+      ['Regist failed to send request header','R05','Falhou o envio do pedido de registro.'],
+      ['Regist failed to send payload','R05','Falhou o envio dos dados de registro.'],
+      ['Regist failed to receive response HTTP header','R06','O PS4 não entregou um cabeçalho de resposta ao registro.'],
+      ['Regist failed to parse response payload','R08','Não foi possível interpretar a resposta de registro.'],
+      ['Regist starting search','S01','Buscando o serviço Uso remoto pelo payload…'],
+      ['Regist received search response from','S02','O serviço respondeu à busca; abrindo o registro…'],
+      ['Regist waiting for response','S03','Pedido enviado; aguardando resposta do serviço Uso remoto…']
+    ];
+    const http=/^Regist received HTTP code ([1-5][0-9]{2})$/.exec(message);
+    if(http)return {code:'R07',text:'O serviço respondeu ao registro com HTTP '+http[1]+'.'};
+    for(const [prefix,code,text]of rules)if(message.startsWith(prefix))return {code,text};
+    return null; // Never return or retain raw logs, hostnames, PINs or key data.
+  }
   function registration(value){if(!value||value.ps5||!(/^[0-9a-f]{32}$/i.test(value.registKey))||!(/^[0-9a-f]{32}$/i.test(value.morning)))throw new Error('Registro PS4 inválido');return {registKey:value.registKey,morning:value.morning,ps5:false};}
   function nals(bytes){const starts=[];for(let i=0;i+3<bytes.length;i++){if(bytes[i]===0&&bytes[i+1]===0&&((bytes[i+2]===1)||(bytes[i+2]===0&&bytes[i+3]===1))){const skip=bytes[i+2]===1?3:4;starts.push({at:i,data:i+skip});i+=skip-1;}}
     return starts.map((s,i)=>({type:bytes[s.data]&31,body:bytes.slice(s.data,i+1<starts.length?starts[i+1].at:bytes.length),packet:bytes.slice(s.at,i+1<starts.length?starts[i+1].at:bytes.length)}));}
@@ -15,5 +38,5 @@
     while(now()<deadline){if((await readStatus()).nativeOnline===true)return;await sleep(500);}
     throw new Error('payload_offline');
   }
-  return Object.freeze({gamepad,connectedPads,registration,nals,waitForPayload});
+  return Object.freeze({gamepad,connectedPads,registrationDiagnostic,registration,nals,waitForPayload});
 });
