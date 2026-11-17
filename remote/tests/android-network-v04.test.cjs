@@ -12,7 +12,7 @@ const workflow = read(".github/workflows/android-gateway-build.yml");
 const gateway = read("remote/gateway.html");
 const web = read("remote/diagnostics.js");
 
-test("Android v0.4 draws a native, accessible, modular mobile dashboard",()=>{
+test("Android v0.5 draws a native, accessible, modular mobile dashboard",()=>{
   assert.match(app,/ANDROID GATEWAY/);
   assert.match(app,/GradientDrawable\.Orientation\.TL_BR/);
   for(const title of ["SISTEMA E DESEMPENHO","CONECTIVIDADE HTTPS","PRÓXIMOS PASSOS"])
@@ -52,6 +52,6 @@ test("permissions are limited to INTERNET and no streaming or private console ac
   assert.match(manifest,/usesCleartextTraffic="false"/);
   assert.doesNotMatch(app,/RECORD_AUDIO|CAMERA|ACCESS_FINE_LOCATION/);
   assert.doesNotMatch(app,/requestPermissions\(/);
-  assert.match(gateway,/APK experimental v0\.4/);
+  assert.match(gateway,/APK experimental v0\.5/);
   assert.match(app,/Streaming PS4 integrado ao BX: NÃO IMPLEMENTADO/);
 });
