@@ -1,16 +1,16 @@
 const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),core=require('./www/core.js');
-function harness(){
+function harness(saved={value:null}){
   const elements=new Map(),events=new Map(),intervals=new Map(),calls=[],pads=[],requests=[];
   const classList=()=>{const names=new Set();return {contains:x=>names.has(x),toggle(x,on){if(on===undefined)on=!names.has(x);if(on)names.add(x);else names.delete(x);return on;}};};
   const element=id=>{if(!elements.has(id))elements.set(id,{textContent:'',value:'',classList:classList(),setAttribute(k,v){this[k]=v;},addEventListener(){},append(){}});return elements.get(id);};
   const document={body:{classList:classList()},hidden:false,hasFocus:()=>true,getElementById:element,createElement:()=>element(Symbol()),addEventListener:(name,fn)=>events.set('document:'+name,fn)};
   const window={addEventListener:(name,fn)=>events.set(name,fn),AudioContext:class{state="running";async resume(){this.state="running";}async close(){this.state="closed";}}};
   const navigator={getGamepads:()=>pads};
-  const context=vm.createContext({window,document,navigator,BXNativeCore:core,Map,Array,Uint8Array,AbortController,SharedArrayBuffer,crossOriginIsolated:true,VideoDecoder:class{},location:{host:'example.test'},setInterval:(fn,ms)=>{intervals.set(ms,fn);return ms;},clearInterval:ms=>intervals.delete(ms),setTimeout,clearTimeout,fetch:async(path,options={})=>{requests.push({path,method:options.method||'GET'});return {ok:true,json:async()=>path==='/session'?{ticket:'test'}:{nativeOnline:true}};}});
+  const context=vm.createContext({window,document,navigator,BXNativeCore:core,BXDeviceStore:{create:()=>({read:async()=>saved.value,save:async value=>{if(saved.failSave)throw new Error();saved.value=core.deviceProfile(value);return saved.value;},clear:async()=>{saved.value=null;}})},Map,Array,Uint8Array,AbortController,SharedArrayBuffer,crossOriginIsolated:true,VideoDecoder:class{},location:{host:'example.test'},setInterval:(fn,ms)=>{intervals.set(ms,fn);return ms;},clearInterval:ms=>intervals.delete(ms),setTimeout,clearTimeout,fetch:async(path,options={})=>{requests.push({path,method:options.method||'GET'});return {ok:true,json:async()=>path==='/session'?{ticket:'test'}:{nativeOnline:true}};}});
   vm.runInContext(fs.readFileSync(__dirname+'/www/player.js','utf8'),context);
   context.Module.ccall=(name,type,types,args)=>{calls.push({name,args});return name==='chiaki_wasm_net_ready'?1:0;};
   context.Module.onRuntimeInitialized();
-  return {element,document,events,intervals,calls,pads,context,requests};
+  return {element,document,events,intervals,calls,pads,context,requests,saved};
 }
 test('fullscreen enters native API and exits; CSS fallback remains escapable when unsupported or denied',async()=>{
   const h=harness(),area=h.element('playerArea'),button=h.element('fullscreen');let enters=0,exits=0;
@@ -56,3 +56,10 @@ test('stream quit preserves registration and authorization for retry; explicit d
 
 test('stream startup uses selected bitrate and real resolution preset rather than pixel height',async()=>{const h=harness();h.element('quality').value='stable';await beginPlayback(h);const first=h.calls.find(c=>c.name==='chiaki_wasm_session_start');assert.equal(first.args[4],1);assert.equal(first.args[5],30);assert.equal(first.args[7],800);h.context.Module.onEvent('quit',0);await flush();h.element('quality').value='balanced';await h.element('play').onclick();const second=h.calls.filter(c=>c.name==='chiaki_wasm_session_start').at(-1);assert.equal(second.args[4],2);assert.equal(second.args[7],1500);});
 test('decoder backlog waits for a keyframe before accepting more dependent frames',async()=>{const h=harness();let decoder;h.context.VideoDecoder=class{decodeQueueSize=0;decoded=[];resets=0;constructor(){decoder=this;}configure(){}decode(frame){this.decoded.push(frame.type);}reset(){this.resets++;this.decodeQueueSize=0;}close(){}};h.context.EncodedVideoChunk=class{constructor(value){Object.assign(this,value);}};h.context.Module.HEAPU8=new Uint8Array(128);await beginPlayback(h);const feed=bytes=>{h.context.Module.HEAPU8.fill(0);h.context.Module.HEAPU8.set(bytes);h.context.Module.onVideo(0,bytes.length);};const key=[0,0,1,0x67,100,0,40,0,0,1,0x68,1,0,0,1,0x65,2],delta=[0,0,1,0x41,2];feed(key);assert.deepEqual(decoder.decoded,['key']);decoder.decodeQueueSize=5;feed(delta);decoder.decodeQueueSize=0;feed(delta);assert.deepEqual(decoder.decoded,['key']);feed(key);assert.equal(decoder.resets,1);feed(delta);assert.deepEqual(decoder.decoded,['key','key','delta']);});
+
+test('saved device profile reconnects and starts playback after page reload without file import or PIN',async()=>{
+ const saved={value:null};const first=harness(saved);await beginPlayback(first);first.element('pin').value='12345678';first.element('account').value='PRIVATE_ACCOUNT';await first.element('saveDevice').onclick();assert.deepEqual(Object.keys(saved.value).sort(),['playerKey','registration','version']);assert.doesNotMatch(JSON.stringify(saved.value),/12345678|PRIVATE_ACCOUNT/);
+ const next=harness(saved);await flush();assert.equal(next.element('connectPlay').disabled,false);assert.equal(next.element('playerKey').value,'');await next.element('connectPlay').onclick();assert.equal(next.calls.filter(c=>c.name==='chiaki_wasm_session_start').length,1);assert.equal(next.calls.filter(c=>c.name==='chiaki_wasm_regist').length,0);
+ await next.element('forgetDevice').onclick();assert.equal(saved.value,null);assert.equal(next.element('connect').disabled,true);assert.equal(next.requests.some(r=>r.method==='DELETE'),false);
+});
+test('storage failure preserves manual import and active connection',async()=>{const h=harness({value:null,failSave:true});await beginPlayback(h);await h.element('saveDevice').onclick();assert.match(h.element('savedStatus').textContent,/Não foi possível salvar/);assert.equal(h.element('connect').disabled,true);assert.equal(h.element('export').disabled,false);});
