@@ -40,8 +40,8 @@ class RemotePlayDiagnosticsTests(unittest.TestCase):
     def test_service_linked_and_usable_with_pkg_closed(self):
         self.assertIn('$(OUT)/remoteplay_probe.o', MAKE)
         self.assertIn('remoteplay_probe.h', MAKE)
-        self.assertIn("VERSION := 0.24", MAKE)
-        self.assertIn("CURRENT_UPDATE_MINOR 24u", MAIN)
+        self.assertIn("VERSION := 0.25", MAKE)
+        self.assertIn("CURRENT_UPDATE_MINOR 25u", MAIN)
         self.assertIn("$(OUT)/bx_remote_service.elf", MAKE)
         self.assertIn("bx-remote-service.elf", MAKE)
 
