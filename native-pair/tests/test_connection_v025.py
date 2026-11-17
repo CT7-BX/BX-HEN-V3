@@ -25,7 +25,7 @@ class ConnectionV025(unittest.TestCase):
     def test_ui_truthful_and_accessible(self):
         self.assertIn('"VERSION 0.25   BETA"', UI)
         self.assertIn('"ESTABILIDADE HTTPS"', UI)
-        self.assertIn('"VIDEO E CONTROLES DIRETOS PENDENTES"', UI)
+        self.assertIn('"STREAMING DIRETO AINDA INDISPONIVEL"', UI)
         self.assertIn("RECUPERACAO OU AVISO", UI)
         self.assertIn('"RECUPERANDO HTTPS"', DIAG)
         self.assertIn("BX_DIAG_WARNING", DIAG)
