@@ -32,15 +32,15 @@ test("network health checks are user initiated, bounded, async and public only",
   assert.ok(web.includes(endpoint));
   assert.match(app,/networkButton\.setOnClickListener\(v -> checkPublicServer\(\)\)/);
   assert.match(app,/new Thread\(\(\) -> \{/);
-  assert.match(app,/setConnectTimeout\(5000\)/);
-  assert.match(app,/setReadTimeout\(5000\)/);
+  assert.match(app,/setConnectTimeout\(4000\)/);
+  assert.match(app,/setReadTimeout\(4000\)/);
   assert.match(app,/bytes\.size\(\) \+ n > 4096/);
   assert.match(app,/setInstanceFollowRedirects\(false\)/);
   assert.match(app,/new JSONObject/);
   assert.match(app,/json\.optBoolean\("configured", false\)/);
   assert.match(app,/if \(checkingNetwork \|\| destroyed\) return/);
   assert.match(app,/onDestroy\(\)/);
-  assert.match(app,/connection\.disconnect\(\)/);
+  assert.match(app,/conn\.disconnect\(\)/);
   assert.match(app,/runOnUiThread\(\(\) -> \{/);
   assert.match(app,/O PS4 NÃO foi testado./);
   assert.doesNotMatch(app,/Authorization|console_token|PSN_PASSWORD|startForegroundService|createVirtualDisplay\(/);
