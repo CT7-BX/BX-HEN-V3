@@ -11,6 +11,7 @@ class WebSocketTests(unittest.TestCase):
   base=Path(__file__).resolve().parents[1];prefix=Path(os.environ['BX_HOST_CURL_PREFIX']);cls.exe=cls.root/'driver'
   subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Wno-misleading-indentation','-I'+str(prefix/'include'),str(base/'ws_client.c'),str(base/'https_client.c'),str(base/'tests/ws_driver.c'),str(prefix/'lib/libcurl.a'),'-lssl','-lcrypto','-lpthread','-ldl','-o',str(cls.exe)],check=True)
   class Handler(http.server.BaseHTTPRequestHandler):
+   protocol_version="HTTP/1.1"
    def log_message(self,*args):pass
    def do_GET(self):
     if self.headers.get('Authorization')!='Bearer '+'a'*64:self.send_error(401);return
