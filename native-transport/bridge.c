@@ -38,7 +38,7 @@ void bx_bridge_init(BXBridge *b,const BXBridgeOps *ops,void *ctx,
     memset(b,0,sizeof(*b));b->ops=*ops;b->context=ctx;b->emit=emit;
 }
 static int allowed(int type,unsigned port) {
-    return (type==1 && port==9295) || (type==2 && (port==9296 || port==9297));
+    return (type==1 && port==9295) || (type==2 && (port==9295 || port==9296 || port==9297));
 }
 int bx_bridge_handle(BXBridge *b,const uint8_t *p,size_t length) {
     uint32_t id,n,host; int fd,type,result=-1,error=22;unsigned port;

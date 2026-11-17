@@ -22,7 +22,7 @@ class NetworkTests(unittest.TestCase):
             return result
         data=exact(struct.unpack('<I',exact(4))[0]);return struct.unpack('<B3xIIiiiI',data[:28]),data[28:]
     def test_real_tcp_and_udp_echo(self):
-        for kind,port in [(socket.SOCK_STREAM,9295),(socket.SOCK_DGRAM,9296)]:
+        for kind,port in [(socket.SOCK_STREAM,9295),(socket.SOCK_DGRAM,9295),(socket.SOCK_DGRAM,9296),(socket.SOCK_DGRAM,9297)]:
             with self.subTest(kind=kind),socket.socket(socket.AF_INET,kind) as server:
                 server.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);server.bind(('127.0.0.1',port));server.settimeout(5)
                 if kind==socket.SOCK_STREAM:server.listen(1)

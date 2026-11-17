@@ -71,10 +71,30 @@ jobs:
           make -C native-transport
           readelf -h native-transport/bx-rp-transport.elf
           sha256sum native-transport/bx-rp-transport.elf > native-transport/transport.sha256
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Package standalone installer with embedded payload
+        env:
+          DOTNET_ROLL_FORWARD: Major
+          DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: '1'
+        run: |
+          mkdir -p native-transport/sce_sys/about native-transport/sce_module
+          for item in 'right.sprx:sce_sys/about/right.sprx' 'libc.prx:sce_module/libc.prx' 'libSceFios2.prx:sce_module/libSceFios2.prx'; do
+            IFS=: read -r name destination <<< "$item"
+            source="$(find "$OO_PS4_TOOLCHAIN" -type f -name "$name" -print -quit)"
+            test -n "$source"
+            cp "$source" "native-transport/$destination"
+          done
+          python3 ps4-agent/tools/make_icon.py native-transport/sce_sys/icon0.png
+          make -C native-transport pkg
+          "$OO_PS4_TOOLCHAIN/bin/linux/PkgTool.Core" pkg_validate native-transport/IV0000-BRPM00002_00-BXNATIVESTREAM01.pkg
+          sha256sum native-transport/*.pkg >> native-transport/transport.sha256
       - uses: actions/upload-artifact@v4
         with:
           name: bx-native-remoteplay-transport-untested
           path: |
             native-transport/bx-rp-transport.elf
             native-transport/transport.sha256
+            native-transport/*.pkg
           if-no-files-found: error

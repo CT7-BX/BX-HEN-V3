@@ -9,6 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <orbis/Net.h>
 #include <orbis/Ssl.h>
 #include <orbis/Http.h>
@@ -52,6 +53,7 @@ static int validate(size_t length){size_t at=16;unsigned i,n;if(length<16 || mem
 int main(void){
     BXPairConfig cfg;HTTP http={0,-1,-1,-1,-1};BXBridge bridge;int failures=0;
     if(!read_config(&cfg)){report("configuration_required",0);for(;;)sleep(1);}
+    {int lock=open("/data/bx-rp-transport.running",O_WRONLY|O_CREAT|O_EXCL,0600);if(lock<0){report("already_running_or_stale_lock",0);for(;;)sleep(1);}close(lock);}
     bx_bridge_init(&bridge,&bx_socket_ops,NULL,emit);empty();report("starting",0);
     while(!stopped()){
         size_t n=0,at;unsigned i,packets,new_epoch;int status;
@@ -73,6 +75,7 @@ int main(void){
         usleep(10000);
     }
     bx_bridge_close(&bridge);close_http(&http);memset(&cfg,0,sizeof(cfg));memset(outgoing,0,sizeof(outgoing));memset(incoming,0,sizeof(incoming));if(stopped())report("stopped",0);
+    remove("/data/bx-rp-transport.running");
     /* Avoid the unvalidated OpenOrbis libc exit path. */
     for(;;)sleep(1);
 }
