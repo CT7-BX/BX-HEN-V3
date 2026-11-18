@@ -27,7 +27,7 @@ test('physical controller preview works before PS4 connection, and blur/disconne
   h.pads.push({connected:true,mapping:'standard',buttons,axes:[.5,0,0,0]});h.intervals.get(250)();assert.match(h.element('controllerStatus').textContent,/Entrada do controle detectada neste aparelho/);
   h.element('playerKey').value='a'.repeat(64);await h.element('connect').onclick();
   await h.element('import').onchange({target:{files:[{size:100,text:async()=>JSON.stringify({registKey:'a'.repeat(32),morning:'b'.repeat(32)})}]}});
-  await h.element('play').onclick();const tick=h.intervals.get(33);assert.equal(typeof tick,'function');tick();
+  await h.element('play').onclick();const tick=h.intervals.get(16);assert.equal(typeof tick,'function');tick();
   const last=()=>h.calls.filter(c=>c.name==='chiaki_wasm_session_set_controller').at(-1).args;
   assert.equal(last()[0],1);assert.equal(last()[1],191);assert.equal(last()[3],16384);
   h.events.get('blur')();tick();assert.deepEqual(Array.from(last()),Array(10).fill(0));
@@ -35,13 +35,13 @@ test('physical controller preview works before PS4 connection, and blur/disconne
   h.pads[0].connected=false;h.events.get('gamepaddisconnected')();tick();assert.deepEqual(Array.from(last()),Array(10).fill(0));
 });
 
-test('failed WASM session start closes audio and does not keep polling controls',async()=>{const h=harness();h.element('playerKey').value='a'.repeat(64);await h.element('connect').onclick();await h.element('import').onchange({target:{files:[{size:100,text:async()=>JSON.stringify({registKey:'a'.repeat(32),morning:'b'.repeat(32)})}]}});const original=h.context.Module.ccall;h.context.Module.ccall=(name,...args)=>name==='chiaki_wasm_session_start'?-1:original(name,...args);await h.element('play').onclick();assert.equal(h.intervals.has(33),false);assert.match(h.element('status').textContent,/Não foi possível iniciar/);});
+test('failed WASM session start closes audio and does not keep polling controls',async()=>{const h=harness();h.element('playerKey').value='a'.repeat(64);await h.element('connect').onclick();await h.element('import').onchange({target:{files:[{size:100,text:async()=>JSON.stringify({registKey:'a'.repeat(32),morning:'b'.repeat(32)})}]}});const original=h.context.Module.ccall;h.context.Module.ccall=(name,...args)=>name==='chiaki_wasm_session_start'?-1:original(name,...args);await h.element('play').onclick();assert.equal(h.intervals.has(16),false);assert.match(h.element('status').textContent,/Não foi possível iniciar/);});
 test('registration prevents duplicate requests and shows sanitized stage after failure',async()=>{const h=harness();h.element('playerKey').value='a'.repeat(64);await h.element('connect').onclick();h.element('account').value='AAAAAAAAAAA=';h.element('pin').value='12345678';await h.element('register').onclick();assert.equal(h.element('register').disabled,true);await h.element('register').onclick();assert.equal(h.calls.filter(c=>c.name==='chiaki_wasm_regist').length,1);h.context.Module.onLog(1,'Regist timed out waiting for search response');h.context.Module.onLog(1,'Account-ID PRIVATE_SECRET');h.context.Module.onRegist({ok:false,error:'failed'});assert.equal(h.element('register').disabled,false);assert.match(h.element('status').textContent,/R03/);assert.doesNotMatch(h.element('status').textContent,/PRIVATE_SECRET|12345678|AAAAAAAAAAA/);});
 
 async function beginPlayback(h){h.element('playerKey').value='a'.repeat(64);await h.element('connect').onclick();await h.element('import').onchange({target:{files:[{size:100,text:async()=>JSON.stringify({registKey:'a'.repeat(32),morning:'b'.repeat(32)})}]}});await h.element('play').onclick();}
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 test('hidden and pagehide preserve live transport and playback but release all controls',async()=>{
- const h=harness();await beginPlayback(h);h.document.hidden=true;h.events.get('document:visibilitychange')();h.events.get('pagehide')({persisted:true});h.intervals.get(33)();await flush();
+ const h=harness();await beginPlayback(h);h.document.hidden=true;h.events.get('document:visibilitychange')();h.events.get('pagehide')({persisted:true});h.intervals.get(16)();await flush();
  assert.equal(h.calls.some(c=>c.name==='chiaki_wasm_session_stop'||c.name==='chiaki_wasm_fini'),false);assert.equal(h.requests.some(r=>r.method==='DELETE'),false);
  assert.equal(h.element('connect').disabled,true);assert.equal(h.element('play').disabled,true);
  const state=h.calls.filter(c=>c.name==='chiaki_wasm_session_set_controller').at(-1);assert.deepEqual(Array.from(state.args),Array(10).fill(0));
@@ -71,7 +71,7 @@ test('duplicate start is ignored and stop cancels an audio resume still in progr
  await h.element('import').onchange({target:{files:[{size:100,text:async()=>JSON.stringify({registKey:'a'.repeat(32),morning:'b'.repeat(32)})}]}});
  const pending=h.element('play').onclick();assert.equal(h.element('play').disabled,true);
  await h.element('play').onclick();h.element('stop').onclick();await flush();resume();await pending;
- assert.equal(h.calls.filter(c=>c.name==='chiaki_wasm_session_start').length,0);assert.equal(h.intervals.has(33),false);assert.equal(closed,1);
+ assert.equal(h.calls.filter(c=>c.name==='chiaki_wasm_session_start').length,0);assert.equal(h.intervals.has(16),false);assert.equal(closed,1);
 });
 function videoHarness(h){
  const decoders=[];h.context.VideoDecoder=class{decodeQueueSize=0;constructor(callbacks){this.callbacks=callbacks;decoders.push(this);}configure(){}decode(){}reset(){}close(){}};
@@ -83,7 +83,7 @@ test('late decoder callbacks from an ended session cannot draw or terminate the 
  const h=harness(),v=videoHarness(h);await beginPlayback(h);v.feed();const old=v.decoders[0];
  h.context.Module.onEvent('quit',0);await flush();await h.element('play').onclick();v.feed();let closed=0;
  old.callbacks.output({displayWidth:640,displayHeight:360,close(){closed++;}});old.callbacks.error(new Error('old decoder'));
- await flush();assert.equal(closed,1);assert.equal(h.intervals.has(33),true);assert.equal(h.calls.filter(c=>c.name==='chiaki_wasm_session_stop').length,1);
+ await flush();assert.equal(closed,1);assert.equal(h.intervals.has(16),true);assert.equal(h.calls.filter(c=>c.name==='chiaki_wasm_session_stop').length,1);
 });
 test('video reuses the canvas dimensions and always releases decoded frames',async()=>{
  const h=harness(),v=videoHarness(h);await beginPlayback(h);v.feed();const canvas=h.element('screen');let width=0,height=0,resizes=0,draws=0,closed=0;
@@ -118,7 +118,7 @@ test('disconnect is serialized and blocks a new connection until cleanup complet
 test('closed WASM transport releases playback and permits saved-profile reconnect without registering again',async()=>{
  const h=harness();await beginPlayback(h);await h.element('saveDevice').onclick();const original=h.context.Module.ccall;
  h.context.Module.ccall=(name,...args)=>name==='chiaki_wasm_net_ready'?0:original(name,...args);
- h.intervals.get(1000)();await flush();assert.equal(h.intervals.has(33),false);assert.equal(h.element('connectPlay').disabled,false);assert.match(h.element('status').textContent,/conexão caiu/);assert.ok(h.saved.value);
+ h.intervals.get(1000)();await flush();assert.equal(h.intervals.has(16),false);assert.equal(h.element('connectPlay').disabled,false);assert.match(h.element('status').textContent,/conexão caiu/);assert.ok(h.saved.value);
  h.context.Module.ccall=original;await h.element('connectPlay').onclick();assert.equal(h.calls.filter(c=>c.name==='chiaki_wasm_session_start').length,2);assert.equal(h.calls.filter(c=>c.name==='chiaki_wasm_regist').length,0);
 });
 test('authorization request times out and restores connect controls',async()=>{
@@ -158,4 +158,8 @@ test('audio backlog over 100ms is replaced with current sound instead of extendi
 test('decoded frames stalled over 100ms are released without displaying stale images',async()=>{
  const h=harness(),v=videoHarness(h);let now=1000;h.context.Date={now:()=>now};await beginPlayback(h);v.feed();now=1200;let draws=0,closed=0;h.element('screen').getContext=()=>({drawImage(){draws++;}});v.decoders[0].callbacks.output({timestamp:0,displayWidth:640,displayHeight:360,close(){closed++;}});assert.equal(draws,0);assert.equal(closed,1);
  v.feed();v.decoders[0].callbacks.output({timestamp:33333,displayWidth:640,displayHeight:360,close(){closed++;}});assert.equal(draws,1);assert.equal(closed,2);
+});
+
+test('controller polls at 16ms, sends changed inputs promptly, and coalesces unchanged calls',async()=>{
+ const h=harness();let now=1000;h.context.Date={now:()=>now};const buttons=Array.from({length:18},()=>({pressed:false,value:0}));h.pads.push({connected:true,mapping:'standard',buttons,axes:[0,0,0,0]});await beginPlayback(h);const tick=h.intervals.get(16),sent=()=>h.calls.filter(c=>c.name==='chiaki_wasm_session_set_controller');tick();const initial=sent().length;for(let i=0;i<5;i++){now+=16;tick();}assert.equal(sent().length,initial);buttons[0].pressed=true;tick();assert.equal(sent().at(-1).args[0],1);now+=100;tick();assert.equal(sent().length,initial+2);h.events.get('blur')();assert.deepEqual(Array.from(sent().at(-1).args),Array(10).fill(0));const neutral=sent().length;tick();assert.equal(sent().length,neutral);
 });

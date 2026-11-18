@@ -3,7 +3,7 @@ var Module={};
 (()=>{
   const $=id=>document.getElementById(id),core=BXNativeCore;
   let ready=false,linked=false,running=false,reg=null,secret='',decoder=null,audio=null,channels=2,rate=48000,nextAudio=0,frames=0,audioFrames=0,time=0,codec='',savedSps=null,savedPps=null,ticker=null;
-  let selectedRoute='relay';
+  let selectedRoute='relay',lastController='',lastControllerAt=0;
   let inputFocused=document.hasFocus(),registering=false,registrationDiagnostic=null;
   let waitForKeyframe=false,lastMetricsAt=Date.now(),lastMetricsFrames=0;
   const deviceStore=BXDeviceStore.create(globalThis.indexedDB);
@@ -15,7 +15,9 @@ var Module={};
   const call=(name,types,args)=>Module.ccall(name,'number',types,args);
   function controls(neutral=false){if(!ready||!running)return;neutral=neutral||!inputFocused||document.hidden;let state=core.gamepad(neutral?null:core.connectedPads(navigator).find(p=>p.mapping==='standard'));
     if(!neutral){for(const id of fingers.values()){if(id<16)state.buttons|=1<<id;else if(id===16)state.l2=255;else state.r2=255;}for(let i=0;i<2;i++){const a=stickValues.left[i],b=stickValues.right[i];if(a)state.axes[i]=Math.round(a*32767);if(b)state.axes[i+2]=Math.round(b*32767);}}
-    call('chiaki_wasm_session_set_controller',Array(10).fill('number'),[state.buttons,state.l2,state.r2,...state.axes,0,0,0]);
+    const args=[state.buttons,state.l2,state.r2,...state.axes,0,0,0],signature=args.join(','),now=Date.now();
+    if(signature===lastController&&(neutral||now-lastControllerAt<100))return;
+    lastController=signature;lastControllerAt=now;call('chiaki_wasm_session_set_controller',Array(10).fill('number'),args);
   }
   function clearInput(){fingers.clear();stickValues.left=[0,0];stickValues.right=[0,0];stickOwners.clear();controls(true);}
   async function request(path,options={},json=false,timeout=5000){
@@ -96,7 +98,7 @@ var Module={};
       audio=candidate;audio.onstatechange=refresh;nextAudio=0;frames=audioFrames=time=0;lastMetricsAt=Date.now();lastMetricsFrames=0;waitForKeyframe=false;savedSps=savedPps=null;codec='';const profile=core.videoProfile($('quality').value);running=true;
       if(call('chiaki_wasm_session_start',['string','string','string','number','number','number','number','number'],['127.0.0.1',reg.registKey,reg.morning,0,profile.preset,profile.fps,0,profile.bitrate])!==0)throw new Error('session_start_failed');
       if(generation!==playbackGeneration||!running)return;
-      ticker=setInterval(()=>controls(),33);status('Solicitando sessão real do PS4 em '+profile.height+'p / '+profile.bitrate+' kbps…');
+      lastController='';lastControllerAt=0;ticker=setInterval(()=>controls(),16);status('Solicitando sessão real do PS4 em '+profile.height+'p / '+profile.bitrate+' kbps…');
     }catch{
       if(generation===playbackGeneration){if(candidate!==audio){try{await candidate?.close();}catch{}}await endPlayback('Não foi possível iniciar áudio e sessão. A conexão com o payload foi preservada.');}
       else{try{await candidate?.close();}catch{}}

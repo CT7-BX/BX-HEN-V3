@@ -50,6 +50,8 @@ jobs:
           test "$(git -C _chiaki rev-parse HEAD)" = "70669b47a16376768001db229e3e8c3baf3e5238"
       - name: Apply bounded relay authentication patch
         run: python3 wasm-client/patch-auth.py _chiaki
+      - name: Reproduce queue pressure and disconnect wakeups on patched client
+        run: python3 wasm-client/test-queue-patch.py _chiaki
       - uses: mymindstorm/setup-emsdk@v14
         with:
           version: '3.1.74'
