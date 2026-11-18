@@ -6,7 +6,13 @@
     const value=i=>{const n=pad.buttons[i]?.value;return typeof n==='number'&&Number.isFinite(n)?Math.round(Math.max(0,Math.min(1,n))*255):0;};out.l2=value(6);out.r2=value(7);
     out.axes=out.axes.map((_,i)=>{const n=pad.axes[i];return typeof n==='number'&&Number.isFinite(n)?Math.round(Math.max(-1,Math.min(1,Math.abs(n)<0.12?0:n))*32767):0;});return out;
   }
-  function videoProfile(name){const profiles={stable:{preset:1,height:360,fps:30,bitrate:800},balanced:{preset:2,height:540,fps:30,bitrate:1500},quality:{preset:3,height:720,fps:30,bitrate:3000}};return {...(profiles[name]||profiles.stable)};}
+  function videoProfile(name,options={}){
+    const profiles={stable:{preset:1,height:360,fps:30,bitrate:800},balanced:{preset:2,height:540,fps:30,bitrate:1500},quality:{preset:3,height:720,fps:30,bitrate:3000},performance:{preset:3,height:720,fps:60,bitrate:0},pro:{preset:4,height:1080,fps:60,bitrate:0}};
+    if(name!=='custom')return {...(profiles[name]||profiles.stable)};
+    const height=Number(options.height),fps=Number(options.fps),bitrate=Number(options.bitrate??0),preset=[360,540,720,1080].indexOf(height)+1;
+    if(!preset||![30,60].includes(fps)||!Number.isInteger(bitrate)||bitrate<0||bitrate>2147483647)throw new Error('invalid_video_profile');
+    return {preset,height,fps,bitrate};
+  }
   function connectedPads(device){try{return Array.from(device.getGamepads?.()??[]).filter(p=>p?.connected);}catch{return [];}}
   function registrationDiagnostic(message){
     if(typeof message!=='string')return null;

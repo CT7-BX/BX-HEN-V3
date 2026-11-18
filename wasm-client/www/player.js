@@ -3,6 +3,7 @@ var Module={};
 (()=>{
   const $=id=>document.getElementById(id),core=BXNativeCore;
   let ready=false,linked=false,running=false,reg=null,secret='',decoder=null,audio=null,channels=2,rate=48000,nextAudio=0,frames=0,audioFrames=0,time=0,codec='',savedSps=null,savedPps=null,ticker=null;
+  let frameDuration=33333;
   let selectedRoute='relay',lastController='',lastControllerAt=0;
   let inputFocused=document.hasFocus(),registering=false,registrationDiagnostic=null;
   let waitForKeyframe=false,lastMetricsAt=Date.now(),lastMetricsFrames=0;
@@ -42,7 +43,7 @@ var Module={};
     })();return stopTask;
   }
   function metrics(){const now=Date.now(),elapsed=now-lastMetricsAt;if(elapsed<400)return;const fps=Math.round((frames-lastMetricsFrames)*1000/elapsed);lastMetricsAt=now;lastMetricsFrames=frames;const direct=globalThis.BXDirectTransport?.stats();$('metrics').textContent=(direct?'Direto · RTT '+(direct.rttMs??'…')+' ms · ':'')+`Vídeo: ${fps} fps observados · ${frames} quadros decodificados · Áudio: ${audioFrames} blocos PCM recebidos`;}
-  Module.onRuntimeInitialized=()=>{ready=true;if(!crossOriginIsolated||typeof SharedArrayBuffer==='undefined'||typeof VideoDecoder==='undefined'){ready=false;status('Este navegador não oferece os recursos necessários para o cliente Native.');return;}$('clientVersion').textContent='Cliente v14 carregado · PS4 pela internet: ELF v15';refresh();status('Cliente carregado. Autorize o celular para conectar ao payload.');};
+  Module.onRuntimeInitialized=()=>{ready=true;if(!crossOriginIsolated||typeof SharedArrayBuffer==='undefined'||typeof VideoDecoder==='undefined'){ready=false;status('Este navegador não oferece os recursos necessários para o cliente Native.');return;}$('clientVersion').textContent='Cliente v16 carregado · PS4 pela internet: ELF v15';refresh();status('Cliente carregado. Autorize o celular para conectar ao payload.');};
   Module.onLog=(level,message)=>{if(!registering)return;const diagnostic=core.registrationDiagnostic(message);if(diagnostic){registrationDiagnostic=diagnostic;$('registrationDiagnostic').textContent=diagnostic.code+' — '+diagnostic.text;}}; // Raw upstream logs never leave this callback or enter the DOM.
   Module.onRegist=value=>{registering=false;try{if(!value.ok)throw new Error();reg=core.registration(value);$('pin').value='';$('account').value='';status('Registro Remote Play recebido. Inicie a sessão e confirme imagem, som e controle no PS4.');refresh();}catch{status(registrationDiagnostic?('Registro não concluído. '+registrationDiagnostic.code+' — '+registrationDiagnostic.text):'Registro não concluído (R00). A causa ainda não foi identificada; nenhum jogo foi confirmado.');}refresh();};
   Module.onEvent=(event,reason)=>{if(event==='connected'){status('Protocolo conectado; aguardando vídeo decodificado e áudio.');}else if(event==='quit'){if(linked){const code=Number.isInteger(reason)&&reason>=0&&reason<=255?' Q'+reason:'';void endPlayback('A transmissão terminou'+code+'. A conexão com o payload foi preservada; tente iniciar novamente.');}}else if(event==='pin'){void endPlayback('O PS4 pediu um PIN de login; esta versão ainda não atende esse fluxo. A conexão com o payload foi preservada.');}};
@@ -55,7 +56,7 @@ var Module={};
     if(waitForKeyframe){if(!key)return;decodeArrival.clear();decoder.reset();decoder.configure({codec,optimizeForLatency:true});waitForKeyframe=false;}
     if(key&&savedSps&&savedPps){const combined=new Uint8Array(savedSps.length+savedPps.length+bytes.length);combined.set(savedSps);combined.set(savedPps,savedSps.length);combined.set(bytes,savedSps.length+savedPps.length);bytes=combined;}
     if(decodeArrival.size>=128)decodeArrival.delete(decodeArrival.keys().next().value);decodeArrival.set(time,Date.now());
-    decoder.decode(new EncodedVideoChunk({type:key?'key':'delta',timestamp:time,data:bytes}));time+=33333;
+    decoder.decode(new EncodedVideoChunk({type:key?'key':'delta',timestamp:time,data:bytes}));time+=frameDuration;
   }catch{void endPlayback('O fluxo de vídeo não pôde ser decodificado. A conexão com o payload foi preservada.');}};
   async function connect(key){
     if(linked)return true;if(linking||stopping)return false;
@@ -95,15 +96,16 @@ var Module={};
     try{
       candidate=preparedAudio||new (window.AudioContext||window.webkitAudioContext)();await candidate.resume();
       if(generation!==playbackGeneration||!linked){try{await candidate.close();}catch{}return;}
-      audio=candidate;audio.onstatechange=refresh;nextAudio=0;frames=audioFrames=time=0;lastMetricsAt=Date.now();lastMetricsFrames=0;waitForKeyframe=false;savedSps=savedPps=null;codec='';const profile=core.videoProfile($('quality').value);running=true;
+      audio=candidate;audio.onstatechange=refresh;nextAudio=0;frames=audioFrames=time=0;lastMetricsAt=Date.now();lastMetricsFrames=0;waitForKeyframe=false;savedSps=savedPps=null;codec='';const profile=core.videoProfile($('quality').value,{height:$('customResolution').value,fps:$('customFps').value,bitrate:$('customBitrate').value});frameDuration=Math.round(1000000/profile.fps);running=true;
       if(call('chiaki_wasm_session_start',['string','string','string','number','number','number','number','number'],['127.0.0.1',reg.registKey,reg.morning,0,profile.preset,profile.fps,0,profile.bitrate])!==0)throw new Error('session_start_failed');
       if(generation!==playbackGeneration||!running)return;
-      lastController='';lastControllerAt=0;ticker=setInterval(()=>controls(),16);status('Solicitando sessão real do PS4 em '+profile.height+'p / '+profile.bitrate+' kbps…');
-    }catch{
-      if(generation===playbackGeneration){if(candidate!==audio){try{await candidate?.close();}catch{}}await endPlayback('Não foi possível iniciar áudio e sessão. A conexão com o payload foi preservada.');}
+      lastController='';lastControllerAt=0;ticker=setInterval(()=>controls(),16);status('Solicitando sessão real do PS4 em '+profile.height+'p / '+profile.fps+' fps / '+(profile.bitrate?profile.bitrate+' kbps':'taxa padrão do protocolo')+'…');
+    }catch(error){
+      if(generation===playbackGeneration){if(candidate!==audio){try{await candidate?.close();}catch{}}await endPlayback(error.message==='invalid_video_profile'?'Configuração de vídeo inválida. Confira resolução, FPS e taxa inteira em kbps.':'Não foi possível iniciar áudio e sessão. A conexão com o payload foi preservada.');}
       else{try{await candidate?.close();}catch{}}
     }finally{if(generation===playbackGeneration){starting=false;refresh();}}
   }
+  $('quality').onchange=()=>{$('customVideo').hidden=$('quality').value!=='custom';};
   $('play').onclick=()=>startPlayback();
   $('stop').onclick=()=>{void stop();};
   $('export').onclick=()=>{if(!reg)return;const url=URL.createObjectURL(new Blob([JSON.stringify(reg)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='bx-ps4-registro-privado.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
