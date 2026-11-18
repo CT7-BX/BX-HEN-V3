@@ -31,3 +31,7 @@ test('regional routing moves all transport endpoints together without putting cr
  for(const bad of ['http://regional.example','https://regional.example/path',BASE,'https://user:pass@regional.example']){env.BX_REGIONAL_ORIGIN=bad;assert.equal((await worker.fetch(new Request(BASE+'/session'),env)).status,503);}
  }finally{globalThis.fetch=old;}
 });
+
+test('valid relay traffic renews expiry but a fully expired session cannot be revived',async()=>{
+ const {r,call}=room();try{const s=await(await call('/session','POST',PLAYER)).json();r.session.socket={readyState:1,send(){},close(){}};r.session.expiresAt=Date.now()+100;await call('/exchange','POST',CONSOLE,frame(0,1));assert.ok(r.session.expiresAt>Date.now()+3500000);r.session.expiresAt=Date.now()-1;const response=await call('/exchange','POST',CONSOLE,frame(s.epoch,2));assert.equal(parse(await response.arrayBuffer()).epoch,0);assert.equal(r.session,null);}finally{r.close();}
+});

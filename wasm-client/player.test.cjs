@@ -112,7 +112,7 @@ test('disconnect is serialized and blocks a new connection until cleanup complet
  const h=harness();await beginPlayback(h);const original=h.context.fetch;let release,deletes=0;
  h.context.fetch=(path,options)=>{if(options?.method==='DELETE'){deletes++;return new Promise(resolve=>{release=resolve;});}return original(path,options);};
  h.element('stop').onclick();h.element('stop').onclick();await flush();assert.equal(h.element('connect').disabled,true);
- h.element('playerKey').value='a'.repeat(64);await h.element('connect').onclick();assert.equal(h.requests.filter(r=>r.method==='POST').length,1);assert.equal(deletes,1);
+ h.element('playerKey').value='a'.repeat(64);await h.element('connect').onclick();assert.equal(h.requests.filter(r=>r.path==='/session'&&r.method==='POST').length,1);assert.equal(deletes,1);
  release({ok:true});await flush();assert.equal(h.element('connect').disabled,false);
 });
 test('closed WASM transport releases playback and permits saved-profile reconnect without registering again',async()=>{
@@ -134,4 +134,28 @@ test('direct LAN mode initializes the RTC socket only when the direct payload is
  h.element('transport').value='direct';await beginPlayback(h);assert.equal(configured,'a'.repeat(64));assert.equal(h.calls.find(c=>c.name==='chiaki_wasm_init').args[0],'wss://example.test/rtc-socket');
  h.element('stop').onclick();await flush();assert.equal(cleared,1);
  const missing=harness();missing.element('transport').value='direct';missing.element('playerKey').value='a'.repeat(64);await missing.element('connect').onclick();assert.match(missing.element('status').textContent,/bx-rp-direct-v11/);assert.equal(missing.calls.some(c=>c.name==='chiaki_wasm_init'),false);
+});
+
+test('automatic route detects the direct-only payload and locks route selection while connected',async()=>{
+ const h=harness();let configured=false;h.context.BXDirectTransport={configure(){configured=true;},active:()=>configured,clear(){configured=false;},stats:()=>null};const original=h.context.fetch;
+ h.context.fetch=(p,o)=>p==='/direct-status'?Promise.resolve({ok:true,json:async()=>({available:true,relayAvailable:false})}):original(p,o);
+ h.element('transport').value='auto';await beginPlayback(h);assert.equal(configured,true);assert.equal(h.calls.find(c=>c.name==='chiaki_wasm_init').args[0],'wss://example.test/rtc-socket');assert.equal(h.element('transport').disabled,true);assert.equal(h.requests.some(r=>r.path==='/session-status'),false);
+ h.element('stop').onclick();await flush();assert.equal(h.element('transport').disabled,false);
+});
+test('relay mode with direct-only payload gives an actionable error before opening wrong socket',async()=>{
+ const h=harness(),original=h.context.fetch;h.context.fetch=(p,o)=>p==='/direct-status'?Promise.resolve({ok:true,json:async()=>({available:true,relayAvailable:false})}):original(p,o);
+ h.element('transport').value='relay';h.element('playerKey').value='a'.repeat(64);await h.element('connect').onclick();assert.equal(h.calls.some(c=>c.name==='chiaki_wasm_init'),false);assert.match(h.element('status').textContent,/v11.*somente a rede de casa/);
+});
+test('automatic mode retains internet relay when persistent payload is available',async()=>{
+ const h=harness(),original=h.context.fetch;h.context.fetch=(p,o)=>p==='/direct-status'?Promise.resolve({ok:true,json:async()=>({available:false,relayAvailable:true})}):original(p,o);
+ h.element('transport').value='auto';await beginPlayback(h);assert.equal(h.calls.find(c=>c.name==='chiaki_wasm_init').args[0],'wss://example.test/socket');
+});
+test('audio backlog over 100ms is replaced with current sound instead of extending stale playback',async()=>{
+ const h=harness(),sources=[];h.context.window.AudioContext=class{state='running';currentTime=0;destination={};async resume(){}async close(){}createBuffer(){return {getChannelData:()=>new Float32Array(4800)};}createBufferSource(){const s={stops:0,connect(){},disconnect(){},start(t){this.at=t;},stop(){this.stops++;}};sources.push(s);return s;}};
+ h.context.Module.HEAPU8=new Uint8Array(19200);h.context.Module.HEAP16=new Int16Array(9600);await beginPlayback(h);h.context.Module.onAudio(0,4800);h.context.Module.onAudio(0,4800);assert.equal(sources[0].stops,1);assert.equal(sources[1].at,.02);
+});
+
+test('decoded frames stalled over 100ms are released without displaying stale images',async()=>{
+ const h=harness(),v=videoHarness(h);let now=1000;h.context.Date={now:()=>now};await beginPlayback(h);v.feed();now=1200;let draws=0,closed=0;h.element('screen').getContext=()=>({drawImage(){draws++;}});v.decoders[0].callbacks.output({timestamp:0,displayWidth:640,displayHeight:360,close(){closed++;}});assert.equal(draws,0);assert.equal(closed,1);
+ v.feed();v.decoders[0].callbacks.output({timestamp:33333,displayWidth:640,displayHeight:360,close(){closed++;}});assert.equal(draws,1);assert.equal(closed,2);
 });

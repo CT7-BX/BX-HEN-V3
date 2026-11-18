@@ -13,7 +13,7 @@ CFLAGS += -O2 -I$(RTC_DIR)/include -I$(RTC_DIR)/vendor/mbedtls/include -DMBEDTLS
 EXTRA := $(OUT)/rtc_rtc.o $(OUT)/rtc_stun.o $(OUT)/rtc_sctp.o $(OUT)/rtc_runtime.o $(patsubst $(RTC_DIR)/vendor/mbedtls/library/%.c,$(OUT)/mbed/%.o,$(wildcard $(RTC_DIR)/vendor/mbedtls/library/*.c))
 else ifeq ($(MODE),stream)
 OUT := build/stream
-TARGET := bx-rp-stream-v10.elf
+TARGET := bx-rp-stream-v12.elf
 MAIN := stream_main
 EXTRA := $(OUT)/ws_client.o $(OUT)/stream_state.o
 ifndef STREAM_CURL_DIR
@@ -26,7 +26,7 @@ TARGET := bx-rp-transport.elf
 MAIN := main
 EXTRA :=
 endif
-CFLAGS += -std=gnu11 -Wall -Wextra -DBX_TRANSPORT_PS4 -DBX_TRANSPORT_CURL -Ibuild/compat -I$(PS4_PAYLOAD_SDK)/target/user/homebrew/include
+CFLAGS += -O2 -std=gnu11 -Wall -Wextra -DBX_TRANSPORT_PS4 -DBX_TRANSPORT_CURL -Ibuild/compat -I$(PS4_PAYLOAD_SDK)/target/user/homebrew/include
 # Static verified TLS libraries; no native SCE HTTP/SSL imports.
 LDFLAGS += -L$(PS4_PAYLOAD_SDK)/target/user/homebrew/lib -lcurl -lpsl -lssl -lcrypto -lzstd -lz -pthread
 OBJECTS := $(OUT)/$(MAIN).o $(OUT)/https_client.o $(EXTRA) $(OUT)/bridge.o $(OUT)/socket_adapter.o $(OUT)/pair_config.o $(OUT)/pair_protocol.o

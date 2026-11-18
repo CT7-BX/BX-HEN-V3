@@ -2,6 +2,7 @@
 #include "socket_adapter.h"
 #include <string.h>
 #include <sys/time.h>
+#include <netinet/tcp.h>
 #ifdef BX_TRANSPORT_PS4
 #include <orbis/Net.h>
 typedef OrbisNetSockaddr Address;
@@ -22,6 +23,7 @@ static int send_datagram(int s,const void *p,size_t n,Address *a){return sceNetS
 static int name_socket(int s,Address *a,AddressLength *n){return sceNetGetsockname(s,a,n);}
 static int read_socket(int s,void *p,size_t n,Address *a,AddressLength *an){return sceNetRecvfrom(s,p,n,READ_FLAGS,a,an);}
 static int set_timeout(int s){struct timeval t={3,0};return sceNetSetsockopt(s,0xffff,0x1005,&t,sizeof(t));}
+static int nodelay(int s){int yes=1;return sceNetSetsockopt(s,6,TCP_NODELAY,&yes,sizeof(yes));}
 static int stop_send(int s){return sceNetShutdown(s,1);}
 static unsigned port_of(const Address *a){return ((unsigned char)a->sa_data[0]<<8)|(unsigned char)a->sa_data[1];}
 static int from_loopback(const Address *a){return a->sa_family==2 && (unsigned char)a->sa_data[2]==127 && a->sa_data[3]==0 && a->sa_data[4]==0 && a->sa_data[5]==1;}
@@ -51,11 +53,12 @@ static int send_datagram(int s,const void *p,size_t n,Address *a){return (int)se
 static int name_socket(int s,Address *a,AddressLength *n){return getsockname(s,(struct sockaddr *)a,n);}
 static int read_socket(int s,void *p,size_t n,Address *a,AddressLength *an){return (int)recvfrom(s,p,n,MSG_DONTWAIT,(struct sockaddr *)a,an);}
 static int set_timeout(int s){struct timeval t={3,0};return setsockopt(s,SOL_SOCKET,SO_SNDTIMEO,&t,sizeof(t));}
+static int nodelay(int s){int yes=1;return setsockopt(s,IPPROTO_TCP,TCP_NODELAY,&yes,sizeof(yes));}
 static int stop_send(int s){return shutdown(s,SHUT_WR);}
 static unsigned port_of(const Address *a){return ntohs(a->sin_port);}
 static int from_loopback(const Address *a){return a->sin_family==AF_INET && a->sin_addr.s_addr==htonl(INADDR_LOOPBACK);}
 #endif
-static int open_op(void *ctx,int type){int s;(void)ctx;s=make_socket(type);if(s>=0 && set_timeout(s)<0){drop(s);return -1;}return s;}
+static int open_op(void *ctx,int type){int s;(void)ctx;s=make_socket(type);if(s>=0 && (set_timeout(s)<0 || (type==1 && nodelay(s)<0))){drop(s);return -1;}return s;}
 static int close_op(void *ctx,int s){(void)ctx;return drop(s);}
 static int bind_op(void *ctx,int s){Address a;(void)ctx;address(&a,0);return bind_socket(s,&a);}
 static int connect_op(void *ctx,int s,unsigned port){Address a;(void)ctx;address(&a,port);return connect_socket(s,&a);}

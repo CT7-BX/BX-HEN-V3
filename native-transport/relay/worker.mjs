@@ -17,12 +17,14 @@ async function boundedBody(request){const reader=request.body?.getReader();if(!r
 export class BXNativeRoom {
   constructor(ctx,env){this.ctx=ctx;this.env=env;this.session=null;this.queue=Promise.resolve();this.consoleSocket=null;this.directSeenAt=0;}
   close(reason='session_ended'){const s=this.session;this.session=null;if(s){clearTimeout(s.timer);try{s.socket?.close(1000,reason);}catch{}}}
+  touch(s){if(this.session===s)s.expiresAt=Date.now()+TTL;}
+  armExpiry(s){s.timer=setTimeout(()=>{if(this.session!==s)return;if(Date.now()>=s.expiresAt)this.close();else this.armExpiry(s);},Math.max(1,s.expiresAt-Date.now()));}
   exchangeResult(raw){
     const s=this.session;
     if(!s||Date.now()>=s.expiresAt){this.close();return {status:200,body:frame(0,0)};}
     try{const body=s.exchange.exchange(raw,packet=>{
       if(!s.socket||s.socket.readyState!==1||(s.socket.bufferedAmount??0)>MAX_SOCKET_BUFFER)throw new Error('player_unavailable');s.socket.send(packet);
-    });s.readyAt=Date.now();return {status:200,body};}
+    });s.readyAt=Date.now();this.touch(s);return {status:200,body};}
     catch(error){if(error.message==='epoch_changed')return {status:409,error:'epoch_changed'};this.close();return {status:400,error:'transport_closed'};}
   }
   async fetch(request){const next=this.queue.then(()=>this.handle(request));this.queue=next.catch(()=>{});return next;}
@@ -32,10 +34,10 @@ export class BXNativeRoom {
       const consoleRoute=path==='/direct-poll'||path==='/direct-answer';
       if(!await authorized(request,consoleRoute?this.env.BX_CONSOLE_KEY:this.env.BX_PLAYER_KEY))return json({error:'unauthorized'},401);
       const now=Date.now(),s=this.session;
-      if(path==='/direct-status')return json({available:this.directSeenAt>0&&now-this.directSeenAt<5000,scope:'lan'});
+      if(path==='/direct-status')return json({available:this.directSeenAt>0&&now-this.directSeenAt<5000,scope:'lan',relayAvailable:this.consoleSocket?.readyState===1||Boolean(s&&s.readyAt>0&&now-s.readyAt<15000)});
       if(path==='/direct-poll'){
         this.directSeenAt=now;
-        const offer=s?.directOffer;
+        const offer=s?.directOffer;if(offer&&offer.expiresAt>now&&s.expiresAt>now)this.touch(s);
         return new Response(offer&&s.expiresAt>now&&offer.expiresAt>now?offer.id+'\n'+offer.sdp:'',{headers:{'Content-Type':'application/sdp','Cache-Control':'no-store'}});
       }
       if(!s||s.expiresAt<=now)return json({error:'session_required'},409);
@@ -64,7 +66,7 @@ export class BXNativeRoom {
       if(!await authorized(request,this.env.BX_PLAYER_KEY))return json({error:'unauthorized'},401);
       this.close();let epoch=0;while(!epoch){epoch=crypto.getRandomValues(new Uint32Array(1))[0];}
       const s={epoch,ticket:ticket(),exchange:new Exchange(epoch),socket:null,opened:false,expiresAt:Date.now()+TTL,readyAt:0};
-      s.timer=setTimeout(()=>{if(this.session===s)this.close();},TTL);this.session=s;
+      this.session=s;this.armExpiry(s);
       return json({ticket:s.ticket,epoch,expiresAt:s.expiresAt});
     }
     if(path==='/session' && request.method==='DELETE'){
@@ -112,7 +114,7 @@ export class BXNativeRoom {
       const s=this.session,protocols=(request.headers.get('Sec-WebSocket-Protocol')??'').split(',').map(x=>x.trim());
       if(!s || Date.now()>=s.expiresAt || s.opened || !protocols.includes('bx.'+s.ticket) || !protocols.includes('binary'))return json({error:'unauthorized'},401);
       const pair=new WebSocketPair(),client=pair[0],socket=pair[1];socket.binaryType='arraybuffer';socket.accept();s.socket=socket;s.opened=true;
-      socket.addEventListener('message',event=>{if(this.session!==s)return;try{if(!(event.data instanceof ArrayBuffer))throw new Error('binary_required');s.exchange.enqueue(event.data);}catch(error){const reason=['binary_required','bad_packet','queue_limit'].includes(error.message)?error.message:'invalid_message';this.close(reason);}});
+      socket.addEventListener('message',event=>{if(this.session!==s)return;try{if(!(event.data instanceof ArrayBuffer))throw new Error('binary_required');s.exchange.enqueue(event.data);this.touch(s);}catch(error){const reason=['binary_required','bad_packet','queue_limit'].includes(error.message)?error.message:'invalid_message';this.close(reason);}});
       socket.addEventListener('close',()=>{if(this.session===s)this.close('socket_closed');});socket.addEventListener('error',()=>{if(this.session===s)this.close('socket_error');});
       return new Response(null,{status:101,webSocket:client,headers:{'Sec-WebSocket-Protocol':'binary'}});
     }
