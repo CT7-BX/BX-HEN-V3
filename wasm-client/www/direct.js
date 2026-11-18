@@ -28,7 +28,7 @@
   }
   ping(){if(this.readyState!==1)return;if(this.pings.size>=4){this.close(4000,'direct_ping_timeout');return;}const b=new Uint8Array(8);b.set([66,88,80,49]);new DataView(b.buffer).setUint32(4,++this.sequence,true);this.pings.set(this.sequence,performance.now());try{this.channel.send(b);}catch{this.close(4000,'direct_channel_error');}}
   send(data){if(this.readyState!==1)throw new Error('direct_not_open');const n=data.byteLength;if(!Number.isInteger(n)||n<1||n>65535||this.bufferedAmount>256*1024){this.close(4000,'direct_backpressure');throw new Error('direct_buffer_limit');}this.channel.send(data);}
-  close(code=1000,reason=''){if(this.readyState===3)return;this.readyState=3;clearInterval(this.timer);clearTimeout(this.setupTimer);this.controller.abort();try{this.channel?.close();}catch{}try{this.peer?.close();}catch{}this.pings.clear();this.dispatch('close',{code,reason,wasClean:code===1000});}
+  close(code=1000,reason=''){if(this.readyState===3)return;this.readyState=3;clearInterval(this.timer);clearTimeout(this.setupTimer);this.controller.abort();try{this.channel?.close();}catch{}try{this.peer?.close();}catch{}this.pings.clear();this.key='';if(current===this)current=null;this.dispatch('close',{code,reason,wasClean:code===1000});}
  }
  function Socket(url,protocols){const parsed=new URL(url,root.location?.href);if(parsed.origin==='wss://'+root.location.host&&parsed.pathname==='/rtc-socket'&&!parsed.search)return new PeerSocket(url);return new NativeSocket(url,protocols);}
  if(NativeSocket){Socket.prototype=NativeSocket.prototype;for(const [key,value]of Object.entries({CONNECTING:0,OPEN:1,CLOSING:2,CLOSED:3}))Socket[key]=value;root.WebSocket=Socket;}

@@ -9,7 +9,7 @@ OUT := build/direct
 TARGET := bx-rp-direct-v11.elf
 MAIN := direct_main
 RTC_DIR := build/direct/deps
-CFLAGS += -I$(RTC_DIR)/include -I$(RTC_DIR)/vendor/mbedtls/include -DMBEDTLS_CONFIG_FILE='<c4f_mbedtls_config.h>'
+CFLAGS += -O2 -I$(RTC_DIR)/include -I$(RTC_DIR)/vendor/mbedtls/include -DMBEDTLS_CONFIG_FILE='<c4f_mbedtls_config.h>'
 EXTRA := $(OUT)/rtc_rtc.o $(OUT)/rtc_stun.o $(OUT)/rtc_sctp.o $(OUT)/rtc_runtime.o $(patsubst $(RTC_DIR)/vendor/mbedtls/library/%.c,$(OUT)/mbed/%.o,$(wildcard $(RTC_DIR)/vendor/mbedtls/library/*.c))
 else ifeq ($(MODE),stream)
 OUT := build/stream
