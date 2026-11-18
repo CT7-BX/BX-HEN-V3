@@ -8,6 +8,7 @@
 #include "c4f_rtc.h"
 #include <orbis/Ssl.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include "tls_roots.h"
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -21,7 +22,7 @@ static BXBridge bridge;static C4fConn *peer;static unsigned char queued[QUEUE_LI
 static unsigned long long bytes_in,bytes_out;static int failed;
 static uint32_t rd(const unsigned char *p){return p[0]|((uint32_t)p[1]<<8)|((uint32_t)p[2]<<16)|((uint32_t)p[3]<<24);}
 static void wr(unsigned char *p,uint32_t n){for(unsigned i=0;i<4;i++)p[i]=(unsigned char)(n>>(i*8));}
-static int stopped(void){return access(STOP,F_OK)==0;}
+static int stopped(void){struct stat value;return stat(STOP,&value)==0;}
 static int emit(void *ctx,const uint8_t *p,size_t n){(void)ctx;if(!peer||bxRtcBinary(peer,p,n))return 0;bytes_out+=n;return 1;}
 static void event(C4fConn *c,int type,const char *data,size_t n,void *ctx){(void)ctx;
  if(type==C4F_NET_OPEN){bx_bridge_close(&bridge);bx_bridge_init(&bridge,&bx_socket_ops,NULL,emit);peer=c;used=read_at=0;bytes_in=bytes_out=0;failed=0;}
@@ -32,7 +33,7 @@ static void event(C4fConn *c,int type,const char *data,size_t n,void *ctx){(void
   wr(queued+used,(uint32_t)n);used+=4;memcpy(queued+used,data,n);used+=n;bytes_in+=n;
  }
 }
-static void report(const char *phase,int code){FILE *f=fopen("/data/bx-rp-transport-report.txt.tmp","w");if(!f)return;fprintf(f,"BX free direct LAN candidate\nbuild=v11-direct\ntransport=webrtc-direct-lan\nphase=%s\nerror_code=%d\ndirect_rtt_ms=%llu\nqueue_bytes=%zu\nbytes_in=%llu\nbytes_out=%llu\nphysicalValidation=required\n",phase,code,(unsigned long long)bxRtcRtt(peer),used-read_at,bytes_in,bytes_out);fclose(f);rename("/data/bx-rp-transport-report.txt.tmp","/data/bx-rp-transport-report.txt");}
+static void report(const char *phase,int code){FILE *f=fopen("/data/bx-rp-transport-report.txt.tmp","w");if(!f)return;fprintf(f,"BX free direct LAN candidate\nbuild=v11-direct\ntransport=webrtc-direct-lan\nphase=%s\nerror_code=%d\nclock_ms=%llu\ndirect_rtt_ms=%llu\nqueue_bytes=%zu\nbytes_in=%llu\nbytes_out=%llu\nphysicalValidation=required\n",phase,code,(unsigned long long)c4fTimeMs(),(unsigned long long)bxRtcRtt(peer),used-read_at,bytes_in,bytes_out);fclose(f);rename("/data/bx-rp-transport-report.txt.tmp","/data/bx-rp-transport-report.txt");}
 static int config(BXPairConfig *cfg,uint32_t *ip){char text[1024]={0},address[64]={0};size_t n;FILE *f=fopen("/user/data/bx-rp-transport.cfg","rb");if(!f)return 0;n=fread(text,1,sizeof(text)-1,f);int valid=!ferror(f)&&n>0&&n<sizeof(text)-1;fclose(f);if(valid)valid=bx_pair_parse_config(text,cfg);memset(text,0,sizeof(text));if(!valid)return 0;
  f=fopen("/data/bx-rp-direct-ip.txt","rb");if(!f)return 0;n=fread(address,1,sizeof(address)-1,f);valid=!ferror(f)&&n>0&&n<sizeof(address)-1;fclose(f);if(!valid)return 0;address[strcspn(address,"\r\n")]=0;
  if(inet_pton(AF_INET,address,ip)!=1)return 0;uint32_t host=ntohl(*ip);return (host>>24)==10||(host>>20)==0xac1||(host>>16)==0xc0a8;
