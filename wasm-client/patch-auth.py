@@ -84,6 +84,17 @@ s=s.replace('(s->connected || s->closed)', '(s->connected || s->closed || g_ws_f
 s=s.replace('if(!g_ws_open || !g_ws)', 'if(g_ws_failed || !g_ws_open || !g_ws)')
 start=s.index('static EM_BOOL on_error(');end=s.index('static EM_BOOL on_close(',start);a=s[start:end].replace('\tg_ws_failed = 1;', '\tg_ws_failed = 1;\n\tg_ws_open = 0;');s=s[:start]+a+s[end:]
 start=s.index('void chiaki_wasm_net_disconnect(');end=s.index('int chiaki_wasm_net_is_ready(',start);a=s[start:end].replace('\tg_ws_open = 0;', '\tg_ws_open = 0;\n\tg_ws_failed = 1;\n\tpthread_cond_broadcast(&g_cv);');s=s[:start]+a+s[end:]
+# An event from an old WebSocket must not close or feed a new connection.
+s=s.replace('static char g_proxy_url[512];', 'static char g_proxy_url[512];\nstatic uint32_t bx_ws_generation = 1;')
+for begin,end in [('static EM_BOOL on_open(', 'static EM_BOOL on_error('),('static EM_BOOL on_error(', 'static EM_BOOL on_close('),('static EM_BOOL on_close(', 'static EM_BOOL on_message('),('static EM_BOOL on_message(', 'static char bx_protocols')]:
+    start=s.index(begin);stop=s.index(end,start);a=s[start:stop]
+    a=a.replace('\tpthread_mutex_lock(&g_mu);','\tpthread_mutex_lock(&g_mu);\n\tif((uint32_t)(uintptr_t)user != bx_ws_generation){pthread_mutex_unlock(&g_mu);return EM_TRUE;}',1)
+    s=s[:start]+a+s[stop:]
+for begin,end in [('int chiaki_wasm_net_connect(', 'void chiaki_wasm_net_disconnect('),('void chiaki_wasm_net_disconnect(', 'int chiaki_wasm_net_is_ready(')]:
+    start=s.index(begin);stop=s.index(end,start);a=s[start:stop]
+    a=a.replace('\tif(g_ws)\n', '\tpthread_mutex_lock(&g_mu);bx_ws_generation++;pthread_mutex_unlock(&g_mu);\n\tif(g_ws)\n',1)
+    a=a.replace('(g_ws, NULL, on_', '(g_ws, (void *)(uintptr_t)bx_ws_generation, on_')
+    s=s[:start]+a+s[stop:]
 p.write_text(s)
 # Debug formatting/hexdumps must not synchronously proxy to the UI during play.
 p=root/'wasm/src/chiaki_wasm.c';s=p.read_text();old='CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE';assert s.count(old)==1

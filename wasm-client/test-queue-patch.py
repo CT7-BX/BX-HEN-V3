@@ -24,6 +24,7 @@ code=r'''
 #define PIPE_BUF_SIZE 1024
 #define EM_TRUE 1
 typedef int EM_BOOL;
+typedef struct {int unused;} EmscriptenWebSocketOpenEvent;
 typedef struct {int unused;} EmscriptenWebSocketErrorEvent;
 typedef struct {int unused;} EmscriptenWebSocketCloseEvent;
 static int emscripten_websocket_close(int ws,int code,const char *reason){(void)ws;(void)code;(void)reason;return 0;}
@@ -36,10 +37,11 @@ static pthread_mutex_t g_mu=PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t g_cv=PTHREAD_COND_INITIALIZER;
 static NetFd g_fds[FD_MAX];
 static int g_ws_open=1,g_ws_failed=0,g_ws=1;
+static uint32_t bx_ws_generation=1;
 '''
 code+=part('static int is_ours(', 'static uint32_t alloc_id_locked(')
 code+=part('static void pkt_free_all(', 'static void hdr_write(')
-code+=part('static EM_BOOL on_error(', 'static EM_BOOL on_message(')
+code+=part('static EM_BOOL on_open(', 'static EM_BOOL on_message(')
 code+=part('void chiaki_wasm_net_disconnect(', 'int chiaki_wasm_net_is_ready(')
 code+=part('static ssize_t dequeue_recv(', 'ssize_t __wrap_recvfrom(')
 code+=part('int __wrap_select(', 'int __wrap_getaddrinfo(')
@@ -68,7 +70,7 @@ int main(void){uint8_t data[16384]={0},out[16];NetFd *n=&g_fds[0];reset();
  assert(dequeue_recv(n,out,sizeof(out),NULL,0)==sizeof(out));assert(out[0]==1&&n->q_count==31&&n->q_bytes==31u*sizeof(data));reset();
  // A transport failure must wake both an indefinite recv and select.
  for(mode=0;mode<3;mode++){reset();started=0;pthread_t thread;assert(!pthread_create(&thread,NULL,blocked,NULL));pthread_mutex_lock(&g_mu);while(!started)pthread_cond_wait(&started_cv,&g_mu);pthread_mutex_unlock(&g_mu);chiaki_wasm_net_disconnect();assert(!pthread_join(thread,NULL));assert(mode?thread_result==1:thread_result==-1&&thread_errno==ECONNRESET);}
- reset();on_error(0,NULL,NULL);assert(!g_ws_open&&g_ws_failed);reset();on_close(0,NULL,NULL);assert(!g_ws_open&&g_ws_failed);reset();pkt_free_all(n);return 0;
+ reset();on_error(0,NULL,(void *)(uintptr_t)bx_ws_generation);assert(!g_ws_open&&g_ws_failed);reset();on_close(0,NULL,(void *)(uintptr_t)bx_ws_generation);assert(!g_ws_open&&g_ws_failed);reset();uint32_t old=bx_ws_generation;bx_ws_generation++;on_close(0,NULL,(void *)(uintptr_t)old);on_error(0,NULL,(void *)(uintptr_t)old);assert(g_ws_open&&!g_ws_failed);g_ws_open=0;g_ws_failed=1;on_open(0,NULL,(void *)(uintptr_t)old);assert(!g_ws_open&&g_ws_failed);on_open(0,NULL,(void *)(uintptr_t)bx_ws_generation);assert(g_ws_open&&!g_ws_failed);pkt_free_all(n);return 0;
 }
 '''
 with tempfile.TemporaryDirectory() as tmp:

@@ -4,7 +4,7 @@ Keeps the existing v13 PS4 payload and relay protocol. No ELF/configuration/regi
 
 The pinned upstream virtual receive queue evicted the oldest packet on overflow for both UDP and TCP. TCP byte eviction corrupts a stream. The client now tracks queue bytes, limits each TCP socket to 2 MiB/2048 packets and fails the transport on TCP overflow/allocation failure instead of silently losing bytes. UDP remains atomic and retains the existing oldest-datagram eviction policy with an additional 512 KiB bound. These are memory limits, not network latency guarantees.
 
-Transport failure now causes pending recv/select readers to wake and report failure. WebSocket errors clear readiness and explicit disconnect wakes condition waiters. The UI can release the failed connection and reconnect using the saved registration; no automatic gameplay restart is added.
+Transport failure now causes pending recv/select readers to wake and report failure. WebSocket callbacks carry a connection generation so late close/error/open/data events from a replaced socket cannot affect the new connection. WebSocket errors clear readiness and explicit disconnect wakes condition waiters. The UI can release the failed connection and reconnect using the saved registration; no automatic gameplay restart is added.
 
 DEBUG logs are excluded before formatting/proxying to the UI thread; INFO/WARNING/ERROR registration diagnostics remain. Gamepad sampling changes from 33 to 16 ms; unchanged values are coalesced, with a 100 ms active-state refresh and immediate changed/neutral input. This is not a measured PS4 input-to-display improvement.
 
