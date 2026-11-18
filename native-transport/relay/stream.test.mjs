@@ -35,3 +35,16 @@ test('persistent console rejects oversized, text and backed-up traffic',async()=
  assert.equal(t.r.consoleSocket,null);assert.equal(t.r.session,null);assert.equal(t.socket.readyState,3);
  }finally{t.cleanup();}}
 });
+
+test('opt-in pushed downlink sends player bytes without another console batch; v12 stays compatible',async()=>{
+ for(const push of [false,true]){const t=setup();try{
+ await t.r.fetch(new Request(BASE+'/console-stream',{headers:{Authorization:'Bearer '+KEY,Upgrade:'websocket',...(push?{'X-BX-Downlink':'push-v1'}:{})}}));const console=t.socket;
+ const s=await(await t.call('/session','POST',PLAYER)).json();t.send(frame(0,1));
+ await t.r.fetch(new Request(BASE+'/socket',{headers:{Origin:BASE,Upgrade:'websocket','Sec-WebSocket-Protocol':'binary,bx.'+s.ticket}}));const player=t.socket;
+ const packet=new Uint8Array(28);packet[0]=5;player.events.message({data:packet.buffer});
+ assert.equal(console.sent.length,push?2:1);assert.equal(t.r.session.exchange.queue.length,push?0:1);
+ if(push){const sent=console.sent[1];assert.equal(sent.seq,0);assert.equal(sent.epoch,s.epoch);assert.deepEqual(sent.packets,[packet]);}
+ // A replacement must queue until the console acknowledges the new epoch.
+ await t.call('/session','POST',PLAYER);await t.r.fetch(new Request(BASE+'/socket',{headers:{Origin:BASE,Upgrade:'websocket','Sec-WebSocket-Protocol':'binary,bx.'+t.r.session.ticket}}));const fresh=t.socket;fresh.events.message({data:packet.buffer});assert.equal(t.r.session.exchange.queue.length,1);assert.equal(console.sent.length,push?2:1);
+ }finally{t.cleanup();}}
+});

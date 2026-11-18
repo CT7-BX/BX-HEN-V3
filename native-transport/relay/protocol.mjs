@@ -17,6 +17,7 @@ export function parse(raw){
 export class Exchange {
   constructor(epoch){if(!epoch)throw new Error('bad_epoch');this.epoch=epoch;this.seq=0;this.queue=[];this.bytes=0;this.cached=null;this.previous=null;}
   enqueue(packet){const b=new Uint8Array(packet);if(b.length<28||b.length>65535||new DataView(b.buffer,b.byteOffset).getUint32(24,true)!==b.length-28)throw new Error('bad_packet');if(this.bytes+4+b.length>MAX_BATCH-16||this.queue.length>=1024)throw new Error('queue_limit');this.queue.push(b.slice());this.bytes+=4+b.length;}
+  takeQueued(){const packets=this.queue;this.queue=[];this.bytes=0;return packets;}
   exchange(raw,deliver){if(this.closed)throw new Error("exchange_closed");const packet=parse(raw);if(packet.epoch!==this.epoch && !(packet.epoch===0&&packet.seq===1&&packet.packets.length===0))throw new Error('epoch_changed');
     if(packet.seq===this.seq){const old=this.previous,b=new Uint8Array(raw);if(!old||old.length!==b.length||old.some((x,i)=>x!==b[i]))throw new Error('conflicting_retry');return this.cached.slice();}
     if(packet.seq!==this.seq+1)throw new Error('sequence_gap');

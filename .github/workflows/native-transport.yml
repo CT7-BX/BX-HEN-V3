@@ -135,9 +135,9 @@ jobs:
           cp -R native-transport/direct native-transport/build/direct/deps/bx-source/native-transport/
           cp native-pair/pair_config.* native-pair/pair_protocol.* native-transport/build/direct/deps/bx-source/native-pair/
           tar -czf native-transport/direct-corresponding-source.tar.gz -C native-transport/build/direct/deps .
-          readelf -d native-transport/bx-rp-stream-v12.elf > native-transport/stream-dynamic.txt
+          readelf -d native-transport/bx-rp-stream-v13.elf > native-transport/stream-dynamic.txt
           if grep -qE "libSce(Ssl|Http)" native-transport/stream-dynamic.txt; then exit 1; fi
-          sha256sum native-transport/bx-rp-stream-v12.elf > native-transport/stream.sha256
+          sha256sum native-transport/bx-rp-stream-v13.elf > native-transport/stream.sha256
           readelf -h native-transport/bx-rp-transport.elf
           readelf -d native-transport/bx-rp-transport.elf | tee native-transport/payload-dynamic.txt
           grep -q libSceLibcInternal native-transport/payload-dynamic.txt
@@ -159,7 +159,7 @@ jobs:
           path: |
             native-transport/bx-rp-transport.elf
             native-transport/transport.sha256
-            native-transport/bx-rp-stream-v12.elf
+            native-transport/bx-rp-stream-v13.elf
             native-transport/stream.sha256
             native-transport/stream-dynamic.txt
             native-transport/bx-rp-direct-v11.elf

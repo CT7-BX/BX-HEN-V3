@@ -13,8 +13,9 @@ CFLAGS += -O2 -I$(RTC_DIR)/include -I$(RTC_DIR)/vendor/mbedtls/include -DMBEDTLS
 EXTRA := $(OUT)/rtc_rtc.o $(OUT)/rtc_stun.o $(OUT)/rtc_sctp.o $(OUT)/rtc_runtime.o $(patsubst $(RTC_DIR)/vendor/mbedtls/library/%.c,$(OUT)/mbed/%.o,$(wildcard $(RTC_DIR)/vendor/mbedtls/library/*.c))
 else ifeq ($(MODE),stream)
 OUT := build/stream
-TARGET := bx-rp-stream-v12.elf
+TARGET := bx-rp-stream-v13.elf
 MAIN := stream_main
+CFLAGS += -DBX_STREAM_PUSH
 EXTRA := $(OUT)/ws_client.o $(OUT)/stream_state.o
 ifndef STREAM_CURL_DIR
 $(error STREAM_CURL_DIR must point to the verified patched curl archive for v10)

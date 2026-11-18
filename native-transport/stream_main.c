@@ -1,4 +1,4 @@
-/* v10 persistent transport candidate. Same local-only bridge and config as v09.
+/* v13 persistent transport candidate. Same local-only bridge and config as v09.
  * TLS remains verified. Disconnect resets sockets; commands are never replayed. */
 #include "bridge.h"
 #include "socket_adapter.h"
@@ -17,14 +17,14 @@
 #define LIMIT (256u*1024u)
 #define STOP "/data/bx-rp-transport.stop"
 static uint8_t outgoing[LIMIT],tx[LIMIT],incoming[LIMIT];
-static size_t used=16;static unsigned count;static BXStreamState state;
+static size_t used=16;static unsigned count,push_messages;static BXStreamState state;
 static uint32_t rd(const uint8_t *p){return p[0]|((uint32_t)p[1]<<8)|((uint32_t)p[2]<<16)|((uint32_t)p[3]<<24);}
 static void wr(uint8_t *p,uint32_t n){p[0]=(uint8_t)n;p[1]=(uint8_t)(n>>8);p[2]=(uint8_t)(n>>16);p[3]=(uint8_t)(n>>24);}
 static uint64_t now_ms(void){struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return (uint64_t)t.tv_sec*1000+(uint64_t)t.tv_nsec/1000000;}
 static int stopped(void){struct stat st;return stat(STOP,&st)==0;}
 static void empty(void){used=16;count=0;memcpy(outgoing,"BXN1",4);}
 static int emit(void *ctx,const uint8_t *p,size_t n){(void)ctx;if(n>LIMIT-used-4||count>=1024)return 0;wr(outgoing+used,(uint32_t)n);used+=4;memcpy(outgoing+used,p,n);used+=n;count++;return 1;}
-static void report(const char *phase,int code){FILE *f=fopen("/data/bx-rp-transport-report.txt.tmp","w");if(!f)return;fprintf(f,"BX persistent transport candidate\nbuild=v12\ntransport=wss-pipeline\nphase=%s\nerror_code=%d\nclock_ms=%llu\nstream_rtt_ms=%u\ninflight=%u\nqueue_bytes=%zu\nphysicalValidation=required\n",phase,code,(unsigned long long)now_ms(),state.rtt_ms,state.pending,used);fclose(f);rename("/data/bx-rp-transport-report.txt.tmp","/data/bx-rp-transport-report.txt");}
+static void report(const char *phase,int code){FILE *f=fopen("/data/bx-rp-transport-report.txt.tmp","w");if(!f)return;fprintf(f,"BX persistent transport candidate\nbuild=v13\ntransport=wss-pipeline\nphase=%s\nerror_code=%d\nclock_ms=%llu\nstream_rtt_ms=%u\ninflight=%u\nqueue_bytes=%zu\npush_messages=%u\nphysicalValidation=required\n",phase,code,(unsigned long long)now_ms(),state.rtt_ms,state.pending,used,push_messages);fclose(f);rename("/data/bx-rp-transport-report.txt.tmp","/data/bx-rp-transport-report.txt");}
 static int config(BXPairConfig *cfg){char text[1024]={0};FILE *f=fopen("/user/data/bx-rp-transport.cfg","rb");size_t n;int valid;if(!f)return 0;n=fread(text,1,sizeof(text)-1,f);valid=!ferror(f)&&n>0&&n<sizeof(text)-1;fclose(f);if(valid)valid=bx_pair_parse_config(text,cfg);memset(text,0,sizeof(text));return valid;}
 int main(void){BXPairConfig cfg;BXBridge bridge;BXWebSocket ws;char url[256],roots[sizeof(bx_tls_root_0)+sizeof(bx_tls_root_1)];int net=0;
  bx_stream_init(&state);empty();report("payload_entered",0);
@@ -45,7 +45,8 @@ int main(void){BXPairConfig cfg;BXBridge bridge;BXWebSocket ws;char url[256],roo
    for(unsigned budget=0;budget<16;budget++){
     if(!held){
     result=bx_ws_receive(&ws,incoming,sizeof(incoming),&received);if(result<0){connected=0;break;}if(!result)break;
-    result=bx_stream_response(&state,incoming,received,now);if(result<0){report("invalid_stream_response",0);connected=0;break;}
+    if(received>=16&&rd(incoming+4)&&rd(incoming+8)==0){result=bx_stream_push(&state,incoming,received);if(result>0)push_messages++;}
+    else result=bx_stream_response(&state,incoming,received,now);if(result<0){report("invalid_stream_response",0);connected=0;break;}
     if(!result){bx_bridge_close(&bridge);bx_bridge_init(&bridge,&bx_socket_ops,NULL,emit);empty();if(!tx_at)tx_size=0;last_send=now;report("relay_idle",0);continue;}
     held=1;held_at=16;held_index=0;
     }

@@ -9,12 +9,13 @@ class WebSocketTests(unittest.TestCase):
   for name in ['trusted','untrusted']:
    subprocess.run(['openssl','req','-x509','-newkey','rsa:2048','-nodes','-keyout',str(cls.root/(name+'.key')),'-out',str(cls.root/(name+'.pem')),'-days','1','-subj','/CN=localhost','-addext','subjectAltName=DNS:localhost'],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
   base=Path(__file__).resolve().parents[1];prefix=Path(os.environ['BX_HOST_CURL_PREFIX']);cls.exe=cls.root/'driver'
-  subprocess.run(['cc','-DBX_WS_TEST_DIAGNOSTICS','-std=c11','-Wall','-Wextra','-Wno-misleading-indentation','-I'+str(prefix/'include'),str(base/'ws_client.c'),str(base/'https_client.c'),str(base/'tests/ws_driver.c'),str(prefix/'lib/libcurl.a'),'-lssl','-lcrypto','-lpthread','-ldl','-o',str(cls.exe)],check=True)
+  subprocess.run(['cc','-DBX_STREAM_PUSH','-DBX_WS_TEST_DIAGNOSTICS','-std=c11','-Wall','-Wextra','-Wno-misleading-indentation','-I'+str(prefix/'include'),str(base/'ws_client.c'),str(base/'https_client.c'),str(base/'tests/ws_driver.c'),str(prefix/'lib/libcurl.a'),'-lssl','-lcrypto','-lpthread','-ldl','-o',str(cls.exe)],check=True)
   class Handler(http.server.BaseHTTPRequestHandler):
    protocol_version="HTTP/1.1"
    def log_message(self,*args):pass
    def do_GET(self):
     if self.headers.get('Authorization')!='Bearer '+'a'*64:self.send_error(401);return
+    if self.headers.get('X-BX-Downlink')!='push-v1':cls.errors.append('missing push negotiation');self.send_error(400);return
     accept=base64.b64encode(hashlib.sha1((self.headers['Sec-WebSocket-Key']+'258EAFA5-E914-47DA-95CA-C5AB0DC85B11').encode()).digest()).decode()
     self.close_connection=True;self.send_response(101);self.send_header('Upgrade','websocket');self.send_header('Connection','Upgrade');self.send_header('Sec-WebSocket-Accept',accept);self.end_headers();self.connection.settimeout(15)
     def exact(n):

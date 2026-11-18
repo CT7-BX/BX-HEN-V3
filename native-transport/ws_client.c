@@ -10,6 +10,9 @@ int bx_ws_open(BXWebSocket *w,const char *url,const char *token,const char *ca,s
  for(i=0;i<64;i++)if(!((token[i]>='0'&&token[i]<='9')||(token[i]>='a'&&token[i]<='f')))return 0;
  if(!bx_https_init(&w->tls,ca,ca_size))return 0;easy=w->tls.handle;w->tls.stage="wss_options";
  snprintf(auth,sizeof(auth),"Authorization: Bearer %s",token);headers=curl_slist_append(NULL,auth);memset(auth,0,sizeof(auth));if(!headers){w->tls.code=CURLE_OUT_OF_MEMORY;return 0;}
+#ifdef BX_STREAM_PUSH
+ {struct curl_slist *next=curl_slist_append(headers,"X-BX-Downlink: push-v1");if(!next){curl_slist_free_all(headers);w->tls.code=CURLE_OUT_OF_MEMORY;return 0;}headers=next;}
+#endif
  roots.data=w->tls.ca;roots.len=w->tls.ca_size;roots.flags=CURL_BLOB_COPY;
 #define SET(option,value) do {w->tls.code=curl_easy_setopt(easy,option,value);if(w->tls.code!=CURLE_OK)goto done;}while(0)
  SET(CURLOPT_URL,url);SET(CURLOPT_PROXY,"");SET(CURLOPT_PROTOCOLS_STR,"wss");SET(CURLOPT_REDIR_PROTOCOLS_STR,"wss");SET(CURLOPT_FOLLOWLOCATION,0L);
