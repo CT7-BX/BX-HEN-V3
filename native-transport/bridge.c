@@ -12,8 +12,10 @@ static void write32(uint8_t *p, uint32_t n) {
 }
 static int output(BXBridge *b, unsigned type, uint32_t id, int fd,
                   int a, int error, uint32_t extra, const void *data, size_t length) {
-    uint8_t packet[BX_BRIDGE_HEADER+BX_BRIDGE_MAX_PAYLOAD]={0};
     if(b->failed || length>BX_BRIDGE_MAX_PAYLOAD || (!data && length))return 0;
+    /* Bound before allocation; initialize only the header, then copy all payload. */
+    uint8_t packet[BX_BRIDGE_HEADER+length];
+    memset(packet,0,BX_BRIDGE_HEADER);
     packet[0]=(uint8_t)type; write32(packet+4,id);write32(packet+8,(uint32_t)fd);
     write32(packet+12,(uint32_t)a);write32(packet+16,(uint32_t)error);
     write32(packet+20,extra);write32(packet+24,(uint32_t)length);
