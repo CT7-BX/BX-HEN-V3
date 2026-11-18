@@ -35,3 +35,8 @@ test('regional routing moves all transport endpoints together without putting cr
 test('valid relay traffic renews expiry but a fully expired session cannot be revived',async()=>{
  const {r,call}=room();try{const s=await(await call('/session','POST',PLAYER)).json();r.session.socket={readyState:1,send(){},close(){}};r.session.expiresAt=Date.now()+100;await call('/exchange','POST',CONSOLE,frame(0,1));assert.ok(r.session.expiresAt>Date.now()+3500000);r.session.expiresAt=Date.now()-1;const response=await call('/exchange','POST',CONSOLE,frame(s.epoch,2));assert.equal(parse(await response.arrayBuffer()).epoch,0);assert.equal(r.session,null);}finally{r.close();}
 });
+
+test('expiry timer follows renewed deadline and ignores a replaced session',()=>{
+ const {r}=room(),oldTimer=globalThis.setTimeout,oldNow=Date.now;let now=1000,timers=[];globalThis.setTimeout=(fn,ms)=>{timers.push({fn,ms});return undefined;};Date.now=()=>now;
+ try{const s={expiresAt:2000};r.session=s;r.armExpiry(s);assert.equal(timers[0].ms,1000);now=1500;r.touch(s);now=2000;timers[0].fn();assert.equal(r.session,s);assert.equal(timers.length,2);assert.equal(timers[1].ms,3599500);const replacement={expiresAt:now+5000};r.session=replacement;timers[1].fn();assert.equal(r.session,replacement);r.session=s;now=s.expiresAt;timers[1].fn();assert.equal(r.session,null);}finally{r.close();globalThis.setTimeout=oldTimer;Date.now=oldNow;}
+});
