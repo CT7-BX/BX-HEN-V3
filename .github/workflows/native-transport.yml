@@ -53,7 +53,9 @@ jobs:
       - name: Apply bounded relay authentication patch
         run: python3 wasm-client/patch-auth.py _chiaki
       - name: Reproduce queue pressure and disconnect wakeups on patched client
-        run: python3 wasm-client/test-queue-patch.py _chiaki
+        run: |
+          python3 wasm-client/test-queue-patch.py _chiaki
+          python3 wasm-client/test-video-recovery.py _chiaki
       - uses: mymindstorm/setup-emsdk@v14
         with:
           version: '3.1.74'

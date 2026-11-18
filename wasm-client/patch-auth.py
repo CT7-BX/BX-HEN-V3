@@ -99,3 +99,6 @@ p.write_text(s)
 # Debug formatting/hexdumps must not synchronously proxy to the UI during play.
 p=root/'wasm/src/chiaki_wasm.c';s=p.read_text();old='CHIAKI_LOG_ALL & ~CHIAKI_LOG_VERBOSE';assert s.count(old)==1
 s=s.replace(old,'CHIAKI_LOG_ERROR | CHIAKI_LOG_WARNING | CHIAKI_LOG_INFO');p.write_text(s)
+# Use the pinned receiver's existing one-request-until-IDR FEC recovery path.
+p=root/'wasm/src/chiaki_wasm.c';s=p.read_text();needle='\tconnect_info.video_profile_auto_downgrade = true;';assert s.count(needle)==1
+s=s.replace(needle,needle+'\n\tconnect_info.enable_idr_on_fec_failure = true;');p.write_text(s)
