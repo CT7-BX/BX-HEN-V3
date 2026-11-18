@@ -1,0 +1,255 @@
+name: BX Native Remote Play — transport and WASM
+on:
+  pull_request:
+    paths: ['native-transport/**', 'wasm-client/**', 'native-pair/pair_config.*', 'native-pair/pair_protocol.*', 'ps4-agent/tools/make_icon.py', 'relay/native-stream-server.mjs', 'relay/tests/native-stream-server.test.mjs', '.github/workflows/native-transport.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  transport-tests:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install host TLS test dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends libcurl4-openssl-dev libssl-dev
+      - name: Build pinned host WebSocket TLS test library
+        run: |
+          curl --fail --location --retry 3 -o /tmp/curl.tar.xz https://curl.se/download/curl-8.13.0.tar.xz
+          echo '4a093979a3c2d02de2fbc00549a32771007f2e78032c6faa5ecd2f7a9e152025  /tmp/curl.tar.xz' | sha256sum -c -
+          tar -xJf /tmp/curl.tar.xz -C /tmp
+          python3 native-transport/patch-curl-ws.py /tmp/curl-8.13.0
+          cd /tmp/curl-8.13.0
+          ./configure --prefix=/tmp/bx-host-curl --enable-websockets --disable-shared --with-openssl --without-libpsl --without-zstd --without-brotli --without-zlib --disable-ldap --disable-ldaps --disable-docs --disable-manual
+          make -j2 install > /tmp/bx-curl-build.log 2>&1 || { tail -80 /tmp/bx-curl-build.log; exit 1; }
+          echo 'BX_HOST_CURL_PREFIX=/tmp/bx-host-curl' >> "$GITHUB_ENV"
+      - name: Install existing relay WebSocket dependency
+        run: npm install --prefix relay --ignore-scripts --no-package-lock
+      - name: Validate binary protocol and partial writes
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -pedantic native-transport/bridge.c native-transport/tests/bridge_test.c -o /tmp/bridge-test
+          /tmp/bridge-test
+          cc -std=c11 -Wall -Wextra -Werror -pedantic -fsanitize=address,undefined native-transport/bridge.c native-transport/tests/bridge_output_test.c -o /tmp/bridge-output-test
+          /tmp/bridge-output-test
+          cc -std=c11 -Wall -Wextra -Werror -pedantic native-transport/account_id.c native-transport/tests/account_id_test.c -o /tmp/account-test
+          /tmp/account-test
+          cc -std=c11 -Wall -Wextra -Werror -pedantic native-transport/stream_state.c native-transport/tests/stream_state_test.c -o /tmp/stream-state-test
+          /tmp/stream-state-test
+          cc -std=c11 -Wall -Wextra -Werror -pedantic wasm-client/net-queue-test.c -o /tmp/net-queue-test
+          /tmp/net-queue-test
+          node --test native-transport/relay/*.test.mjs wasm-client/*.test.cjs relay/tests/native-stream-server.test.mjs
+          python3 -m unittest discover -s native-transport/tests -p 'test_*.py' -v
+  wasm:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch pinned Remote Play client and required submodules
+        run: |
+          git clone --no-checkout https://github.com/CSystem77/Chiaki-NG-Web.git _chiaki
+          git -C _chiaki checkout 70669b47a16376768001db229e3e8c3baf3e5238
+          git -C _chiaki submodule update --init --recursive third-party/nanopb third-party/jerasure third-party/gf-complete
+          test "$(git -C _chiaki rev-parse HEAD)" = "70669b47a16376768001db229e3e8c3baf3e5238"
+      - name: Apply bounded relay authentication patch
+        run: python3 wasm-client/patch-auth.py _chiaki
+      - name: Reproduce queue pressure and disconnect wakeups on patched client
+        run: |
+          python3 wasm-client/test-queue-patch.py _chiaki
+          python3 wasm-client/test-video-recovery.py _chiaki
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '3.1.74'
+      - name: Build real Remote Play WASM client
+        run: bash _chiaki/scripts/build-wasm.sh
+      - name: Include complete checked-out client source and license
+        run: |
+          mkdir -p _client
+          cp _chiaki/build-wasm/wasm/chiaki.js _chiaki/build-wasm/wasm/chiaki.wasm _client/
+          if test -f _chiaki/build-wasm/wasm/chiaki.worker.js; then cp _chiaki/build-wasm/wasm/chiaki.worker.js _client/; fi
+          cp _chiaki/COPYING _client/CHIAKI-COPYING
+          cp wasm-client/upstream.json _client/
+          cp wasm-client/www/* _client/
+          tar --exclude='.git' --exclude='build-wasm' --exclude='tools' -czf _client/chiaki-corresponding-source.tar.gz -C _chiaki .
+          cd _client
+          sha256sum chiaki.js chiaki.wasm chiaki-corresponding-source.tar.gz > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bx-real-remoteplay-wasm-experimental
+          path: _client/
+          if-no-files-found: error
+
+  native-elf:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download verified OpenOrbis SDK
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends clang-18 lld-18 llvm-18 unzip
+          sudo ln -sf /usr/bin/clang-18 /usr/local/bin/clang
+          sudo ln -sf /usr/bin/ld.lld-18 /usr/local/bin/ld.lld
+          curl --fail --location --retry 3 -o /tmp/sdk.tar.gz https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.4/toolchain-llvm-18.tar.gz
+          echo '3c7cd5bb593ca74fa1c13fd59f3938dc0fc07985167f7275063019e63abe4526  /tmp/sdk.tar.gz' | sha256sum -c -
+          mkdir -p /tmp/openorbis
+          tar -xzf /tmp/sdk.tar.gz -C /tmp/openorbis
+          echo "OO_PS4_TOOLCHAIN=/tmp/openorbis/OpenOrbis/PS4Toolchain" >> "$GITHUB_ENV"
+      - name: Install pinned payload SDK and 13.52 startup
+        run: |
+          curl --fail --location --retry 3 -o /tmp/payload-sdk.zip https://github.com/ps4-payload-dev/sdk/releases/download/v0.9/ps4-payload-sdk.zip
+          echo '3190e88255a72161e5ce2f22a8ae8f638a2c5a9d1ff1e0209ed692d36b4d9ec5  /tmp/payload-sdk.zip' | sha256sum -c -
+          unzip -q /tmp/payload-sdk.zip -d /tmp
+          git clone https://github.com/ps4-payload-dev/sdk.git /tmp/payload-sdk-source
+          git -C /tmp/payload-sdk-source checkout 573b4a0d0d5fa8695cfeee5f5e2f0447c550035d
+          make -C /tmp/payload-sdk-source/crt LLVM_CONFIG=llvm-config-18 DESTDIR=/tmp/ps4-payload-sdk install
+          ln -sf /usr/bin/clang-18 /tmp/ps4-payload-sdk/bin/clang
+          ln -sf /usr/bin/clang++-18 /tmp/ps4-payload-sdk/bin/clang++
+          ln -sf /usr/bin/ld.lld-18 /tmp/ps4-payload-sdk/bin/ld.lld
+          chmod +x /tmp/ps4-payload-sdk/bin/orbis-*
+          echo "PS4_PAYLOAD_SDK=/tmp/ps4-payload-sdk" >> "$GITHUB_ENV"
+          echo "LLVM_CONFIG=/usr/bin/llvm-config-18" >> "$GITHUB_ENV"
+      - name: Install verified payload TLS libraries
+        run: |
+          curl --fail --location --retry 3 -o /tmp/payload-libs.tar.gz https://github.com/ps4-payload-dev/pacbrew/releases/download/v0.3.3/ps4-payload-dev.tar.gz
+          echo '4664f8e80208fca2a1ab6869e37b003aee8622a3c7685142908304ae395943b2  /tmp/payload-libs.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/payload-libs.tar.gz --strip-components=2 -C /tmp/ps4-payload-sdk opt/ps4-payload-sdk/target/user/homebrew
+      - name: Build persistent transport curl with fragmentation fix
+        run: |
+          curl --fail --location --retry 3 -o /tmp/curl.tar.xz https://curl.se/download/curl-8.13.0.tar.xz
+          echo '4a093979a3c2d02de2fbc00549a32771007f2e78032c6faa5ecd2f7a9e152025  /tmp/curl.tar.xz' | sha256sum -c -
+          tar -xJf /tmp/curl.tar.xz -C /tmp
+          python3 native-transport/patch-curl-ws.py /tmp/curl-8.13.0
+          for tool in ar nm ranlib strip; do ln -sf "/usr/bin/llvm-$tool-18" "$PS4_PAYLOAD_SDK/bin/llvm-$tool"; done
+          source "$PS4_PAYLOAD_SDK/toolchain/orbis.sh"
+          cd /tmp/curl-8.13.0
+          CPPFLAGS="-I$PS4_PAYLOAD_SDK/target/user/homebrew/include" ./configure --host=x86_64-pc-freebsd --prefix=/user/homebrew --enable-websockets --enable-static --disable-shared --with-openssl="$PS4_PAYLOAD_SDK/target/user/homebrew" --without-libpsl --without-zstd --without-brotli --without-zlib --disable-ldap --disable-ldaps --disable-docs --disable-manual --without-ca-bundle --without-ca-path
+          make -C lib -j2 > /tmp/bx-ps4-curl-build.log 2>&1 || { tail -80 /tmp/bx-ps4-curl-build.log; exit 1; }
+          mkdir -p "$GITHUB_WORKSPACE/native-transport/build/stream-tls"
+          cp lib/.libs/libcurl.a "$GITHUB_WORKSPACE/native-transport/build/stream-tls/"
+      - name: Fetch verified free direct RTC source
+        run: python3 native-transport/direct/fetch-source.py native-transport/build/direct/deps
+      - name: Compile real PS4 socket transport ELF
+        run: |
+          make -C native-transport
+          make -C native-transport -f payload.mk MODE=stream STREAM_CURL_DIR=build/stream-tls
+          make -C native-transport -f payload.mk MODE=direct
+          readelf -d native-transport/bx-rp-direct-v11.elf > native-transport/direct-dynamic.txt
+          if grep -qE "libSce(Ssl|Http|Pad|UserService)" native-transport/direct-dynamic.txt; then exit 1; fi
+          sha256sum native-transport/bx-rp-direct-v11.elf > native-transport/direct.sha256
+          mkdir -p native-transport/build/direct/deps/bx-source/native-transport native-transport/build/direct/deps/bx-source/native-pair
+          cp native-transport/direct_main.c native-transport/bridge.* native-transport/socket_adapter.* native-transport/https_client.* native-transport/tls_roots.h native-transport/payload.mk native-transport/COPYING native-transport/build/direct/deps/bx-source/native-transport/
+          cp -R native-transport/direct native-transport/build/direct/deps/bx-source/native-transport/
+          cp native-pair/pair_config.* native-pair/pair_protocol.* native-transport/build/direct/deps/bx-source/native-pair/
+          tar -czf native-transport/direct-corresponding-source.tar.gz -C native-transport/build/direct/deps .
+          readelf -d native-transport/bx-rp-stream-v15.elf > native-transport/stream-dynamic.txt
+          if grep -qE "libSce(Ssl|Http)" native-transport/stream-dynamic.txt; then exit 1; fi
+          sha256sum native-transport/bx-rp-stream-v15.elf > native-transport/stream.sha256
+          readelf -h native-transport/bx-rp-transport.elf
+          readelf -d native-transport/bx-rp-transport.elf | tee native-transport/payload-dynamic.txt
+          grep -q libSceLibcInternal native-transport/payload-dynamic.txt
+          if grep -qE "libSce(Ssl|Http)" native-transport/payload-dynamic.txt; then echo "Unexpected native HTTP/TLS dependency"; exit 1; fi
+          cp native-transport/COPYING native-transport/PAYLOAD-SDK-COPYING
+          tar --exclude=.git -czf native-transport/payload-sdk-corresponding-source.tar.gz -C /tmp/payload-sdk-source .
+          sha256sum native-transport/bx-rp-transport.elf > native-transport/transport.sha256
+      - name: Include corresponding TLS source and license archives
+        run: |
+          python3 native-transport/fetch-tls-sources.py /tmp/bx-tls-sources
+          git clone https://github.com/ps4-payload-dev/pacbrew.git /tmp/bx-tls-sources/pacbrew-recipes
+          git -C /tmp/bx-tls-sources/pacbrew-recipes checkout e86e8d85365769aeab4aac2672635b71e66a76fd
+          cp native-transport/patch-curl-ws.py /tmp/bx-tls-sources/
+          cp native-transport/STREAM-V10.md /tmp/bx-tls-sources/
+          tar --exclude=.git -czf native-transport/tls-corresponding-source.tar.gz -C /tmp/bx-tls-sources .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bx-native-payload-sdk-build
+          path: |
+            native-transport/bx-rp-transport.elf
+            native-transport/transport.sha256
+            native-transport/bx-rp-stream-v15.elf
+            native-transport/stream.sha256
+            native-transport/stream-dynamic.txt
+            native-transport/bx-rp-direct-v11.elf
+            native-transport/direct.sha256
+            native-transport/direct-dynamic.txt
+            native-transport/direct-corresponding-source.tar.gz
+            native-transport/PAYLOAD-SDK-COPYING
+            native-transport/payload-sdk-corresponding-source.tar.gz
+            native-transport/tls-corresponding-source.tar.gz
+            native-transport/payload-dynamic.txt
+          if-no-files-found: error
+
+  package-native:
+    needs: native-elf
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: bx-native-payload-sdk-build
+          path: native-transport
+      - name: Verify separately compiled payload
+        run: |
+          sha256sum -c native-transport/transport.sha256
+          touch native-transport/bx-rp-transport.elf
+      - name: Prepare OpenOrbis app packaging environment
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends clang lld
+          curl --fail --location --retry 3 -o /tmp/sdk.tar.gz https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.4/toolchain-llvm-18.tar.gz
+          echo '3c7cd5bb593ca74fa1c13fd59f3938dc0fc07985167f7275063019e63abe4526  /tmp/sdk.tar.gz' | sha256sum -c -
+          mkdir -p /tmp/openorbis
+          tar -xzf /tmp/sdk.tar.gz -C /tmp/openorbis
+          echo "OO_PS4_TOOLCHAIN=/tmp/openorbis/OpenOrbis/PS4Toolchain" >> "$GITHUB_ENV"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Package standalone installer with embedded payload
+        env:
+          DOTNET_ROLL_FORWARD: Major
+          DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: '1'
+        run: |
+          mkdir -p native-transport/sce_sys/about native-transport/sce_module
+          for item in 'right.sprx:sce_sys/about/right.sprx' 'libc.prx:sce_module/libc.prx' 'libSceFios2.prx:sce_module/libSceFios2.prx'; do
+            IFS=: read -r name destination <<< "$item"
+            source="$(find "$OO_PS4_TOOLCHAIN" -type f -name "$name" -print -quit)"
+            test -n "$source"
+            cp "$source" "native-transport/$destination"
+          done
+          python3 ps4-agent/tools/make_icon.py native-transport/sce_sys/icon0.png
+          make -C native-transport pkg
+          "$OO_PS4_TOOLCHAIN/bin/linux/PkgTool.Core" pkg_validate native-transport/IV0000-BRPM00002_00-BXNATIVESTREAM01.pkg
+          sha256sum native-transport/*.pkg >> native-transport/transport.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bx-native-remoteplay-transport-untested
+          path: |
+            native-transport/bx-rp-transport.elf
+            native-transport/transport.sha256
+            native-transport/*.pkg
+            native-transport/PAYLOAD-SDK-COPYING
+            native-transport/payload-sdk-corresponding-source.tar.gz
+            native-transport/tls-corresponding-source.tar.gz
+            native-transport/payload-dynamic.txt
+          if-no-files-found: error
+
+  direct-host:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build pinned native DTLS/SCTP fixture
+        run: |
+          python3 native-transport/direct/fetch-source.py native-transport/build/direct/deps
+          python3 native-transport/direct/build-host.py
+      - name: Install pinned browser test runtime
+        run: |
+          npm install --prefix /tmp/bx-direct-playwright --ignore-scripts --no-package-lock playwright@1.62.1
+          node /tmp/bx-direct-playwright/node_modules/playwright/cli.js install --with-deps chromium
+      - name: Verify real browser to native binary WebRTC over UDP
+        env:
+          BX_TEST_NODE_MODULES: /tmp/bx-direct-playwright/node_modules
+        run: node native-transport/direct/browser-test.mjs
