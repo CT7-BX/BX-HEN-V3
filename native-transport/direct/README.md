@@ -14,7 +14,7 @@ https://github.com/MoHadiShibli/Control4Free . The exact source archive is SHA25
 `fetch-source.py` imports only RTC, STUN, SCTP, their headers and the bundled
 Mbed TLS 3.6 source/configuration (Apache-2.0). No controller/HEN code is built.
 Changes add bounded binary records, a one-peer limit, longer idle tolerance,
-queue budget/RTT helpers and a 65535-byte message limit. Upstream licenses,
+queue budget/RTT helpers, a bounded fingerprint formatter and a 65535-byte message limit. Upstream licenses,
 original archive and modified sources accompany the ELF artifact.
 
 Build:

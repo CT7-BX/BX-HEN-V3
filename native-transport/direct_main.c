@@ -6,6 +6,8 @@
 #include "https_client.h"
 #include "../native-pair/pair_config.h"
 #include "c4f_rtc.h"
+#include <orbis/Ssl.h>
+#include <sys/socket.h>
 #include "tls_roots.h"
 #include <arpa/inet.h>
 #include <fcntl.h>

@@ -36,6 +36,7 @@ s=s.replace(old,'''    /* BX: binary socket records never pass through string or
         return;
     }
 '''+old)
+s=s.replace('snprintf(rtc->fingerprint + 3 * i, 4,', 'snprintf(rtc->fingerprint + 3 * i, sizeof(rtc->fingerprint) - 3u * (unsigned)i,')
 s+='''
 /* BX adapters. Queue bounds stay below upstream's 256 KiB / 512 chunks. */
 int bxRtcBinary(C4fConn *conn,const void *data,size_t size) {
